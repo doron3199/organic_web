@@ -54,16 +54,37 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject }:
 
                             {isExpanded && (
                                 <div className="sub-subject-list">
-                                    {subject.subSubjects.map(sub => (
-                                        <div
-                                            key={sub.id}
-                                            className={`sub-subject-item ${currentSubSubjectId === sub.id ? 'active' : ''}`}
-                                            onClick={() => onSelectSubSubject(subject, sub)}
-                                        >
-                                            <div className="status-dot">
-                                                {sub.rules.every(r => r.unlocked) ? '●' : '○'}
-                                            </div>
-                                            <span className="sub-name">{sub.name}</span>
+                                    {Object.entries(subject.subSubjects.reduce((acc, sub) => {
+                                        const key = sub.section || 'General';
+                                        if (!acc[key]) acc[key] = [];
+                                        acc[key].push(sub);
+                                        return acc;
+                                    }, {} as Record<string, SubSubject[]>)).map(([section, subs]) => (
+                                        <div key={section} className="curriculum-section-group">
+                                            {section !== 'General' && (
+                                                <div className="section-header" style={{
+                                                    color: '#858585',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 'bold',
+                                                    textTransform: 'uppercase',
+                                                    margin: '12px 0 4px 16px',
+                                                    letterSpacing: '1px'
+                                                }}>
+                                                    {section}
+                                                </div>
+                                            )}
+                                            {subs.map(sub => (
+                                                <div
+                                                    key={sub.id}
+                                                    className={`sub-subject-item ${currentSubSubjectId === sub.id ? 'active' : ''}`}
+                                                    onClick={() => onSelectSubSubject(subject, sub)}
+                                                >
+                                                    <div className="status-dot">
+                                                        {sub.rules.every(r => r.unlocked) ? '●' : '○'}
+                                                    </div>
+                                                    <span className="sub-name">{sub.name}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     ))}
                                 </div>

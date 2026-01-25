@@ -121,11 +121,12 @@
 }
 
 .molecule-label {
-    margin-top: 10px;
-    font-weight: 600;
-    color: var(--text-muted);
+    margin-top: 1rem;
+    color: var(--accent-secondary);
     font-family: 'Segoe UI', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
+    text-align: center;
+    letter-spacing: 0.5px;
 }
 
 /* Workbench Mode Styles */

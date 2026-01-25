@@ -2,13 +2,13 @@
     position: relative;
     display: inline-block;
     background-color: var(--bg-dark);
-    /* Card background */
-    padding: 10px;
+    /* No padding to match SVG */
     border-radius: 8px;
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s;
     margin: 10px;
+    overflow: hidden;
 }
 
 .molecule-viewer-container:hover {
@@ -18,16 +18,17 @@
 }
 
 .molecule-canvas {
-    width: 250px;
-    height: 150px;
-    display: block;
+    display: flex;
+    /* Removes whitespace */
+    justify-content: center;
+    background: black;
+    /* Match inverted SVG background */
 }
 
 .molecule-canvas svg {
     /* Invert colors: White bg -> Black, Black lines -> White */
-    /* Hue rotate preserves colors like Red (Oxygen) roughly correct after inversion */
     filter: invert(1) hue-rotate(180deg);
-    border-radius: 4px;
+    display: block;
 }
 
 .edit-overlay-btn {

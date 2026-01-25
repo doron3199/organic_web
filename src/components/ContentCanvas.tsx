@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { Subject } from '../data/curriculum' // SubSubject imported but used in inner scope
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import MoleculeViewer from './MoleculeViewer'
 import MoleculeEditor from './MoleculeEditor'
+import Cheatsheet from './Cheatsheet'
 import './ContentCanvas.css'
 
 interface ContentCanvasProps {
     subject: Subject
-    mode: 'study' | 'workbench'
-    onSwitchMode: (mode: 'study' | 'workbench') => void
+    mode: 'study' | 'workbench' | 'cheatsheet'
+    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet') => void
     workbenchMolecule: string
+    originalMolecule?: string
     onWorkbenchChange: (smiles: string) => void
     onLoadExample: (smiles: string) => void
     onNameMolecule: (smiles: string) => string
@@ -23,6 +27,7 @@ function ContentCanvas({
     mode,
     onSwitchMode,
     workbenchMolecule,
+    originalMolecule,
     onWorkbenchChange,
     onLoadExample,
     onNameMolecule,
@@ -106,7 +111,13 @@ function ContentCanvas({
                     className={`mode-btn ${mode === 'workbench' ? 'active' : ''}`}
                     onClick={() => onSwitchMode('workbench')}
                 >
-                    🧪 Workbench
+                    🔬 Workbench
+                </button>
+                <button
+                    className={`mode-btn ${mode === 'cheatsheet' ? 'active' : ''}`}
+                    onClick={() => onSwitchMode('cheatsheet')}
+                >
+                    🧪 Cheatsheet
                 </button>
             </div>
 
@@ -115,58 +126,101 @@ function ContentCanvas({
                 {mode === 'study' ? (
                     <div id="study-scroll-container" className="study-container fade-in" ref={containerRef}>
                         {/* Iterating over ALL sub-subjects */}
-                        {subject.subSubjects.map((subSubject) => (
-                            <div
-                                key={subSubject.id}
-                                id={`section-${subSubject.id}`}
-                                className="topic-section"
-                                data-subsubject-id={subSubject.id}
-                            >
-                                <h1 className="topic-title">{subSubject.name}</h1>
+                        {/* Iterating over ALL sub-subjects */}
+                        {subject.subSubjects.map((subSubject, index) => {
+                            const prevSub = index > 0 ? subject.subSubjects[index - 1] : null
+                            const showSectionHeader = subSubject.section && (index === 0 || subSubject.section !== prevSub?.section)
 
-                                <div className="topic-content">
-                                    {subSubject.content.split('\n').map((line, idx) => {
-                                        if (line.startsWith('# ')) return <h1 key={idx}>{line.substring(2)}</h1>
-                                        if (line.startsWith('### ')) return <h3 key={idx}>{line.substring(4)}</h3>
-                                        if (line.startsWith('- ')) return <li key={idx}>{line.substring(2)}</li>
-                                        if (line.trim() === '') return <br key={idx} />
-                                        return <p key={idx}>{line}</p>
-                                    })}
-                                </div>
-
-                                <div className="examples-section">
-                                    <h3>Examples</h3>
-                                    <div className="molecules-grid">
-                                        {subSubject.examples.map((ex, idx) => (
-                                            <div key={idx} className="molecule-card">
-                                                <MoleculeViewer
-                                                    smiles={ex.smiles}
-                                                    onEdit={() => handleEditClick(ex.smiles)}
-                                                />
-                                                <div className="molecule-label">{ex.name}</div>
+                            return (
+                                <div
+                                    key={subSubject.id}
+                                    id={`section-${subSubject.id}`}
+                                    className="topic-section"
+                                    data-subsubject-id={subSubject.id}
+                                >
+                                    {showSectionHeader && (
+                                        <div className="section-group-header" style={{
+                                            textAlign: 'center',
+                                            margin: '4rem 0 3rem',
+                                            paddingBottom: '1rem',
+                                            borderBottom: '2px solid var(--border-color)'
+                                        }}>
+                                            <h1 style={{
+                                                fontSize: '2.5rem',
+                                                fontWeight: '800',
+                                                color: 'var(--accent-primary)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '2px',
+                                                margin: 0
+                                            }}>
+                                                {subSubject.section}
+                                            </h1>
+                                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', margin: '0.5rem 0 2rem' }}>
+                                                The systematic set of rules for naming chemical compounds.
+                                            </p>
+                                            <div className="warning-box" style={{
+                                                margin: '0 auto',
+                                                maxWidth: '600px',
+                                                padding: '1rem',
+                                                background: 'rgba(255, 145, 0, 0.1)',
+                                                border: '1px solid var(--warning)',
+                                                borderRadius: '8px',
+                                                color: 'var(--warning)',
+                                                textAlign: 'center',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                ⚠️ <strong>Learning Mode:</strong> The generator only uses rules you have unlocked. The name may be incomplete until you finish all steps!
                                             </div>
-                                        ))}
+                                        </div>
+                                    )}
+
+                                    <h1 className="topic-title">{subSubject.name}</h1>
+
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        className="markdown-content"
+                                    >
+                                        {subSubject.content}
+                                    </ReactMarkdown>
+
+                                    <div className="examples-section">
+                                        <h3>Examples</h3>
+                                        <div className="molecules-grid">
+                                            {subSubject.examples.map((ex, idx) => (
+                                                <div key={idx} className="molecule-card">
+                                                    <MoleculeViewer
+                                                        smiles={ex.smiles}
+                                                        onEdit={() => handleEditClick(ex.smiles)}
+                                                        width={300}
+                                                        height={200}
+                                                    />
+                                                    <div className="molecule-label">{ex.name}</div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
+                                    <hr className="section-divider" />
                                 </div>
-                                <hr className="section-divider" />
-                            </div>
-                        ))}
+                            )
+                        })}
 
                         {/* Padding at bottom for easier scrolling */}
                         <div style={{ height: '200px' }}></div>
                     </div>
+                ) : mode === 'cheatsheet' ? (
+                    <Cheatsheet />
                 ) : (
                     <div className="workbench-container fade-in">
                         <MoleculeEditor
                             onMoleculeChange={onWorkbenchChange}
-                            initialMolecule={workbenchMolecule}
+                            initialMolecule={originalMolecule || workbenchMolecule}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
                         />
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }
 

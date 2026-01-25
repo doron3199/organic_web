@@ -4,34 +4,34 @@
   --bg-secondary: #141824;
   --bg-tertiary: #1a1f2e;
   --bg-elevated: #212838;
-  
+
   --text-primary: #e8eaed;
   --text-secondary: #9aa0a6;
   --text-muted: #5f6368;
-  
+
   --accent-primary: #4fc3f7;
   --accent-secondary: #29b6f6;
   --accent-glow: rgba(79, 195, 247, 0.3);
-  
+
   --border-color: #2d3548;
   --border-hover: #3d4558;
-  
+
   --success: #4caf50;
   --warning: #ff9800;
   --error: #f44336;
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
@@ -162,7 +162,9 @@ button:active {
 }
 
 /* Input Fields */
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: 1rem;
   padding: var(--spacing-sm) var(--spacing-md);
@@ -173,7 +175,9 @@ input, select, textarea {
   transition: all 0.2s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -185,6 +189,7 @@ input:focus, select:focus, textarea:focus {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -196,9 +201,12 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -206,4 +214,75 @@ input:focus, select:focus, textarea:focus {
 
 .pulse {
   animation: pulse 2s ease-in-out infinite;
+}
+
+/* Markdown Content Styling */
+.markdown-content {
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  margin-top: 1.5rem;
+}
+
+.markdown-content p {
+  margin-bottom: 1rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Table Styling */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: var(--bg-secondary);
+  /* Dark card background */
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  /* For border radius */
+  box-shadow: var(--shadow-md);
+}
+
+.markdown-content th {
+  background: var(--bg-elevated);
+  text-align: left;
+  padding: 1rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  /* Neon Blue Header */
+  border-bottom: 2px solid var(--border-color);
+}
+
+.markdown-content td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.markdown-content tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-content tr:hover {
+  background: var(--bg-tertiary);
+  /* Hover effect */
+}
+
+/* Strong/Bold */
+.markdown-content strong {
+  color: var(--accent-secondary);
+  /* Highlight bold text */
+  font-weight: 600;
 }

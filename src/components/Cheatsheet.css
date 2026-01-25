@@ -1,0 +1,300 @@
+.cheatsheet-container {
+    padding: 2rem;
+    max-width: 100%;
+    margin: 0 auto;
+    color: var(--text-primary);
+    height: 100%;
+    overflow-y: auto;
+}
+
+.cs-section {
+    margin-bottom: 3rem;
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.cs-section h2 {
+    color: var(--accent-primary);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Organic Periodic Table */
+.periodic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.element-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.element-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.atomic-number {
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.symbol {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0.5rem 0;
+}
+
+.c-card .symbol {
+    color: #90caf9;
+}
+
+/* Light Blue */
+.h-card .symbol {
+    color: #ffffff;
+}
+
+/* White */
+.n-card .symbol {
+    color: #a5d6a7;
+}
+
+/* Green */
+.o-card .symbol {
+    color: #ef9a9a;
+}
+
+/* Red */
+.x-card .symbol {
+    color: #ce93d8;
+}
+
+/* Purple */
+
+.valence {
+    font-size: 0.9rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+/* Nomenclature Diagram */
+.nomenclature-diagram {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+    gap: 0.5rem;
+}
+
+.nom-part {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.nom-part .label {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.nom-part .question {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.prefix .label {
+    color: #f48fb1;
+}
+
+/* Pink */
+.parent .label {
+    color: #81c784;
+}
+
+/* Green */
+.suffix .label {
+    color: #ffb74d;
+}
+
+/* Orange */
+
+.separator {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    /* Align with label text */
+}
+
+/* Functional Groups */
+.func-groups-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.func-card {
+    background: var(--bg-elevated);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.func-struct {
+    font-family: monospace;
+    font-size: 1.2rem;
+    color: var(--accent-secondary);
+    margin-bottom: 0.3rem;
+}
+
+.func-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.func-note {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+}
+
+/* Layout Columns */
+.cs-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .cs-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tables */
+.cs-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border-color);
+    /* Visible Border */
+    background: var(--bg-elevated);
+    /* Visible Background */
+}
+
+.cs-table th {
+    text-align: left;
+    color: var(--accent-primary);
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-color);
+    padding: 0.75rem;
+    font-weight: 600;
+}
+
+.cs-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    /* Visible Row Divider */
+    border-right: 1px solid var(--border-color);
+    /* Visible col Divider */
+}
+
+.cs-table tr:last-child td {
+    border-bottom: none;
+}
+
+.cs-note {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+/* Molecule Cells in Table handled by Grid now */
+
+/* Alkyl Grid Layout */
+.alkyl-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.alkyl-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.alkyl-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-primary);
+}
+
+.alkyl-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.mol-container,
+.mol-svg-container {
+    height: 160px;
+    position: relative;
+    border-radius: 4px;
+    background: transparent;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hide edit overlay for reference molecules */
+.mol-container .edit-overlay-btn {
+    display: none !important;
+}
+
+.mol-container .molecule-canvas {
+    transform: scale(0.8);
+    transform-origin: center;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.molecule-svg {
+    width: 100%;
+    height: 100%;
+    max-width: 120px;
+    padding: 10px;
+    color: var(--text-primary);
+    /* Sets default stroke current color */
+}
+
+.molecule-svg text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+}

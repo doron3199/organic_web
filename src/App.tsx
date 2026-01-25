@@ -11,13 +11,14 @@ function App() {
     // Layout State
     const [currentSubject, setCurrentSubject] = useState<Subject>(initialCurriculum[0])
     const [currentSubSubject, setCurrentSubSubject] = useState<SubSubject>(initialCurriculum[0].subSubjects[0])
-    const [mode, setMode] = useState<'study' | 'workbench'>('study')
+    const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet'>('study')
 
     // Scroll Control
     const [scrollTargetId, setScrollTargetId] = useState<string | null>(null)
 
     // Workbench State
     const [workbenchMolecule, setWorkbenchMolecule] = useState<string>('')
+    const [originalMolecule, setOriginalMolecule] = useState<string>('')
     const [activeRules, setActiveRules] = useState<Rule[]>([])
     const [appliedRuleIds, setAppliedRuleIds] = useState<string[]>([])
     const [ruleResults, setRuleResults] = useState<Record<string, string>>({})
@@ -67,6 +68,7 @@ function App() {
     // Handler to load an example into the workbench
     const handleLoadExample = (smiles: string) => {
         setWorkbenchMolecule(smiles)
+        setOriginalMolecule(smiles)
         // Loading example automatically switches to workbench in ContentCanvas
     }
 
@@ -77,6 +79,19 @@ function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
     const handleNameMolecule = (smiles: string) => {
+        // Handle multiple molecules (dot-separated)
+        if (smiles.includes('.')) {
+            const parts = smiles.split('.')
+            const names = parts.map((part, index) => {
+                const label = String.fromCharCode(65 + index) // A, B, C...
+                const result = LogicEngine.analyzeMolecule(part, currentSubSubject)
+                // For now, we only update console with the first one or just return names
+                // LogicConsole will likely only show results for one if we don't merge
+                return `${label}: ${result.name || "Unknown"}`
+            })
+            return names.join(',\n')
+        }
+
         const result = LogicEngine.analyzeMolecule(smiles, currentSubSubject)
         setAppliedRuleIds(result.appliedRuleIds)
         setRuleResults(result.ruleResults)
@@ -84,7 +99,7 @@ function App() {
     }
 
     return (
-        <div className={`app-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
+        <div className={`app-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''}`}>
             {/* Left Sidebar: Curriculum */}
             {isSidebarOpen && (
                 <div className="sidebar-left">
@@ -103,6 +118,7 @@ function App() {
                     mode={mode}
                     onSwitchMode={setMode}
                     workbenchMolecule={workbenchMolecule}
+                    originalMolecule={originalMolecule}
                     onWorkbenchChange={handleWorkbenchChange}
                     onLoadExample={handleLoadExample}
                     onNameMolecule={handleNameMolecule}
@@ -114,14 +130,16 @@ function App() {
             </div>
 
             {/* Right Sidebar: Logic Console */}
-            <div className="sidebar-right">
-                <LogicConsole
-                    mode={mode}
-                    activeRules={activeRules}
-                    appliedRuleIds={appliedRuleIds}
-                    ruleResults={ruleResults} // Pass detailed results
-                />
-            </div>
+            {mode !== 'cheatsheet' && (
+                <div className="sidebar-right">
+                    <LogicConsole
+                        mode={mode}
+                        activeRules={activeRules}
+                        appliedRuleIds={appliedRuleIds}
+                        ruleResults={ruleResults} // Pass detailed results
+                    />
+                </div>
+            )}
         </div>
     )
 }

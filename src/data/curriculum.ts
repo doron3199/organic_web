@@ -17,6 +17,7 @@ export interface SubSubject {
     content: string // Markdown or HTML content
     examples: { smiles: string; name: string }[]
     isCompleted?: boolean
+    section?: string
 }
 
 export interface Subject {
@@ -29,16 +30,31 @@ export interface Subject {
 export const initialCurriculum: Subject[] = [
     {
         id: 'alkanes',
-        name: 'Alkanes Masterclass',
+        name: 'Alkanes',
         icon: '🔗',
         subSubjects: [
             {
-                id: 'alkanes-step1-main-chain',
-                name: 'Step 1: The Longest Chain',
+                id: 'alkanes-nomenclature-main-chain',
+                section: 'Nomenclature',
+                name: 'Step 1: Find the Longest Chain',
                 content: `
-# Rule 1: Find the Longest Chain
-
 The foundation of naming any alkane is finding the "Parent Chain". This is the longest continuous line of carbon atoms you can trace without lifting your pen.
+
+### Reference: Carbon Count Names
+Memorize these prefixes! They tell you how many carbons are in the chain.
+
+| # Carbons | Prefix | Alkane Name |
+| :--- | :--- | :--- |
+| 1 | Meth- | Methane |
+| 2 | Eth- | Ethane |
+| 3 | Prop- | Propane |
+| 4 | But- | Butane |
+| 5 | Pent- | Pentane |
+| 6 | Hex- | Hexane |
+| 7 | Hept- | Heptane |
+| 8 | Oct- | Octane |
+| 9 | Non- | Nonane |
+| 10 | Dec- | Decane |
 
 ### How to Apply
 1. Count carbon atoms in every possible path.
@@ -65,10 +81,9 @@ Below are simple straight-chain alkanes. Notice how the name changes with length
             },
             {
                 id: 'alkanes-step2-substituents',
+                section: 'Nomenclature',
                 name: 'Step 2: Identify Substituents',
                 content: `
-# Rule 2: Add an Alkyl Group
-
 Often, you'll find carbon groups branching off the main chain. These are called **substituents** or "alkyl groups".
 
 ### Naming Branches
@@ -104,10 +119,9 @@ The branch is just a prefix added to the parent name. For example, a methyl grou
             },
             {
                 id: 'alkanes-step3-numbering',
+                section: 'Nomenclature',
                 name: 'Step 3: Numbering the Chain',
                 content: `
-# Rule 3: Lowest Numbering
-
 You must tell us *where* the branch is! 
 
 ### The Low Number Rule
@@ -148,5 +162,5 @@ Number the carbon atoms in the parent chain starting from the end **closest** to
                 ]
             }
         ]
-    }
+    },
 ]

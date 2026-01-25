@@ -71,7 +71,7 @@ export class LogicEngine {
             mainChainAtoms = GraphUtils.findLongestChain(graph)
             mainChainLen = mainChainAtoms.length
 
-            if (mainChainLen > 0) {
+            if (mainChainLen > 0 && mainChainLen <= 10) {
                 const parents = ["Methane", "Ethane", "Propane", "Butane", "Pentane", "Hexane", "Heptane", "Octane", "Nonane", "Decane"]
                 // Extended parents list or fallback
                 const parentName = parents[mainChainLen - 1] || `${mainChainLen}-ane`
@@ -80,7 +80,12 @@ export class LogicEngine {
                 appliedRuleIds.push(chainRule.id)
                 ruleResults[chainRule.id] = `Found ${mainChainLen} carbons → ${parentName}`
                 finalName = parentName
-            } else {
+            }
+            else if (mainChainLen > 10) {
+                log('Topology Analysis', 'Longest chain has more than 10 carbons.', 'failed')
+                return { logs, isValid: false, appliedRuleIds, ruleResults }
+            }
+            else {
                 log('Topology Analysis', 'Could not find a valid carbon chain.', 'failed')
                 return { logs, isValid: false, appliedRuleIds, ruleResults }
             }

@@ -4,15 +4,19 @@ import './MoleculeViewer.css'
 
 interface MoleculeViewerProps {
     smiles: string
-    onEdit: () => void
+    onEdit?: () => void
+    width?: number
+    height?: number
+    className?: string
+    readOnly?: boolean
 }
 
-function MoleculeViewer({ smiles, onEdit }: MoleculeViewerProps) {
+function MoleculeViewer({ smiles, onEdit, width = 250, height = 150, className = '', readOnly = false }: MoleculeViewerProps) {
     const [svg, setSvg] = useState<string>('')
 
     useEffect(() => {
         const updateSvg = () => {
-            const generatedSvg = rdkitService.generateSVG(smiles, 250, 150, { addAtomIndices: false })
+            const generatedSvg = rdkitService.generateSVG(smiles, width, height, { addAtomIndices: false })
             if (generatedSvg) {
                 setSvg(generatedSvg)
             }
@@ -30,17 +34,19 @@ function MoleculeViewer({ smiles, onEdit }: MoleculeViewerProps) {
         }, 500)
 
         return () => clearInterval(interval)
-    }, [smiles])
+    }, [smiles, width, height])
 
     return (
-        <div className="molecule-viewer-container">
+        <div className={`molecule-viewer-container ${className}`}>
             <div
                 className="molecule-canvas"
                 dangerouslySetInnerHTML={{ __html: svg }}
             />
-            <button className="edit-overlay-btn" onClick={onEdit}>
-                <span className="edit-icon">✎</span> Edit / Experiment
-            </button>
+            {!readOnly && onEdit && (
+                <button className="edit-overlay-btn" onClick={onEdit}>
+                    <span className="edit-icon">✎</span> Edit / Experiment
+                </button>
+            )}
         </div>
     )
 }

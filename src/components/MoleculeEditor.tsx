@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Editor } from 'ketcher-react'
 import { StandaloneStructServiceProvider } from 'ketcher-standalone'
 import { Ketcher, StructServiceProvider } from 'ketcher-core'
@@ -19,6 +19,15 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
     const [generatedName, setGeneratedName] = useState<string | null>(null)
+
+    // Update molecule if initialMolecule prop changes (e.g. loading new example)
+    useEffect(() => {
+        if (ketcherRef.current && initialMolecule) {
+            ketcherRef.current.setMolecule(initialMolecule).catch(console.error)
+            setGeneratedName(null)
+            setMessage('Loaded new molecule')
+        }
+    }, [initialMolecule])
 
     // Handle Reset
     const handleReset = async () => {
@@ -112,7 +121,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
 
                 {generatedName && (
                     <div className="generated-name-display fade-in">
-                        <strong>Name:</strong> {generatedName}
+                        {generatedName}
                     </div>
                 )}
             </div>

@@ -48,6 +48,14 @@ body {
     grid-template-columns: 1fr 340px;
 }
 
+.app-container.cheatsheet-mode {
+    grid-template-columns: 260px 1fr;
+}
+
+.app-container.cheatsheet-mode.sidebar-collapsed {
+    grid-template-columns: 1fr;
+}
+
 /* Scrollbar Polish */
 ::-webkit-scrollbar {
     width: 10px;
