@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ketcher</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #ketcher-container {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 18px;
+            color: #666;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4fc3f7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading Ketcher...</div>
+    </div>
+    <div id="ketcher-container" style="display:none;"></div>
+
+    <script>
+        // Fix for "exports is not defined" - create a fake module environment
+        window.exports = {};
+        window.module = { exports: {} };
+        window.require = function () { return {}; };
+    </script>
+
+    <script type="module">
+        console.log('Ketcher HTML loaded');
+
+        const loadKetcher = async () => {
+            try {
+                // Load CSS
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/ketcher-standalone@2.7.2/dist/index.css';
+                document.head.appendChild(link);
+
+                // Load JS
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/ketcher-standalone@2.7.2/dist/index.js';
+
+                script.onload = () => {
+                    console.log('✓ Ketcher script loaded successfully');
+                    setTimeout(initKetcher, 1500); // Give time for full initialization
+                };
+
+                script.onerror = (e) => {
+                    console.error('Failed to load Ketcher:', e);
+                    showError('Failed to load Ketcher from CDN');
+                };
+
+                document.body.appendChild(script);
+            } catch (error) {
+                console.error('Error loading Ketcher:', error);
+                showError(error.message);
+            }
+        };
+
+        const showError = (message) => {
+            document.getElementById('loading').innerHTML = `
+                <div>❌ Error: ${message}</div>
+                <div style="font-size: 14px; color: #999;">
+                    Using SMILES input mode instead.
+                </div>
+            `;
+        };
+
+        const initKetcher = async () => {
+            try {
+                console.log('🔍 Checking for Ketcher...');
+                console.log('window.ketcherCore:', window.ketcherCore);
+                console.log('All ketcher-related globals:',
+                    Object.keys(window).filter(k => k.toLowerCase().includes('ketcher'))
+                );
+
+                // Try multiple ways to get Ketcher
+                let KetcherLib = window.ketcherCore || window.Ketcher;
+
+                // If ketcherCore exists but is empty, try module.exports
+                if (!KetcherLib && window.module && window.module.exports) {
+                    KetcherLib = window.module.exports;
+                }
+
+                console.log('KetcherLib resolved to:', KetcherLib);
+
+                if (!KetcherLib) {
+                    throw new Error('Ketcher library not found. CDN may have loaded incorrectly.');
+                }
+
+                // Try to extract Editor and StructServiceProvider
+                const Editor = KetcherLib.Editor || KetcherLib.editor;
+                const StandaloneStructServiceProvider =
+                    KetcherLib.StandaloneStructServiceProvider ||
+                    KetcherLib.structServiceProvider;
+
+                console.log('Editor:', Editor);
+                console.log('StandaloneStructServiceProvider:', StandaloneStructServiceProvider);
+
+                if (!Editor) {
+                    console.error('KetcherLib contents:', Object.keys(KetcherLib));
+                    throw new Error('Editor not found in Ketcher library');
+                }
+
+                if (!StandaloneStructServiceProvider) {
+                    throw new Error('StandaloneStructServiceProvider not found');
+                }
+
+                console.log('✓ Creating structure service provider...');
+                const structServiceProvider = new StandaloneStructServiceProvider();
+
+                console.log('✓ Showing Ketcher container...');
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('ketcher-container').style.display = 'block';
+
+                console.log('✓ Creating Ketcher editor instance...');
+                const ketcherInstance = await Editor.create(
+                    document.getElementById('ketcher-container'),
+                    { structServiceProvider }
+                );
+
+                window.ketcherInstance = ketcherInstance;
+                console.log('🎉 Ketcher initialized successfully!');
+
+                // Notify parent
+                window.parent.postMessage({ type: 'ketcher-ready' }, '*');
+
+                // Listen for commands
+                window.addEventListener('message', async (event) => {
+                    if (!window.ketcherInstance) return;
+
+                    try {
+                        const { type, smiles } = event.data;
+                        console.log('Received command:', type, smiles);
+
+                        if (type === 'get-smiles') {
+                            const result = await window.ketcherInstance.getSmiles();
+                            console.log('Sending SMILES:', result);
+                            window.parent.postMessage({ type: 'smiles-result', smiles: result }, '*');
+                        } else if (type === 'set-molecule') {
+                            await window.ketcherInstance.setMolecule(smiles);
+                            console.log('Molecule set successfully');
+                        } else if (type === 'clear') {
+                            await window.ketcherInstance.setMolecule('');
+                            console.log('Molecule cleared');
+                        }
+                    } catch (error) {
+                        console.error('Error handling message:', error);
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Error initializing Ketcher:', error);
+                console.error('Stack:', error.stack);
+                showError(`Initialization failed: ${error.message}`);
+            }
+        };
+
+        // Start loading
+        loadKetcher();
+    </script>
+</body>
+
+</html>

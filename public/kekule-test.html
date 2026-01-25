@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Kekule Diagnostic</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/kekule/dist/themes/default/kekule.css" />
+    <script src="https://unpkg.com/kekule/dist/kekule.min.js"></script>
+    <style>
+        body {
+            background: #333;
+            color: #fff;
+            font-family: sans-serif;
+        }
+
+        #viewer {
+            width: 400px;
+            height: 300px;
+            border: 1px solid #666;
+            background: #fff;
+            margin: 20px;
+        }
+
+        #logs {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #111;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Kekule CDN Diagnostic</h1>
+    <div id="viewer"></div>
+    <div id="logs"></div>
+
+    <script>
+        function log(msg) {
+            document.getElementById('logs').textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        window.onload = function () {
+            log("Window Loaded. Checking Kekule...");
+
+            if (typeof Kekule === 'undefined') {
+                log("ERROR: 'Kekule' is undefined. CDN script failed to load or export global.");
+                return;
+            }
+            log("Kekule Version: " + (Kekule.VERSION || 'Unknown'));
+
+            try {
+                // Check IO capabilities
+                log("Checking IO module...");
+                if (!Kekule.IO) {
+                    log("ERROR: Kekule.IO is missing!");
+                    return;
+                }
+
+                // Try to find SMILES format
+                // API check: 
+                log("Kekule.IO.DataFormats: " + (Kekule.IO.DataFormats ? "Present" : "Missing"));
+
+                // Try parse
+                var smiles = "CCO"; // Ethanol
+                log("Attempting to parse SMILES: '" + smiles + "'");
+
+                var mol = Kekule.IO.loadFormatData(smiles, 'smi');
+
+                if (mol) {
+                    log("SUCCESS: Parsed molecule: " + mol.getClassName());
+
+                    // Try to render
+                    var viewerElem = document.getElementById('viewer');
+                    var viewer = new Kekule.ChemWidget.Viewer(viewerElem);
+                    viewer.setRenderType(Kekule.Render.RendererType.R2D);
+                    viewer.setChemObj(mol);
+                    log("Viewer initialized and molecule set.");
+                } else {
+                    log("FAILURE: Parsing returned null/undefined.");
+                }
+
+            } catch (e) {
+                log("EXCEPTION: " + e.name + " - " + e.message);
+                log(e.stack);
+            }
+        };
+    </script>
+</body>
+
+</html>

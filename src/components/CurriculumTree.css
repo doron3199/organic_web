@@ -1,0 +1,122 @@
+.curriculum-tree {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-right: 1px solid #333;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    user-select: none;
+}
+
+.curriculum-header {
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    background-color: #252526;
+}
+
+.curriculum-header h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9cb5d8;
+}
+
+.curriculum-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+/* Scrollbar styling */
+.curriculum-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.curriculum-content::-webkit-scrollbar-thumb {
+    background-color: #424242;
+    border-radius: 3px;
+}
+
+.subject-group {
+    margin-bottom: 2px;
+}
+
+.subject-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.subject-header:hover {
+    background-color: #2a2d2e;
+}
+
+.expand-icon {
+    font-size: 0.7rem;
+    width: 16px;
+    color: #858585;
+}
+
+.subject-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.subject-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-badge {
+    font-size: 0.75rem;
+    background-color: #333;
+    padding: 2px 6px;
+    border-radius: 10px;
+    color: #aaa;
+}
+
+.sub-subject-list {
+    background-color: #1a1a1a;
+}
+
+.sub-subject-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px 8px 36px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: #a0a0a0;
+    border-left: 2px solid transparent;
+}
+
+.sub-subject-item:hover {
+    background-color: #2a2d2e;
+    color: #d4d4d4;
+}
+
+.sub-subject-item.active {
+    background-color: #37373d;
+    color: #fff;
+    border-left-color: #007acc;
+}
+
+.status-dot {
+    font-size: 0.6rem;
+    margin-right: 8px;
+    color: #555;
+    width: 10px;
+    text-align: center;
+}
+
+.sub-subject-item.active .status-dot {
+    color: #4caf50;
+}
