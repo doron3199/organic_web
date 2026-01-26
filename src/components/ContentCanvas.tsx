@@ -1,21 +1,22 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Subject } from '../data/curriculum' // SubSubject imported but used in inner scope
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import MoleculeViewer from './MoleculeViewer'
 import MoleculeEditor from './MoleculeEditor'
 import Cheatsheet from './Cheatsheet'
+import { AnalysisResult } from '../services/logicEngine'
 import './ContentCanvas.css'
 
 interface ContentCanvasProps {
     subject: Subject
-    mode: 'study' | 'workbench' | 'cheatsheet'
-    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet') => void
+    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing'
+    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet' | 'testing') => void
     workbenchMolecule: string
     originalMolecule?: string
     onWorkbenchChange: (smiles: string) => void
     onLoadExample: (smiles: string) => void
-    onNameMolecule: (smiles: string) => string
+    onNameMolecule: (smiles: string) => AnalysisResult
     isSidebarOpen: boolean
     onToggleSidebar: () => void
     scrollTargetId: string | null
@@ -39,6 +40,7 @@ function ContentCanvas({
 
     const containerRef = useRef<HTMLDivElement>(null)
     const observerRef = useRef<IntersectionObserver | null>(null)
+    const [testSmiles, setTestSmiles] = useState('')
 
     // Handle Auto-Scroll to Target
     useEffect(() => {
@@ -88,6 +90,13 @@ function ContentCanvas({
         onSwitchMode('workbench')
     }
 
+    const handleTestLoad = () => {
+        if (testSmiles) {
+            onLoadExample(testSmiles)
+            // No mode switch needed as we stay in testing but update the molecule
+        }
+    }
+
     return (
         <div className="content-canvas">
             {/* Mode Switcher */}
@@ -112,6 +121,12 @@ function ContentCanvas({
                     onClick={() => onSwitchMode('workbench')}
                 >
                     🔬 Workbench
+                </button>
+                <button
+                    className={`mode-btn ${mode === 'testing' ? 'active' : ''}`}
+                    onClick={() => onSwitchMode('testing')}
+                >
+                    🚧 Testing
                 </button>
                 <button
                     className={`mode-btn ${mode === 'cheatsheet' ? 'active' : ''}`}
@@ -158,19 +173,6 @@ function ContentCanvas({
                                             <p style={{ textAlign: 'center', color: 'var(--text-muted)', margin: '0.5rem 0 2rem' }}>
                                                 The systematic set of rules for naming chemical compounds.
                                             </p>
-                                            <div className="warning-box" style={{
-                                                margin: '0 auto',
-                                                maxWidth: '600px',
-                                                padding: '1rem',
-                                                background: 'rgba(255, 145, 0, 0.1)',
-                                                border: '1px solid var(--warning)',
-                                                borderRadius: '8px',
-                                                color: 'var(--warning)',
-                                                textAlign: 'center',
-                                                fontSize: '0.9rem'
-                                            }}>
-                                                ⚠️ <strong>Learning Mode:</strong> The generator only uses rules you have unlocked. The name may be incomplete until you finish all steps!
-                                            </div>
                                         </div>
                                     )}
 
@@ -209,6 +211,30 @@ function ContentCanvas({
                     </div>
                 ) : mode === 'cheatsheet' ? (
                     <Cheatsheet />
+                ) : mode === 'testing' ? (
+                    <div className="workbench-container fade-in">
+                        <div style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                            <input
+                                type="text"
+                                placeholder="Enter SMILES string (e.g. CCO)"
+                                value={testSmiles}
+                                onChange={e => setTestSmiles(e.target.value)}
+                                style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            />
+                            <button
+                                onClick={handleTestLoad}
+                                style={{ padding: '8px 16px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                                Load
+                            </button>
+                        </div>
+                        <MoleculeEditor
+                            onMoleculeChange={onWorkbenchChange}
+                            initialMolecule={originalMolecule || workbenchMolecule}
+                            onBack={() => onSwitchMode('study')}
+                            onNameMolecule={onNameMolecule}
+                        />
+                    </div>
                 ) : (
                     <div className="workbench-container fade-in">
                         <MoleculeEditor

@@ -121,6 +121,13 @@
     padding-top: var(--spacing-sm);
 }
 
+.button-group {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
 .action-btn.name-btn {
     background: var(--primary-color);
     color: white;

@@ -5,11 +5,13 @@ import { Ketcher, StructServiceProvider } from 'ketcher-core'
 import 'ketcher-react/dist/index.css'
 import './MoleculeEditor.css'
 
+import { AnalysisResult } from '../services/logicEngine'
+
 interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
     initialMolecule?: string
     onBack: () => void
-    onNameMolecule: (smiles: string) => string
+    onNameMolecule: (smiles: string) => AnalysisResult
 }
 
 const structServiceProvider = new StandaloneStructServiceProvider() as StructServiceProvider
@@ -18,13 +20,20 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
-    const [generatedName, setGeneratedName] = useState<string | null>(null)
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+    const lastInternalSmiles = useRef<string | null>(null)
 
     // Update molecule if initialMolecule prop changes (e.g. loading new example)
     useEffect(() => {
         if (ketcherRef.current && initialMolecule) {
+            // Check if this update corresponds to the last SMILES we sent up
+            // If so, it's a self-update loop, so ignore it to prevent resetting view or clearing results
+            if (initialMolecule === lastInternalSmiles.current) {
+                return
+            }
+
             ketcherRef.current.setMolecule(initialMolecule).catch(console.error)
-            setGeneratedName(null)
+            setAnalysisResult(null)
             setMessage('Loaded new molecule')
         }
     }, [initialMolecule])
@@ -35,7 +44,8 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
         try {
             await ketcherRef.current.setMolecule(initialMolecule || '')
             setMessage('Refreshed to original molecule')
-            setGeneratedName(null)
+            setAnalysisResult(null)
+            lastInternalSmiles.current = null // Clear tracking on manual reset
         } catch (error) {
             console.error('Reset failed:', error)
         }
@@ -46,10 +56,11 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
 
         try {
             const smiles = await ketcherRef.current.getSmiles()
+            lastInternalSmiles.current = smiles // Track this as internal update
             if (onMoleculeChange) onMoleculeChange(smiles)
 
-            const name = onNameMolecule(smiles)
-            setGeneratedName(name)
+            const result = onNameMolecule(smiles)
+            setAnalysisResult(result)
             setMessage('Molecule named!')
         } catch (error) {
             console.error('Naming failed:', error)
@@ -111,20 +122,117 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
 
             {/* Footer Controls */}
             <div className="editor-footer-controls">
-                <button
-                    className="action-btn name-btn"
-                    onClick={handleNameMoleculeClick}
-                    disabled={!isReady}
-                >
-                    🏷️ Name Molecule
-                </button>
+                <div className="button-group">
+                    <button
+                        className="action-btn name-btn"
+                        onClick={handleNameMoleculeClick}
+                        disabled={!isReady}
+                    >
+                        🏷️ Name Molecule
+                    </button>
+                    <button
+                        className="action-btn smiles-btn"
+                        onClick={async () => {
+                            if (ketcherRef.current) {
+                                const smiles = await ketcherRef.current.getSmiles()
+                                setAnalysisResult({ name: smiles, isValid: true, logs: [], appliedRuleIds: [], ruleResults: {} } as any)
+                                setMessage('SMILES generated')
+                            }
+                        }}
+                        disabled={!isReady}
+                        style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                    >
+                        📝 Get SMILES
+                    </button>
+                </div>
 
-                {generatedName && (
+                {analysisResult && (
                     <div className="generated-name-display fade-in">
-                        {generatedName}
+                        {renderInteractiveName(analysisResult)}
                     </div>
                 )}
             </div>
+        </div>
+    )
+}
+
+function renderInteractiveName(result: AnalysisResult) {
+    if (!result.nameParts || result.nameParts.length === 0) {
+        return <span className="generated-smiles" style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>{result.name || "Unknown"}</span>
+    }
+
+    const handleHover = (ids: number[] | undefined) => {
+        if (!ids || ids.length === 0) return
+        // @ts-ignore
+        const ketcher = (window as any).ketcher
+        if (ketcher) {
+            try {
+                ketcher.setSelection({ atoms: ids })
+            } catch (e) {
+                // Fallback to internal API if public fails
+                if (ketcher.editor) ketcher.editor.setSelection({ atoms: ids })
+            }
+        }
+    }
+
+    const handleLeave = () => {
+        // @ts-ignore
+        const ketcher = (window as any).ketcher
+        if (ketcher) {
+            try {
+                ketcher.setSelection(null)
+            } catch (e) {
+                if (ketcher && ketcher.editor) ketcher.editor.setSelection(null)
+            }
+        }
+    }
+
+    return (
+        <div className="name-display-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            {result.commonName && (
+                <span className="common-name">
+                    {result.commonNameParts && result.commonNameParts.length > 0 ? (
+                        result.commonNameParts.map((part, idx) => (
+                            <span
+                                key={`common-${idx}`}
+                                className={`name-part part-${part.type}`}
+                                onMouseEnter={() => handleHover(part.ids)}
+                                onMouseLeave={handleLeave}
+                                style={{
+                                    cursor: part.ids && part.ids.length > 0 ? 'pointer' : 'default',
+                                    fontWeight: part.type === 'root' ? 'bold' : 'normal',
+                                    color: part.type === 'root' ? '#4dabf7' : part.type === 'substituent' ? '#ff8787' : 'inherit'
+                                }}
+                            >
+                                {part.text}
+                            </span>
+                        ))
+                    ) : (
+                        <span style={{ fontSize: '1.2rem', color: '#4dabf7', fontWeight: 'bold' }}>
+                            {result.commonName}
+                        </span>
+                    )}
+                    <span style={{ color: '#868e96', fontWeight: 'normal', margin: '0 8px', fontSize: '1rem' }}>or</span>
+                </span>
+            )}
+            <span className="interactive-name">
+                {result.nameParts.map((part, idx) => (
+                    <span
+                        key={idx}
+                        className={`name-part part-${part.type}`}
+                        onMouseEnter={() => handleHover(part.ids)}
+                        onMouseLeave={handleLeave}
+                        style={{
+                            cursor: part.ids && part.ids.length > 0 ? 'pointer' : 'default',
+                            fontWeight: part.type === 'root' ? 'bold' : 'normal',
+                            color: part.type === 'root' ? '#4dabf7' : part.type === 'substituent' ? '#ff8787' : 'inherit'
+                        }}
+                        title={part.type}
+                    >
+                        {part.text}
+                    </span>
+                ))}
+            </span>
         </div>
     )
 }

@@ -1,0 +1,117 @@
+# System Guide: Organic Logic Workbench Content & Logic Expansion
+
+## 1. Overview
+The "Organic Logic Workbench" is an educational web application that teaches organic chemistry nomenclature and logic. It uses an interactive "Logic Engine" that validates user-drawn molecules against specific chemical rules unlocked step-by-step.
+
+## 2. Architecture
+The app consists of two main pillars for content and logic:
+
+### A. Curriculum Data (`src/data/curriculum.ts`)
+This file contains the static content, lesson structure, and rule definitions. It is organized as a list of `Subject`s (e.g., Alkanes), which contain `SubSubject`s (individual lessons/steps).
+
+**Key Hierachy:**
+`Subject` -> `SubSubject[]` -> `Rule[]`
+
+### B. Logic Engine (`src/services/logicEngine.ts`)
+This is the core processor. It accepts:
+1. A Molecule (SMILES string).
+2. The Current Lesson (`SubSubject`).
+
+It executes the logic corresponding to the **unlocked rules** in that lesson to generate a name, validation result, and logs.
+
+---
+
+## 3. Data Structures
+
+### SubSubject (Lesson)
+A generic lesson unit.
+```typescript
+interface SubSubject {
+    id: string;             // Unique ID (e.g., 'alkanes-step1')
+    section: string;        // Categorization (e.g., 'Nomenclature')
+    name: string;           // Display Title (e.g., 'Step 1: Longest Chain')
+    content: string;        // Markdown text explaining the concept
+    examples: {             // Example molecules for this lesson
+        smiles: string;
+        name: string;
+    }[];
+    rules: Rule[];          // The set of rules active/unlocked for this lesson
+}
+```
+
+### Rule
+A specific logical check or operation.
+```typescript
+type RuleLogicType = 'longest_chain' | 'identify_substituents' | 'lowest_numbering' | 'NEW_LOGIC_TYPE';
+
+interface Rule {
+    id: string;             // Unique Rule ID
+    name: string;           // Human readable name
+    description: string;    // Tooltip/help text
+    unlocked: boolean;      // If true, the LogicEngine will execute this rule
+    logicType: RuleLogicType; // Maps to code implementation in LogicEngine
+    smarts?: string;        // Optional SMARTS pattern for matching
+}
+```
+
+---
+
+## 4. How to Add New Content (Instructions for NotebookLM)
+
+When tasked with converting a PDF/Textbook into this format, follow these steps:
+
+### Step 1: Segmentation
+Break the material down into small, logical steps. Each step should introduce **one major concept** if possible.
+*Example*: "Naming Alkanes" should be broken into: 1. Longest Chain, 2. Substituents, 3. Numbering.
+
+### Step 2: Content Generation
+For each step (`SubSubject`), generate:
+1.  **Explanatory Text (`content`)**: Use Markdown. Keep it concise. Use tables for prefixes (Meth, Eth, Prop) or rules.
+2.  **Examples**: Provide 2-3 SMILES strings that demonstrate the concept clearly.
+
+### Step 3: Logic Definition
+Determine what rules verify the user's work for this step.
+*   **Existing Rules**: If the step uses existing logic (like finding the longest chain), reuse the `logicType`: `longest_chain`.
+*   **New Rules**: If the step introduces a new concept (e.g., "Alphabetical Order" or "Cyclic Rings"), you must define a new `Rule` and describe the algorithm.
+
+### Step 4: Output Format
+Please return the result as a detailed JSON structure representing a new `Subject` (or list of `SubSubject`s).
+
+**Template:**
+```json
+{
+  "id": "alkenes",
+  "name": "Alkenes",
+  "icon": "🧪",
+  "subSubjects": [
+    {
+      "id": "alkenes-step1-double-bond",
+      "section": "Nomenclature",
+      "name": "Step 1: The Double Bond",
+      "content": "markdown content here...",
+      "examples": [
+        { "smiles": "C=CC", "name": "Propene" }
+      ],
+      "rules": [
+        {
+          "id": "rule_double_bond_priority",
+          "name": "Double Bond Priority",
+          "description": "The parent chain MUST contain the double bond.",
+          "unlocked": true,
+          "logicType": "contain_double_bond" 
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 5. Special Instruction for New Logic
+If you introduce a `logicType` that does not exist yet (i.e., not `longest_chain`, `identify_substituents`, `lowest_numbering`), you **MUST** provide a plain-text algorithm description so the developer can implement it in `LogicEngine.ts`.
+
+**Example Algorithm Description:**
+> **Rule**: `contain_double_bond`
+> **Logic**:
+> 1. Identify all carbon atoms involved in double bonds.
+> 2. Ensure the "Longest Chain" selected includes these atoms, even if a longer chain exists without them.
+> 3. Update the parent name suffix from "-ane" to "-ene".

@@ -102,6 +102,29 @@ const Cheatsheet = () => {
                 </div>
             </section>
 
+            {/* 3. Halogens (Full Width) */}
+            <section className="cs-section">
+                <h2>Halogens (Prefixes)</h2>
+                <div className="alkyl-grid">
+                    <div className="alkyl-card">
+                        <div className="alkyl-name">Fluoro-</div>
+                        <div className="mol-container"><MoleculeViewer smiles="[*]F" width={200} height={200} onEdit={() => { }} /></div>
+                    </div>
+                    <div className="alkyl-card">
+                        <div className="alkyl-name">Chloro-</div>
+                        <div className="mol-container"><MoleculeViewer smiles="[*]Cl" width={200} height={200} onEdit={() => { }} /></div>
+                    </div>
+                    <div className="alkyl-card">
+                        <div className="alkyl-name">Bromo-</div>
+                        <div className="mol-container"><MoleculeViewer smiles="[*]Br" width={200} height={200} onEdit={() => { }} /></div>
+                    </div>
+                    <div className="alkyl-card">
+                        <div className="alkyl-name">Iodo-</div>
+                        <div className="mol-container"><MoleculeViewer smiles="[*]I" width={200} height={200} onEdit={() => { }} /></div>
+                    </div>
+                </div>
+            </section>
+
             <div className="cs-columns">
                 {/* Column 1: Nomenclature & Alkanes */}
                 <div className="cs-column">

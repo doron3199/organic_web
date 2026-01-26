@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
@@ -50,8 +50,9 @@ try {
 }
 
 // https://vitejs.dev/config/
+import { webdriverio } from '@vitest/browser-webdriverio'
+
 export default defineConfig({
-  plugins: [react()],
   server: {
     host: '0.0.0.0', // Listen on all network interfaces (IPv4 + IPv6)
     port: 5173,
@@ -59,5 +60,15 @@ export default defineConfig({
   define: {
     'process.env': {},
     global: 'window',
+  },
+  test: {
+    browser: {
+      enabled: true,
+      provider: webdriverio({}),
+      instances: [
+        { browser: 'chrome' }
+      ]
+    },
+    setupFiles: ['./vitest.setup.ts'],
   },
 })
