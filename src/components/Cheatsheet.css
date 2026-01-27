@@ -294,7 +294,85 @@
     /* Sets default stroke current color */
 }
 
+
+
 .molecule-svg text {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
 }
+
+/* Equation Styles */
+.equation-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 2rem;
+    font-size: 1.3rem;
+    font-family: 'Inter', sans-serif;
+    padding: 1rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+}
+
+.equation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 600;
+}
+
+.fraction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.numerator {
+    border-bottom: 2px solid var(--text-primary);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    display: flex;
+    gap: 0.3rem;
+}
+
+.denominator {
+    font-weight: 700;
+}
+
+.legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 3rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Colors matching the image request */
+.eq-n {
+    color: #fdd835;
+}
+
+/* Yellow/Gold */
+.eq-h {
+    color: #00e5ff;
+}
+
+/* Cyan */
+.eq-x {
+    color: #e040fb;
+}
+
+/* Purple/Magenta */
+.eq-c {
+    color: var(--text-primary);
+}
+
+/* White/Default */

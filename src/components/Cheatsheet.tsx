@@ -45,6 +45,28 @@ const Cheatsheet = () => {
                 </div>
             </section>
 
+            {/* Section 1.5: Degrees of Unsaturation */}
+            <section className="cs-section">
+                <h2>Degrees of Unsaturation</h2>
+                <div className="equation-container">
+                    <div className="equation">
+                        <span>Degrees of Unsaturation = </span>
+                        <div className="fraction">
+                            <span className="numerator">
+                                <span>2C</span> <span>+</span> <span>2</span> <span>+</span> <span className="eq-n">N</span> <span>-</span> <span className="eq-h">H</span> <span>-</span> <span className="eq-x">X</span>
+                            </span>
+                            <span className="denominator">2</span>
+                        </div>
+                    </div>
+                    <div className="legend">
+                        <div className="legend-item"><span className="eq-c">C</span> = #carbons</div>
+                        <div className="legend-item"><span className="eq-h">H</span> = #hydrogens</div>
+                        <div className="legend-item"><span className="eq-n">N</span> = #nitrogens</div>
+                        <div className="legend-item"><span className="eq-x">X</span> = #halogens</div>
+                    </div>
+                </div>
+            </section>
+
             {/* 2. Alkyl Groups (Full Width) */}
             <section className="cs-section">
                 <h2>Alkyl Groups</h2>
@@ -122,6 +144,51 @@ const Cheatsheet = () => {
                         <div className="alkyl-name">Iodo-</div>
                         <div className="mol-container"><MoleculeViewer smiles="[*]I" width={200} height={200} onEdit={() => { }} /></div>
                     </div>
+                </div>
+
+
+                <div style={{ marginTop: '2rem' }}>
+                    <h3>Halogen Substituents</h3>
+                    <table className="cs-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Element Name</th>
+                                <th>Substituent Name (Prefix)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>F</td><td>Fluorine</td><td>Fluoro-</td></tr>
+                            <tr><td>Cl</td><td>Chlorine</td><td>Chloro-</td></tr>
+                            <tr><td>Br</td><td>Bromine</td><td>Bromo-</td></tr>
+                            <tr><td>I</td><td>Iodine</td><td>Iodo-</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section >
+
+            {/* 4. CIP Priority Rules */}
+            <section className="cs-section">
+                <h2>CIP Priority Rules (E/Z)</h2>
+                <div className="cip-rules-container" style={{ padding: '0 1rem' }}>
+                    <ol className="cip-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                        <li>
+                            <strong>1. Higher Atomic Number = Higher Priority</strong>
+                            <div className="cip-example" style={{ opacity: 0.8, marginTop: '0.2rem' }}>
+                                I (53) &gt; Br (35) &gt; Cl (17) &gt; F (9) &gt; O (8) &gt; N (7) &gt; C (6) &gt; H (1)
+                            </div>
+                        </li>
+                        <li>
+                            <strong>2. Tie-Breaker</strong>: If atoms are identical, compare the atoms attached to them until a difference is found.
+                        </li>
+                        <li>
+                            <strong>3. Multiple Bonds</strong>: Treat double/triple bonds as if bonded to that atom 2 or 3 times.
+                            <div className="cip-example" style={{ opacity: 0.8, marginTop: '0.2rem' }}>
+                                • C=O counts as C bonded to (O, O)<br />
+                                • C≡N counts as C bonded to (N, N, N)
+                            </div>
+                        </li>
+                    </ol>
                 </div>
             </section>
 

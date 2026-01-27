@@ -62,6 +62,15 @@ interface AnalysisContext {
     rootPart: NamePart | null
     substituentParts: NamePart[]
     finalName: string
+
+    // Unsaturation
+    unsaturations: {
+        type: number // 2=double, 3=triple
+        locant?: number
+        edges: string[] // edge keys
+        atomIds: number[]
+    }[]
+
 }
 
 export class LogicEngine {
@@ -82,7 +91,7 @@ export class LogicEngine {
 
         if (!this.analyzeSubstituents(ctx)) return this.buildResult(ctx)
 
-        // Validation against user input removed.
+
 
         this.assembleName(ctx)
 
@@ -113,7 +122,9 @@ export class LogicEngine {
             commonSubstituentParts: [],
 
             finalName: "Unknown Molecule",
-            alternativeName: undefined
+            alternativeName: undefined,
+            unsaturations: []
+
         }
     }
 
@@ -183,52 +194,134 @@ export class LogicEngine {
         if (chainRule && chainRule.unlocked) {
             this.log(ctx, 'Rule Check', `Applying Parent Structure Rules...`, 'checking')
 
+            // Detect Unsaturation (Double/Triple Bonds)
+            const edges = ctx.graph.edges()
+            const unsaturationEdges: { edge: string, type: number, atoms: number[] }[] = []
+
+            edges.forEach((edge: string) => {
+                const attr = ctx.graph.getEdgeAttributes(edge)
+                const type = attr.type ? Number(attr.type) : 1
+                if (type > 1) {
+                    const [u, v] = ctx.graph.extremities(edge)
+                    unsaturationEdges.push({
+                        edge,
+                        type,
+                        atoms: [parseInt(u), parseInt(v)].sort((a, b) => a - b)
+                    })
+                }
+            })
+
             if (ctx.isCyclic) {
                 // CYCLIC LOGIC
+                // Sort cycles by length descending explicitly to prioritize larger rings
                 ctx.cycles.sort((a, b) => b.length - a.length)
-                ctx.mainChainAtoms = ctx.cycles[0]
+
+                // Prioritize rings with unsaturation
+                const unsaturatedCycles = ctx.cycles.filter(cycle => {
+                    const cycleSet = new Set(cycle)
+                    return unsaturationEdges.some(u => cycleSet.has(u.atoms[0]) && cycleSet.has(u.atoms[1]))
+                })
+
+                let targetCycle = ctx.cycles[0]
+
+                if (unsaturatedCycles.length > 0) {
+                    unsaturatedCycles.sort((a, b) => b.length - a.length)
+                    targetCycle = unsaturatedCycles[0]
+                }
+
+                ctx.mainChainAtoms = targetCycle
                 ctx.mainChainLen = ctx.mainChainAtoms.length
 
+                // Identify unsaturations WITHIN the chosen parent
+                const parentSet = new Set(ctx.mainChainAtoms)
+                ctx.unsaturations = unsaturationEdges
+                    .filter(u => parentSet.has(u.atoms[0]) && parentSet.has(u.atoms[1]))
+                    .map(u => ({ type: u.type, edges: [u.edge], atomIds: u.atoms }))
+
+                const typeMax = Math.max(...ctx.unsaturations.map(u => u.type), 1)
+                const suffix = typeMax === 3 ? 'yne' : (typeMax === 2 ? 'ene' : 'ane')
+                const prefix = "Cyclo"
+
                 const baseName = LogicEngine.getAlkaneName(ctx.mainChainLen)
-                const parentName = `Cyclo${baseName.toLowerCase()}`
+                const finalRoot = prefix + baseName.replace(/ane$/, suffix)
 
-                this.log(ctx, 'Topology Analysis', `Identified ${ctx.mainChainLen}-carbon ring as parent.`, 'success', `Parent: ${parentName}`)
+                this.log(ctx, 'Topology Analysis', `Identified ${ctx.mainChainLen}-carbon ring as parent${ctx.unsaturations.length > 0 ? ' (contains unsaturation)' : ''}.`, 'success', `Parent: ${finalRoot}`)
                 ctx.appliedRuleIds.push(chainRule.id)
-                ctx.ruleResults[chainRule.id] = `Found ring with ${ctx.mainChainLen} carbons → ${parentName}`
-                ctx.finalName = parentName
-
-                ctx.rootPart = {
-                    text: parentName,
-                    type: 'root',
-                    ids: ctx.mainChainAtoms
-                }
+                ctx.ruleResults[chainRule.id] = `Found ring with ${ctx.mainChainLen} carbons → ${finalRoot}`
+                ctx.finalName = finalRoot
+                ctx.rootPart = { text: finalRoot, type: 'root', ids: ctx.mainChainAtoms }
 
             } else {
                 // ACYCLIC LOGIC
-                ctx.mainChainAtoms = GraphUtils.findLongestChain(ctx.graph)
+                let bestChain: number[] = []
+
+                if (unsaturationEdges.length > 0) {
+                    const carbonNodes = ctx.graph.nodes().filter((n: string) => ctx.graph.getNodeAttribute(n, 'element') === 'C')
+                    const terminals = carbonNodes.filter((n: string) => {
+                        let deg = 0
+                        ctx.graph.forEachNeighbor(n, (neighbor: string) => {
+                            if (ctx.graph.getNodeAttribute(neighbor, 'element') === 'C') deg++
+                        })
+                        return deg <= 1
+                    })
+                    const startNodes = terminals.length > 0 ? terminals : carbonNodes
+                    const candidates: number[][] = []
+                    for (let i = 0; i < startNodes.length; i++) {
+                        for (let j = i + 1; j < startNodes.length; j++) {
+                            const path = this.findPath(ctx.graph, parseInt(startNodes[i]), parseInt(startNodes[j]))
+                            if (path) candidates.push(path)
+                        }
+                    }
+
+                    // Score candidates
+                    let bestC: number[] = []
+                    let maxU = -1
+                    let maxLen = -1
+
+                    candidates.forEach(chain => {
+                        let uCount = 0
+                        const chainSet = new Set(chain)
+                        unsaturationEdges.forEach(u => {
+                            if (chainSet.has(u.atoms[0]) && chainSet.has(u.atoms[1])) uCount++
+                        })
+
+                        if (uCount > maxU) {
+                            maxU = uCount
+                            maxLen = chain.length
+                            bestC = chain
+                        } else if (uCount === maxU) {
+                            if (chain.length > maxLen) {
+                                maxLen = chain.length
+                                bestC = chain
+                            }
+                        }
+                    })
+                    bestChain = bestC
+                } else {
+                    bestChain = GraphUtils.findLongestChain(ctx.graph)
+                }
+
+                ctx.mainChainAtoms = bestChain
                 ctx.mainChainLen = ctx.mainChainAtoms.length
 
                 if (ctx.mainChainLen > 0) {
-                    const parentName = LogicEngine.getAlkaneName(ctx.mainChainLen)
+                    const parentSet = new Set(ctx.mainChainAtoms)
+                    ctx.unsaturations = unsaturationEdges
+                        .filter(u => parentSet.has(u.atoms[0]) && parentSet.has(u.atoms[1]))
+                        .map(u => ({ type: u.type, edges: [u.edge], atomIds: u.atoms }))
 
-                    this.log(ctx, 'Topology Analysis', `Longest chain has ${ctx.mainChainLen} carbons.`, 'success', `Parent: ${parentName}`)
+                    const typeMax = Math.max(...ctx.unsaturations.map(u => u.type), 1)
+                    const suffix = typeMax === 3 ? 'yne' : (typeMax === 2 ? 'ene' : 'ane')
+
+                    const baseName = LogicEngine.getAlkaneName(ctx.mainChainLen)
+                    const parentName = baseName.replace(/ane$/, suffix)
+
+                    this.log(ctx, 'Topology Analysis', `Principal Chain has ${ctx.mainChainLen} carbons${ctx.unsaturations.length > 0 ? ` and ${ctx.unsaturations.length} unsaturations` : ''}.`, 'success', `Parent: ${parentName}`)
                     ctx.appliedRuleIds.push(chainRule.id)
                     ctx.ruleResults[chainRule.id] = `Found ${ctx.mainChainLen} carbons → ${parentName}`
                     ctx.finalName = parentName
-
-                    // Create Root Part
-                    ctx.rootPart = {
-                        text: parentName,
-                        type: 'root',
-                        ids: ctx.mainChainAtoms
-                    }
-                }
-                else if (false) {
-                    this.log(ctx, 'Topology Analysis', 'Longest chain has more than 10 carbons.', 'failed')
-                    ctx.isValid = false
-                    return false
-                }
-                else {
+                    ctx.rootPart = { text: parentName, type: 'root', ids: ctx.mainChainAtoms }
+                } else {
                     this.log(ctx, 'Topology Analysis', 'Could not find a valid carbon chain.', 'failed')
                     ctx.isValid = false
                     return false
@@ -241,41 +334,138 @@ export class LogicEngine {
     private static analyzeSubstituents(ctx: AnalysisContext): boolean {
         // --- Step B & C: Substituents & Numbering ---
         const chainSet = new Set(ctx.mainChainAtoms)
-
         const subIds = this.findSubstituentAtoms(ctx, chainSet)
 
         if (!this.validateSubstituentRules(ctx, subIds)) return false
 
+        // Always proceed to numbering if we have a valid structure, even with 0 substituents, 
+        // because we might need to number Unsaturations!
+
         if (subIds.length > 0) {
-            // 1. Identify Branches (Connected Components) and Type
+            // 1. Identify Branches
             this.analyzeBranchStructure(ctx, subIds, chainSet)
+        }
 
-            // 2. Determine Numbering Direction/Scheme
-            const finalMapping = this.determineNumbering(ctx)
+        // 2. Determine Numbering Direction/Scheme (Must run for Unsaturation too)
+        const finalMapping = this.determineNumbering(ctx)
 
-            // 3. Assign Final Locants
+        // 3. Assign Final Locants to Substituents
+        if (subIds.length > 0) {
             ctx.branchData.forEach((b, i) => {
                 b.locant = finalMapping[i]
             })
-
             // 4. Group by Name & Create Naming Parts
             this.finalizeSubstituentGroups(ctx)
         }
+
         return true
     }
 
     private static assembleName(ctx: AnalysisContext): void {
         const prefixString = ctx.substituentParts.map(p => p.text).join('')
-        let sysName = `${prefixString}${ctx.rootPart?.text.toLowerCase() || ''}`
+        let rootText = ctx.rootPart?.text.toLowerCase() || ''
 
-        // Capitalize first letter
+        // Handle Unsaturation Locants in Root
+        if (ctx.unsaturations && ctx.unsaturations.length > 0) {
+            const doubleBonds = ctx.unsaturations.filter(u => u.type === 2)
+            const tripleBonds = ctx.unsaturations.filter(u => u.type === 3)
+
+            const alkane = LogicEngine.getAlkaneName(ctx.mainChainLen).toLowerCase()
+            const baseRoot = ctx.isCyclic ? `cyclo${alkane.replace('ane', '')}` : alkane.replace('ane', '')
+
+            const getLocs = (list: typeof ctx.unsaturations) => list.map(u => u.locant).sort((a, b) => (a || 0) - (b || 0)).join(',')
+            const getQty = (n: number) => n === 1 ? '' : (n === 2 ? 'di' : (n === 3 ? 'tri' : (n === 4 ? 'tetra' : 'poly')))
+
+            // Epenthesis 'a'
+            // Logic for 'a' epenthesis
+            // Removed conjunction case: simple enyne "heptenyne" does not need 'a'.
+            const needsA = (doubleBonds.length > 1 || tripleBonds.length > 1)
+            const modBase = needsA ? baseRoot + 'a' : baseRoot
+
+            const isSimple = ctx.substituentParts.length === 0 && (doubleBonds.length + tripleBonds.length === 1)
+            const isCyclic = ctx.isCyclic
+
+            // formatting flags
+            let usePrefix = false
+            let omitLocant = false
+
+            if (isSimple && !isCyclic) {
+                const u = doubleBonds[0] || tripleBonds[0]
+                if (doubleBonds.length > 0) {
+                    // Alkene simple: "2-Butene", "Butene"
+                    usePrefix = true
+                    if (u.locant === 1) omitLocant = true
+                } else {
+                    // Alkyne simple: Test expects "Pent-2-yne". Infix.
+                    // But for "Butyne" (locant 1), maybe "1-Butyne" -> "Butyne"?
+                    usePrefix = false // Force Infix for Alkynes
+                    if (u.locant === 1) {
+                        // Expect "Butyne", "Pentyne".
+                        omitLocant = true // Logic: If Infix + Omit -> "Pentyne" (Base+Suffix)
+                    }
+                }
+            }
+
+            // Assemble
+            if (tripleBonds.length === 0) {
+                // Alkenes
+                const suffix = `${getQty(doubleBonds.length)}ene`
+                const locs = getLocs(doubleBonds)
+
+                if (usePrefix) {
+                    if (omitLocant) rootText = `${modBase}${suffix}`
+                    else rootText = `${locs}-${modBase}${suffix}`
+                } else {
+                    // Infix or Cyclic Implicit
+                    if (isCyclic && doubleBonds.length === 1 && doubleBonds[0].locant === 1 && ctx.substituentParts.length === 0) {
+                        rootText = `${baseRoot}${suffix}`
+                    } else if (isCyclic && doubleBonds.length === 1 && doubleBonds[0].locant === 1) {
+                        // Cyclic with substituents: "3-methylcyclohexene".
+                        // Locant 1 is implicit for the Double Bond if substituents are numbered relative to it.
+                        // Standard: "cyclohexene" root.
+                        rootText = `${baseRoot}${suffix}`
+                    } else {
+                        // Cyclohex-1,3-diene
+                        rootText = `${modBase}-${locs}-${suffix}`
+                    }
+                }
+            } else if (doubleBonds.length === 0) {
+                // Alkynes
+                const suffix = `${getQty(tripleBonds.length)}yne`
+                const locs = getLocs(tripleBonds)
+
+                if (omitLocant) {
+                    rootText = `${modBase}${suffix}`
+                } else {
+                    rootText = `${modBase}-${locs}-${suffix}`
+                }
+            } else {
+                // Enynes
+                const enLocs = getLocs(doubleBonds)
+                const enQty = getQty(doubleBonds.length)
+                const enPart = `${enLocs}-${enQty}ene`
+
+                const enPartElided = enPart.replace(/e$/, '')
+
+                const ynLocs = getLocs(tripleBonds)
+                const ynQty = getQty(tripleBonds.length)
+                const ynPart = `${ynLocs}-${ynQty}yne`
+
+                rootText = `${modBase}-${enPartElided}-${ynPart}`
+            }
+
+            if (ctx.rootPart) ctx.rootPart.text = rootText
+        }
+
+        let sysName = `${prefixString}${rootText}`
+
+        // Capitalize first letter logic
         const capitalize = (s: string) => {
             if (/^[a-zA-Z0-9]/.test(s)) {
-                const first = s.search(/[a-zA-Z]/)
-                if (first !== -1) {
-                    return s.substring(0, first) +
-                        s.charAt(first).toUpperCase() +
-                        s.substring(first + 1)
+                // Find first letter
+                const match = s.match(/[a-zA-Z]/)
+                if (match && match.index !== undefined) {
+                    return s.substring(0, match.index) + match[0].toUpperCase() + s.substring(match.index + 1)
                 }
             }
             return s
@@ -283,18 +473,15 @@ export class LogicEngine {
 
         ctx.finalName = capitalize(sysName)
 
-        // Check for Common Name (Whole Molecule)
-        const commonWhole = this.getCommonName(sysName)
+        // Common Names Re-Integration
+        const commonWhole = LogicEngine.getCommonName(sysName)
+        let commonSubVariant = ctx.finalName
 
-        // Check for Common Substituents
-        let commonSubVariant = ctx.finalName // Start with the Capitalized Systematic Name
         if (ctx.ruleResults['commonNameParts']) {
             const parts = JSON.parse(ctx.ruleResults['commonNameParts'])
             parts.forEach((p: any) => {
-                // Replace ALL occurrences
                 commonSubVariant = commonSubVariant.split(p.systematic).join(p.common.toLowerCase())
             })
-            // Fix capitalization
             commonSubVariant = capitalize(commonSubVariant)
         }
 
@@ -303,18 +490,14 @@ export class LogicEngine {
         if (commonWhole) {
             ctx.finalName = `${commonWhole} or ${ctx.finalName}`
             ctx.commonName = commonWhole
-            // Common Whole Name is treated as a single Root part
             ctx.commonNameParts = [{
                 text: commonWhole,
                 type: 'root',
-                ids: ctx.rootPart?.ids // Use main chain ids or all ids? ideally all but main chain is fine for highlighting
+                ids: ctx.rootPart?.ids
             }]
         } else if (hasCommonSub) {
             ctx.finalName = `${commonSubVariant} or ${ctx.finalName}`
             ctx.commonName = commonSubVariant
-
-            // Assemble Common Name Parts
-            // We need to capitalize the first part text
             const commonParts = [...ctx.commonSubstituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])]
             if (commonParts.length > 0) {
                 commonParts[0] = { ...commonParts[0], text: capitalize(commonParts[0].text) }
@@ -482,7 +665,6 @@ export class LogicEngine {
         const cycles = GraphUtils.findCycles(subgraph)
 
         // 3. Identify Local Parent
-        let localParentAtoms: number[] = []
 
         if (cycles.length > 0) {
             // CYCLIC SUBSTITUENT
@@ -494,7 +676,6 @@ export class LogicEngine {
 
             // Check if attached directly
             if (mainRing.includes(attachId)) {
-                localParentAtoms = mainRing
                 // Numbering: attachId MUST be 1.
                 // We need to determine direction (2..N) based on OTHER substituents on the ring.
 
@@ -682,7 +863,7 @@ export class LogicEngine {
                 LogicEngine.getSortKey(a).localeCompare(LogicEngine.getSortKey(b))
             )
 
-            keys.forEach((k, idx) => {
+            keys.forEach((k) => {
                 const locs = subMap.get(k)!.sort((a, b) => a - b)
                 const prefixes = ["", "", "Di", "Tri", "Tetra", "Penta", "Hexa", "Hepta", "Octa", "Nona", "Deca"]
                 const prefixCount = prefixes[locs.length] || ""
@@ -698,31 +879,10 @@ export class LogicEngine {
             // Construct systematic complex name
             const systematic = `(${prefix}${baseName})`
 
-            // Check for common substituent name
-            // Remove outer parens for check: "1-methylethyl"
-            const inner = systematic.slice(1, -1)
-            const common = this.getCommonSubstituentName(inner)
 
-            // If common name exists, verify if we should use it or allow replacement later.
-            // Tests expectation implies standard IUPAC structure usually, but we have strict matching.
             return systematic
 
-            // Or maybe I should just return `isopropyl` and rely on the fact that `isopropyl` is "Common".
-            // Ah, the test checks for the FULL string "A or B".
 
-            // Hack: If a substituent has a common name, return "Common or Systematic".
-            // e.g. "Isopropyl or (1-methylethyl)"
-            // Then final name: "4-Isopropyl or (1-methylethyl)heptane"? No, likely "4-Isopropylheptane or 4-(1-methylethyl)heptane".
-            // The "OR" splits the whole name.
-
-            // This is getting complex for a simple string return.
-            // Let's try to handle this in `finalizeSubstituentGroups` or `assembleName`.
-            // I will store the common name candidates in the context?
-            // `ctx.branchData` has `name`.
-            // If I change `name` to be "Common|Systematic" (special delimiter)?
-
-            // Let's stick to returning systematic from here, and in `finalizeSubstituentGroups`, we check `getCommonSubstituentName`.
-            return systematic
         }
     }
 
@@ -794,16 +954,17 @@ export class LogicEngine {
         const numRule = rules.find(r => r.logicType === 'lowest_numbering') || rules.find(r => r.logicType === 'check_lowest_locants')
 
         // Default: 1-based index from 0-based connection index (Raw left-to-right)
-        // Ensure we copy to avoid mutation issues if we sort later?
         let finalMapping: number[] = ctx.branchData.map(b => b.connIdx + 1)
 
-        // If rule is not active, return default
-        if (!numRule || !numRule.unlocked || ctx.branchData.length === 0) {
+        // If rule is not active and no unsaturations, return default
+        if ((!numRule || !numRule.unlocked) && ctx.unsaturations.length === 0) {
+            // For simple display without rule enforcement, just return default
             return finalMapping
         }
 
-        this.log(ctx, 'Rule Check', `Applying ${numRule.name}...`, 'checking')
+        this.log(ctx, 'Rule Check', `Applying ${numRule ? numRule.name : 'Numbering Logic'}...`, 'checking')
 
+        // Prepare Branches for quick access
         const branches = ctx.branchData.map((b, originalIndex) => ({
             name: b.name,
             connIdx: b.connIdx,
@@ -811,78 +972,130 @@ export class LogicEngine {
             sortKey: LogicEngine.getSortKey(b.name)
         }))
 
-        // Helper to evaluate a numbering scheme
-        const evaluateScheme = (locants: number[]) => {
-            // 1. Create the locant set for comparison (sorted numbers)
-            const set = [...locants].sort((a, b) => a - b)
+        // Helper: Generate Candidates
+        // Candidate: { map: (oldIdx -> newLocant) }
+        // We need to map:
+        // 1. Substituent connIdx -> Locant
+        // 2. Unsaturation indices -> Locant
 
-            // 2. Create the alphabetical pairs for tie-breaking
-            // We pair the computed locant with the branch's sortKey
+        interface Scheme {
+            subLocants: number[] // parallel to ctx.branchData
+            unsatLocants: number[] // parallel to ctx.unsaturations
+            subSet: number[] // sorted
+            unsatSet: number[] // sorted
+            alphaPairs: { sortKey: string, locant: number }[]
+            invalidTraversal?: boolean
+        }
+
+        const N = ctx.mainChainAtoms.length
+
+        // 1. Unsaturation Indices
+        const unsatIndices = ctx.unsaturations.map(u => {
+            const idx1 = ctx.mainChainAtoms.indexOf(u.atomIds[0])
+            const idx2 = ctx.mainChainAtoms.indexOf(u.atomIds[1])
+            return [idx1, idx2]
+        })
+
+        let schemes: Scheme[] = []
+
+
+
+        // Helper to Create Scheme with Valid Traversal Check for Cycles
+        const getScheme = (transform: (i: number) => number) => {
+            const subLocs = branches.map(b => transform(b.connIdx))
+            const unsatLocs: number[] = []
+            let invalidTraversal = false
+
+            unsatIndices.forEach(([i1, i2]) => {
+                const l1 = transform(i1)
+                const l2 = transform(i2)
+                // Start with min
+                let loc = Math.min(l1, l2)
+
+                if (ctx.isCyclic) {
+                    // Check for 1-N wraparound edge
+                    if ((l1 === 1 && l2 === N) || (l1 === N && l2 === 1)) {
+                        // This is the "wrap" edge.
+                        // If we are designating this as locant 1, it implies we are traversing 1->N.
+                        // But for double bonds, we must traverse 1->2.
+                        // So this direction is INVALID for numbering this specific double bond starting at 1.
+                        // We mark it as invalid to penalize it later.
+                        loc = 1
+                        invalidTraversal = true
+                    }
+                }
+                unsatLocs.push(loc)
+            })
+
+            // Calculate sort keys
             const alphaPairs = branches.map((b, i) => ({
                 sortKey: b.sortKey,
-                locant: locants[i]
-            }))
-            // Sort by name to see which name gets which number
-            alphaPairs.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+                locant: subLocs[i]
+            })).sort((a, b) => a.sortKey.localeCompare(b.sortKey))
 
-            return { locants, set, alphaPairs }
+            return {
+                subLocants: subLocs,
+                unsatLocants: unsatLocs,
+                subSet: [...subLocs].sort((a, b) => a - b),
+                unsatSet: [...unsatLocs].sort((a, b) => a - b),
+                alphaPairs,
+                invalidTraversal
+            }
         }
-
-        let candidates: number[][] = []
 
         if (!ctx.isCyclic) {
-            // Acyclic: Left-to-Right vs Right-to-Left
-            const len = ctx.mainChainLen
-            candidates.push(branches.map(b => b.connIdx + 1)) // L -> R
-            candidates.push(branches.map(b => len - b.connIdx)) // R -> L
+            // Acyclic: L->R and R->L
+            schemes.push(getScheme(i => i + 1)) // L->R
+            schemes.push(getScheme(i => N - i)) // R->L
         } else {
-            // Cyclic: Try all start points, CW and CCW
-            const N = ctx.mainChainLen
-            const raw = branches.map(b => b.connIdx)
-
+            // Cyclic: All Rotations x Directions (CW/CCW)
             for (let start = 0; start < N; start++) {
-                candidates.push(raw.map(idx => (idx - start + N) % N + 1)) // CW
-                candidates.push(raw.map(idx => (start - idx + N) % N + 1)) // CCW
+                schemes.push(getScheme(i => (i - start + N) % N + 1))
+                schemes.push(getScheme(i => (start - i + N) % N + 1))
             }
         }
 
-        // Compare all candidates
-        let bestScheme = evaluateScheme(candidates[0])
-
-        for (let i = 1; i < candidates.length; i++) {
-            const currentScheme = evaluateScheme(candidates[i])
-
-            // Compare 1: Lowest Locant Set
-            const setDiff = LogicEngine.compareLocantSets(currentScheme.set, bestScheme.set)
-            if (setDiff < 0) {
-                bestScheme = currentScheme
-                continue
-            }
-            if (setDiff > 0) continue
-
-            // Compare 2: Alphabetical Tie-Breaker
-            // If sets are equal, lowest number should go to the alphabetically first substituent
-            let alphaBetter = false
-            for (let j = 0; j < currentScheme.alphaPairs.length; j++) {
-                if (currentScheme.alphaPairs[j].locant < bestScheme.alphaPairs[j].locant) {
-                    alphaBetter = true; break;
-                }
-                if (currentScheme.alphaPairs[j].locant > bestScheme.alphaPairs[j].locant) {
-                    alphaBetter = false; break;
-                }
-            }
-
-            if (alphaBetter) {
-                bestScheme = currentScheme
-            }
+        // Filter Invalid Cyclic Schemes
+        // Only if we have unsaturations that mandate direction (alkenes/alkynes)
+        if (ctx.isCyclic && ctx.unsaturations.length > 0) {
+            const validSchemes = schemes.filter(s => !s.invalidTraversal)
+            // If valid schemes exist, use them. Otherwise fallback (shouldn't happen for valid alkenes).
+            if (validSchemes.length > 0) schemes = validSchemes
         }
 
-        const locsString = bestScheme.set.join(', ')
-        this.log(ctx, 'Optimization', `Lowest locants set: ${locsString}`, 'success')
-        ctx.appliedRuleIds.push(numRule.id)
-        ctx.ruleResults[numRule.id] = `Lowest locants set: ${locsString}`
+        // Sort Schemes
+        schemes.sort((a, b) => {
+            // 1. Unsaturation Locants
+            const uDiff = LogicEngine.compareLocantSets(a.unsatSet, b.unsatSet)
+            if (uDiff !== 0) return uDiff
 
-        return bestScheme.locants
+            // 2. Substituent Locants
+            const sDiff = LogicEngine.compareLocantSets(a.subSet, b.subSet)
+            if (sDiff !== 0) return sDiff
+
+            // 3. Alphabetical
+            for (let j = 0; j < a.alphaPairs.length; j++) {
+                if (a.alphaPairs[j].locant < b.alphaPairs[j].locant) return -1
+                if (a.alphaPairs[j].locant > b.alphaPairs[j].locant) return 1
+            }
+            return 0
+        })
+
+        const best = schemes[0]
+
+        // Update Unsaturation Locants in Context
+        ctx.unsaturations.forEach((u, i) => {
+            u.locant = best.unsatLocants[i]
+        })
+
+        const locsString = best.subSet.join(', ')
+        if (numRule) {
+            this.log(ctx, 'Optimization', `Lowest locants set: ${locsString} (Unsat: ${best.unsatSet.join(',')})`, 'success')
+            ctx.appliedRuleIds.push(numRule.id)
+            ctx.ruleResults[numRule.id] = `Lowest locants set: ${locsString}`
+        }
+
+        return best.subLocants
     }
 
     private static finalizeSubstituentGroups(ctx: AnalysisContext): void {
@@ -913,7 +1126,10 @@ export class LogicEngine {
         }
 
         const totalSubs = ctx.branchData.length
-        const omitLocants = ctx.isCyclic && totalSubs === 1
+        // Only omit locants if Cyclic AND No Unsaturations (pure cycloalkane).
+        // If Cycloalkene, positions are fixed relative to double bond, so locants needed (e.g. 3-methylcyclohexene).
+        const hasUnsat = ctx.unsaturations && ctx.unsaturations.length > 0
+        const omitLocants = ctx.isCyclic && totalSubs === 1 && !hasUnsat
 
         sortedKeys.forEach((key, keyIdx) => {
             const entry = map.get(key)!
@@ -983,5 +1199,32 @@ export class LogicEngine {
             ctx.appliedRuleIds.push(subRule.id)
             ctx.ruleResults[subRule.id] = summary
         }
+    }
+
+    private static findPath(graph: MoleculeGraph, start: number, end: number): number[] | null {
+        // Simple BFS for tree path
+        const queue: { id: number, path: number[] }[] = [{ id: start, path: [start] }]
+        const visited = new Set([start])
+
+        while (queue.length > 0) {
+            const curr = queue.shift()!
+            if (curr.id === end) return curr.path
+
+            // Check neighbors
+            let foundPath: number[] | null = null
+
+            graph.forEachNeighbor(curr.id.toString(), (n) => {
+                if (foundPath) return
+                const nid = parseInt(n)
+                // Constraint: Must be Carbon (unless we support heteroatom chains later)
+                const el = graph.getNodeAttribute(n, 'element')
+                if (!visited.has(nid) && el === 'C') {
+                    visited.add(nid)
+                    queue.push({ id: nid, path: [...curr.path, nid] })
+                }
+            })
+            if (foundPath) return foundPath
+        }
+        return null
     }
 }

@@ -13,21 +13,7 @@ describe('LogicEngine IUPAC Rules', () => {
         vi.restoreAllMocks();
     });
 
-
-
-    // invalid_smiles = {
-    //     "C1CCCCC1C2CC2": "Cyclopropylcyclohexane",
-    //     "CC1CCCC1C": "1,2-Dimethylcyclopentane",
-    // }
-
-    // valid_smiles.forEach((smile, expected_name) => {
-    //     it(`correctly names ${smile}`, () => {
-    //         const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-    //         expect(res.name).toBe(expected_name);
-    //         expect(res.isValid).toBe(true);
-    //     });
-    // });
-    const valid_smiles = {
+    const alkanes = {
         // Basic Straight-Chain Alkanes
         "C": "Methane",
         "CC": "Ethane",
@@ -79,7 +65,7 @@ describe('LogicEngine IUPAC Rules', () => {
         "C1(C)CCCC(C)C1": "1,3-Dimethylcyclohexane",
     };
 
-    Object.entries(valid_smiles).forEach(([smile, expectedName]) => {
+    Object.entries(alkanes).forEach(([smile, expectedName]) => {
         it(`correctly names ${smile}`, () => {
             const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
             expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
@@ -87,48 +73,90 @@ describe('LogicEngine IUPAC Rules', () => {
         });
     });
 
-    // it('correctly name alkanes', () => {
+    const alkenes = {
+        "C=C": "Ethene",
+        "CC=C": "Propene",
+        "CCC=C": "Butene",
+        "CCCC=C": "Pentene",
+        "CCCCC=C": "Hexene",
+        "CCCCCC=C": "Heptene",
+        "CCCCCCC=C": "Octene",
+        "CCCCCCCC=C": "Nonene",
+        "CCCCCCCCC=C": "Decene",
+        "CCCCCCCCCC=C": "Undecene",
+        "CC=CC": "2-Butene",
+        "CCC=CC": "2-Pentene",
+        "CCC=CCC": "3-Hexene",
+        "CCCC=CCC": "3-Heptene",
+        "CCCC=CCCC": "4-Octene",
+        "CCCCC=CCCC": "4-Nonene",
+        "CCCCC=CCCCC": "5-Decene",
+        "CC=CCCCCCCC": "2-Decene",
+        "CCC=CCCCCCC": "3-Decene",
+        "CCCC=CCCCCC": "4-Decene",
+        "C1=CC1": "Cyclopropene",
+        "C1=CCC1": "Cyclobutene",
+        "C1=CCCC1": "Cyclopentene",
+        "C1=CCCCC1": "Cyclohexene",
+        "C1=CCCCCC1": "Cycloheptene",
+        "C1=CCCCCCC1": "Cyclooctene",
+        "C1=CCCCCCCC1": "Cyclononene",
+        "C1=CCCCCCCCC1": "Cyclodecene",
 
-    //     Object.entries(valid_smiles).forEach(([smile, expectedName]) => {
-    //         const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-    //         expect(res.name).toBe(expectedName);
-    //         expect(res.isValid).toBe(true);
-    //     });
-    // });
+        "C/C=C/C(C)C": "4-methylpent-2-ene",
+        "C/C(/CC)=C/CCC": "3-methylhept-3-ene",
+        "C/C(/C)=C/C=C": "4-methylpenta-1,3-diene",
+        "CC/C(/C)=C/CC(CC)CC": "6-ethyl-3-methyloct-3-ene",
+        "CCC(Br)C(Cl)CC=C": "5-bromo-4-chlorohept-1-ene",
+        "C/C=C/C=C/CC": "hepta-2,4-diene",
+        "C=C/C=C/C": "penta-1,3-diene",
+        "C=C/C=C/C=C": "hexa-1,3,5-triene",
+        "C1C(CC)CCC=1": "3-ethylcyclopentene",
+        "C1=CCC(C)C(C)C1": "4,5-dimethylcyclohexene",
+        "C1CCC(CC)C(C)C=1": "4-ethyl-3-methylcyclohexene",
+        "C1CCCC(Cl)C=1Cl": "1,6-dichlorocyclohexene",
+        "C1CCC(CC)CC=1C": "5-ethyl-1-methylcyclohexene",
 
+    };
+    Object.entries(alkenes).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
 
-    // it('correctly names a simple alkane (Pentane)', () => {
-    //     const res = LogicEngine.analyzeMolecule("CCCCC", ALL_RULES);
-    //     expect(res.name).toBe('Pentane');
-    //     expect(res.isValid).toBe(true);
-    // });
+    const alkynes = {
+        "C#C": "Ethyne",
+        "CC#C": "Propyne",
+        "CCC#C": "Butyne",
+        "CCCC#C": "Pentyne",
+        "CCCCC#C": "Hexyne",
+        "CCCCCC#C": "Heptyne",
+        "CCCCCCC#C": "Octyne",
+        "CCCCCCCC#C": "Nonyne",
+        "CCCCCCCCC#C": "Decyne",
 
-    // it('correctly names 2-Chloropentane (Halogen Rule)', () => {
-    //     const res = LogicEngine.analyzeMolecule("CC(Cl)CCC", ALL_RULES);
-    //     expect(res.name).toBe('2-Chloropentane');
-    // });
+        "CC#CCC": "Pent-2-yne",
+        "CCC#CCC": "Hex-3-yne",
+        "CC#CCCC": "Hex-2-yne",
+        "CCCC#CCC": "Hept-3-yne",
+        "CCCC#CCCC": "Oct-4-yne",
+        "CC(CC)C#CC": "4-methylhex-2-yne",
+        "CC(Cl)C(Br)C#CCCC": "3-Bromo-2-Chlorooct-4-yne",
+        "CC(C)C#CCCBr": "1-bromo-5-methylhex-3-yne",
+        "C/C=C/CCC#C": "hept-5-en-1-yne",
+        "C=CCCC#CC": "hept-1-en-5-yne",
+        "C=CC(CCCC)C#CC": "3-butylhex-1-en-4-yne",
 
-    // it('correctly handles lowest locants (2-Methylpentane vs 4-Methylpentane)', () => {
-    //     const res = LogicEngine.analyzeMolecule("CC(C)CCC", ALL_RULES);
-    //     expect(res.name).toBe('2-Methylpentane');
-    // });
+    };
 
-    // it('correctly orders substituents alphabetically (2-Bromo-3-chlorobutane)', () => {
-
-    //     const res = LogicEngine.analyzeMolecule("CC(Br)C(Cl)C", ALL_RULES);
-    //     expect(res.name).toBe('2-Bromo-3-chlorobutane');
-    // });
-
-    // it('correctly names Cyclopropylcyclohexane (Ring Rule)', () => {
-
-    //     const res = LogicEngine.analyzeMolecule("C1CCCCC1C2CC2", ALL_RULES);
-    //     expect(res.name).toBe('Cyclopropylcyclohexane');
-    // });
-
-    // it('names 1,2-Dimethylcyclopentane with lowest locants', () => {
-
-    //     const res = LogicEngine.analyzeMolecule("CC1CCCC1C", ALL_RULES);
-    //     expect(res.name).toBe('1,2-Dimethylcyclopentane');
-    // });
+    Object.entries(alkynes).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
 
 });
