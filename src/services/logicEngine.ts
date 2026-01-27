@@ -982,7 +982,9 @@ export class LogicEngine {
             subLocants: number[] // parallel to ctx.branchData
             unsatLocants: number[] // parallel to ctx.unsaturations
             subSet: number[] // sorted
-            unsatSet: number[] // sorted
+            unsatSet: number[] // sorted (all unsaturations)
+            doubleBondSet: number[] // sorted
+            tripleBondSet: number[] // sorted
             alphaPairs: { sortKey: string, locant: number }[]
             invalidTraversal?: boolean
         }
@@ -993,20 +995,25 @@ export class LogicEngine {
         const unsatIndices = ctx.unsaturations.map(u => {
             const idx1 = ctx.mainChainAtoms.indexOf(u.atomIds[0])
             const idx2 = ctx.mainChainAtoms.indexOf(u.atomIds[1])
-            return [idx1, idx2]
+            return {
+                indices: [idx1, idx2],
+                type: u.type
+            }
+
         })
 
         let schemes: Scheme[] = []
-
-
 
         // Helper to Create Scheme with Valid Traversal Check for Cycles
         const getScheme = (transform: (i: number) => number) => {
             const subLocs = branches.map(b => transform(b.connIdx))
             const unsatLocs: number[] = []
+            const doubleBondLocs: number[] = []
+            const tripleBondLocs: number[] = []
             let invalidTraversal = false
 
-            unsatIndices.forEach(([i1, i2]) => {
+            unsatIndices.forEach(({ indices, type }) => {
+                const [i1, i2] = indices
                 const l1 = transform(i1)
                 const l2 = transform(i2)
                 // Start with min
@@ -1018,13 +1025,13 @@ export class LogicEngine {
                         // This is the "wrap" edge.
                         // If we are designating this as locant 1, it implies we are traversing 1->N.
                         // But for double bonds, we must traverse 1->2.
-                        // So this direction is INVALID for numbering this specific double bond starting at 1.
-                        // We mark it as invalid to penalize it later.
                         loc = 1
                         invalidTraversal = true
                     }
                 }
                 unsatLocs.push(loc)
+                if (type === 2) doubleBondLocs.push(loc)
+                else if (type === 3) tripleBondLocs.push(loc)
             })
 
             // Calculate sort keys
@@ -1038,6 +1045,8 @@ export class LogicEngine {
                 unsatLocants: unsatLocs,
                 subSet: [...subLocs].sort((a, b) => a - b),
                 unsatSet: [...unsatLocs].sort((a, b) => a - b),
+                doubleBondSet: [...doubleBondLocs].sort((a, b) => a - b),
+                tripleBondSet: [...tripleBondLocs].sort((a, b) => a - b),
                 alphaPairs,
                 invalidTraversal
             }
@@ -1056,24 +1065,26 @@ export class LogicEngine {
         }
 
         // Filter Invalid Cyclic Schemes
-        // Only if we have unsaturations that mandate direction (alkenes/alkynes)
         if (ctx.isCyclic && ctx.unsaturations.length > 0) {
             const validSchemes = schemes.filter(s => !s.invalidTraversal)
-            // If valid schemes exist, use them. Otherwise fallback (shouldn't happen for valid alkenes).
             if (validSchemes.length > 0) schemes = validSchemes
         }
 
         // Sort Schemes
         schemes.sort((a, b) => {
-            // 1. Unsaturation Locants
+            // 1. Unsaturation Locants (Set of ALL) (Lower is better)
             const uDiff = LogicEngine.compareLocantSets(a.unsatSet, b.unsatSet)
             if (uDiff !== 0) return uDiff
 
-            // 2. Substituent Locants
+            // 2. Double Bond Preference (Double < Triple in ties) (Lower is better)
+            const dbDiff = LogicEngine.compareLocantSets(a.doubleBondSet, b.doubleBondSet)
+            if (dbDiff !== 0) return dbDiff
+
+            // 3. Substituent Locants
             const sDiff = LogicEngine.compareLocantSets(a.subSet, b.subSet)
             if (sDiff !== 0) return sDiff
 
-            // 3. Alphabetical
+            // 4. Alphabetical
             for (let j = 0; j < a.alphaPairs.length; j++) {
                 if (a.alphaPairs[j].locant < b.alphaPairs[j].locant) return -1
                 if (a.alphaPairs[j].locant > b.alphaPairs[j].locant) return 1
@@ -1090,9 +1101,42 @@ export class LogicEngine {
 
         const locsString = best.subSet.join(', ')
         if (numRule) {
-            this.log(ctx, 'Optimization', `Lowest locants set: ${locsString} (Unsat: ${best.unsatSet.join(',')})`, 'success')
+            const parts: string[] = []
+
+            // 1. Double Bonds
+            if (best.doubleBondSet.length > 0) {
+                parts.push(`Double Bond at ${best.doubleBondSet.join(',')}`)
+            }
+
+            // 2. Triple Bonds
+            if (best.tripleBondSet.length > 0) {
+                parts.push(`Triple Bond at ${best.tripleBondSet.join(',')}`)
+            }
+
+            // 3. Substituents (Grouped by Name)
+            // Need to map best.subLocants (parallel to branches) to names
+            const subMap = new Map<string, number[]>()
+            branches.forEach((b, i) => {
+                const loc = best.subLocants[i]
+                const list = subMap.get(b.name) || []
+                list.push(loc)
+                subMap.set(b.name, list)
+            })
+
+            // Sort by name
+            const names = Array.from(subMap.keys()).sort((a, b) => LogicEngine.getSortKey(a).localeCompare(LogicEngine.getSortKey(b)))
+
+            names.forEach(name => {
+                const locs = subMap.get(name)!.sort((a, b) => a - b)
+                parts.push(`${name} at ${locs.join(',')}`)
+            })
+
+            const separator = (best.doubleBondSet.length > 0 || best.tripleBondSet.length > 0) ? ' < ' : ', '
+            const msg = parts.join(separator) || `Lowest locants: ${locsString}`
+
+            this.log(ctx, 'Optimization', msg, 'success')
             ctx.appliedRuleIds.push(numRule.id)
-            ctx.ruleResults[numRule.id] = `Lowest locants set: ${locsString}`
+            ctx.ruleResults[numRule.id] = msg
         }
 
         return best.subLocants
@@ -1190,7 +1234,18 @@ export class LogicEngine {
         const branchNames = ctx.branchData.map(b => b.name)
         const counts: Record<string, number> = {}
         branchNames.forEach(x => counts[x] = (counts[x] || 0) + 1)
-        const summary = `Found ${branchNames.length} branch(es): ${Object.keys(counts).map(n => `${counts[n]} ${n}`).join(', ')}`
+
+        let summary = `Found ${branchNames.length} branch(es): ${Object.keys(counts).map(n => `${counts[n]} ${n}`).join(', ')}`
+
+        // Append Unsaturations to Summary
+        const dCount = ctx.unsaturations.filter(u => u.type === 2).length
+        const tCount = ctx.unsaturations.filter(u => u.type === 3).length
+        if (dCount > 0 || tCount > 0) {
+            const unsatParts: string[] = []
+            if (dCount > 0) unsatParts.push(`${dCount} Double Bond(s)`)
+            if (tCount > 0) unsatParts.push(`${tCount} Triple Bond(s)`)
+            summary += `. Found ${unsatParts.join(', ')}.`
+        }
 
         this.log(ctx, 'Feature Analysis', summary, 'success')
 
