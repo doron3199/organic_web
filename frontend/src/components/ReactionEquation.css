@@ -1,0 +1,112 @@
+/* Wrapper to handle button positioning */
+.reaction-equation-wrapper {
+    position: relative;
+    margin: 2rem 0;
+    padding-top: 2rem;
+    /* Space for the button */
+}
+
+.experiment-controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+}
+
+.btn-experiment {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+
+.btn-experiment:hover {
+    background: var(--accent-hover);
+}
+
+.reaction-equation-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.reactants-group,
+.products-group {
+    display: flex;
+    align-items: flex-start;
+    /* Align top so charts don't mess up molecule alignment */
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.reaction-part {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    padding: 0 1rem;
+    /* Spacing for plus signs */
+}
+
+.reaction-label {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    max-width: 180px;
+}
+
+.product-label {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.reactants-group .reaction-part .plus-sign,
+.products-group .reaction-part .plus-sign {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-muted);
+    position: absolute;
+    right: -0.8rem;
+    top: 40%;
+    /* Approx center of viewer */
+    transform: translateY(-50%);
+}
+
+.reaction-arrow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 0.5rem;
+    min-width: 60px;
+}
+
+.reaction-condition {
+    font-size: 0.85rem;
+    color: var(--accent-secondary);
+    margin-bottom: -5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.reaction-arrow {
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--text-muted);
+    font-weight: 300;
+}

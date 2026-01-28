@@ -10,6 +10,7 @@ import { AnalysisResult } from '../services/logicEngine'
 interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
     initialMolecule?: string
+    initialConditions?: string[]
     onBack: () => void
     onNameMolecule: (smiles: string) => AnalysisResult
 }
@@ -21,7 +22,7 @@ import ReactionPanel from './ReactionPanel'
 
 // ... existing code ...
 
-function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolecule }: MoleculeEditorProps) {
+function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule }: MoleculeEditorProps) {
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
@@ -192,6 +193,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
             <div className="reaction-panel-container fade-in">
                 <ReactionPanel
                     currentMolecule={currentSmiles}
+                    initialConditions={initialConditions}
                     onMoleculeUpdate={handleReactionUpdate}
                     onRequestSmiles={updateCurrentSmiles}
                 />

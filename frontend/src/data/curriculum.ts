@@ -11,12 +11,28 @@ export interface Rule {
 }
 
 
+export type Selectivity = 'major' | 'minor' | 'trace' | 'equal';
+
+export interface ReactionProduct {
+    smiles: string;
+    name: string;
+    selectivity?: Selectivity;
+    yield?: number; // Optional numeric yield (98, 2, 50)
+}
+
+export interface ReactionExample {
+    reactants: { smiles: string; name?: string }[];
+    products: ReactionProduct[];
+    conditions: string;
+}
+
 export interface SubSubject {
     id: string
     name: string
     rules: Rule[]
     content: string // Markdown or HTML content
     examples: { smiles: string; name: string }[]
+    reactionExamples?: ReactionExample[];
     isCompleted?: boolean
     section?: string
 }
@@ -364,11 +380,31 @@ Alkanes react with Cl\u2082 or Br\u2082 in the presence of **heat (\u0394)** or 
 
 - **Limitations**: Fluorine reacts too violently; Iodine is too unreactive.
                 `,
-                examples: [
-                    { smiles: 'CC(C)C', name: 'Starting Material: Isobutane' },
-                    { smiles: 'CC(C)(Br)C', name: 'Product (Br2/hv): tert-Butyl bromide (Major)' },
-                    { smiles: 'CC(C)CCl', name: 'Product (Cl2/hv): Mixture' }
+                reactionExamples: [
+                    {
+                        reactants: [
+                            { smiles: 'CC(C)C', name: 'Isobutane' },
+                            { smiles: 'BrBr', name: 'Bromine' }
+                        ],
+                        products: [
+                            { smiles: 'CC(C)(Br)C', name: 'tert-Butyl bromide', selectivity: 'major', yield: 99 },
+                            { smiles: 'CC(C)CBr', name: 'Isobutyl bromide', selectivity: 'minor', yield: 1 }
+                        ],
+                        conditions: 'hν or Δ'
+                    },
+                    {
+                        reactants: [
+                            { smiles: 'CC(C)C', name: 'Isobutane' },
+                            { smiles: 'ClCl', name: 'Chlorine' }
+                        ],
+                        products: [
+                            { smiles: 'CC(C)(Cl)C', name: 'tert-Butyl chloride', selectivity: 'equal', yield: 64 },
+                            { smiles: 'CC(C)CCl', name: 'Isobutyl chloride', selectivity: 'equal', yield: 36 }
+                        ],
+                        conditions: 'hν or Δ'
+                    }
                 ],
+                examples: [],
                 rules: []
             }
         ]
@@ -537,12 +573,40 @@ Subject to **Markovnikov\u2019s Rule** and rearrangements (3\u00B0 > 2\u00B0 > 1
 - **Ozonolysis**: 1) O\u2083 2) Zn/DMS \u2192 Cleaves double bond to form Ketones/Aldehydes.
 - **Hydroxylation**: KMnO\u2084 or OsO\u2084 \u2192 Syn-diol.
                 `,
-                examples: [
-                    { smiles: 'CC=C', name: 'Propene' },
-                    { smiles: 'CC(Br)C', name: 'Product (HBr): 2-Bromopropane' },
-                    { smiles: 'CCCO', name: 'Product (Hydroboration): Propan-1-ol' },
-                    { smiles: 'BrCCBr', name: 'Product (Br2): 1,2-Dibromoethane' }
+                reactionExamples: [
+                    {
+                        reactants: [
+                            { smiles: 'CC=C', name: 'Propene' },
+                            { smiles: 'Br', name: 'HBr' }
+                        ],
+                        products: [
+                            { smiles: 'CC(Br)C', name: '2-Bromopropane', selectivity: 'major', yield: 95 },
+                            { smiles: 'CCCBr', name: '1-Bromopropane', selectivity: 'minor', yield: 5 }
+                        ],
+                        conditions: ''
+                    },
+                    {
+                        reactants: [
+                            { smiles: 'CC=C', name: 'Propene' },
+                            { smiles: 'B', name: 'BH3' }
+                        ],
+                        products: [
+                            { smiles: 'CCCO', name: 'Propan-1-ol', selectivity: 'major', yield: 99 }
+                        ],
+                        conditions: '1) BH3, 2) H2O2, NaOH'
+                    },
+                    {
+                        reactants: [
+                            { smiles: 'C=C', name: 'Ethene' },
+                            { smiles: 'BrBr', name: 'Bromine' }
+                        ],
+                        products: [
+                            { smiles: 'BrCCBr', name: '1,2-Dibromoethane', selectivity: 'major', yield: 100 }
+                        ],
+                        conditions: ''
+                    }
                 ],
+                examples: [],
                 rules: []
             }
         ]
@@ -659,12 +723,29 @@ Terminal alkynes are acidic (pKa \u2248 25).
 - **Alkylation**: R-C\u2261C-H + NaNH\u2082 \u2192 R-C\u2261C\u207B (Acetylide).
 - This nucleophile attacks primary alkyl halides (R'-X) to form a longer carbon chain: R-C\u2261C-R'.
                 `,
-                examples: [
-                    { smiles: 'CC#C', name: 'Propyne' },
-                    { smiles: 'CC(O)=C', name: 'Enol form (unstable)' },
-                    { smiles: 'CC(=O)C', name: 'Product (HgSO4): Acetone' },
-                    { smiles: 'CCC#C', name: 'Product (Alkylation): But-1-yne' }
+                reactionExamples: [
+                    {
+                        reactants: [
+                            { smiles: 'CC#C', name: 'Propyne' },
+                            { smiles: 'O', name: 'H2O' }
+                        ],
+                        products: [
+                            { smiles: 'CC(=O)C', name: 'Acetone', selectivity: 'major', yield: 100 }
+                        ],
+                        conditions: 'HgSO4, H2O, H+'
+                    },
+                    {
+                        reactants: [
+                            { smiles: 'CC#C', name: 'Propyne' },
+                            { smiles: 'CI', name: 'CH3I' }
+                        ],
+                        products: [
+                            { smiles: 'CCC#C', name: 'But-1-yne', selectivity: 'major', yield: 100 }
+                        ],
+                        conditions: '1) NaNH2, 2) CH3I'
+                    }
                 ],
+                examples: [],
                 rules: []
             }
         ]

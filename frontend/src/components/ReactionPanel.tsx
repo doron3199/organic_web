@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { reactionRules } from '../services/reactions'
 import { rdkitService } from '../services/rdkit'
 import MoleculeViewer from './MoleculeViewer'
+import SelectivityChart from './SelectivityChart'
 import './ReactionPanel.css'
 
 interface ReactionPanelProps {
     currentMolecule: string
     onMoleculeUpdate: (smiles: string) => void
     onRequestSmiles?: () => Promise<string | undefined>
+    initialConditions?: string[]
 }
 
 const AVAILABLE_CONDITIONS = [
@@ -18,14 +20,21 @@ const AVAILABLE_CONDITIONS = [
     { id: 'h2o', label: '💧 Water' },
 ]
 
-function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles }: ReactionPanelProps) {
-    const [selectedConditions, setSelectedConditions] = useState<string[]>(['h2o'])
+function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, initialConditions }: ReactionPanelProps) {
+    const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || ['h2o'])
     const [matchedReactions, setMatchedReactions] = useState(reactionRules)
     const [results, setResults] = useState<{ reactionName: string, products: string[] }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
     const [showConditionError, setShowConditionError] = useState(false)
     const [isSingleSelect, setIsSingleSelect] = useState(true)
+
+    // Update conditions when prop changes (e.g. from Experiment button)
+    useEffect(() => {
+        if (initialConditions && initialConditions.length > 0) {
+            setSelectedConditions(initialConditions)
+        }
+    }, [initialConditions])
 
     // Filter reactions based on selected conditions
     useEffect(() => {
@@ -259,6 +268,10 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles }: R
                                         >
                                             Add to Editor
                                         </button>
+                                        <SelectivityChart
+                                            type={res.products.length > 1 ? 'equal' : 'major'}
+                                            label={res.products.length > 1 ? 'Mixture' : 'Major (100%)'}
+                                        />
                                     </div>
                                 ))}
                             </div>

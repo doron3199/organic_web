@@ -145,7 +145,7 @@ function App() {
     }
 
     return (
-        <div className={`app-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''}`}>
+        <div className={`app-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''} ${mode === 'study' ? 'study-mode' : ''}`}>
             {/* Left Sidebar: Curriculum */}
             {isSidebarOpen && (
                 <div className="sidebar-left">
@@ -176,7 +176,7 @@ function App() {
             </div>
 
             {/* Right Sidebar: Logic Console */}
-            {mode !== 'cheatsheet' && (
+            {mode !== 'cheatsheet' && mode !== 'study' && (
                 <div className="sidebar-right">
                     <LogicConsole
                         mode={mode}

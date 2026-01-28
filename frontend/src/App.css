@@ -48,11 +48,13 @@ body {
     grid-template-columns: 1fr 340px;
 }
 
-.app-container.cheatsheet-mode {
+.app-container.cheatsheet-mode,
+.app-container.study-mode {
     grid-template-columns: 260px 1fr;
 }
 
-.app-container.cheatsheet-mode.sidebar-collapsed {
+.app-container.cheatsheet-mode.sidebar-collapsed,
+.app-container.study-mode.sidebar-collapsed {
     grid-template-columns: 1fr;
 }
 

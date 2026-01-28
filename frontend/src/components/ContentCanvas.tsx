@@ -3,6 +3,7 @@ import { Subject } from '../data/curriculum' // SubSubject imported but used in 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import MoleculeViewer from './MoleculeViewer'
+import ReactionEquation from './ReactionEquation'
 import MoleculeEditor from './MoleculeEditor'
 import Cheatsheet from './Cheatsheet'
 import { AnalysisResult } from '../services/logicEngine'
@@ -41,6 +42,25 @@ function ContentCanvas({
     const containerRef = useRef<HTMLDivElement>(null)
     const observerRef = useRef<IntersectionObserver | null>(null)
     const [testSmiles, setTestSmiles] = useState('')
+    const [workbenchConditions, setWorkbenchConditions] = useState<string[]>([])
+
+    const handleExperiment = (smiles: string, conditions: string) => {
+        onLoadExample(smiles)
+
+        // Parse conditions
+        const conds: string[] = []
+        const condLower = conditions.toLowerCase()
+        // Check for Heat: "heat", "Δ" (Capital Delta), "delta", "mix"
+        if (condLower.includes('heat') || conditions.includes('Δ') || condLower.includes('delta') || condLower.includes('mix')) conds.push('heat')
+        // Check for Light: "light", "hv", "hν" (Greek Nu)
+        if (condLower.includes('light') || condLower.includes('hv') || conditions.includes('hν')) conds.push('light')
+        if (condLower.includes('acid') || condLower.includes('h+')) conds.push('acid')
+        if (condLower.includes('base') || condLower.includes('oh-') || condLower.includes('nanh2')) conds.push('base')
+        if (condLower.includes('h2o') || condLower.includes('water')) conds.push('h2o')
+
+        setWorkbenchConditions(conds)
+        onSwitchMode('workbench')
+    }
 
     // Handle Auto-Scroll to Target
     useEffect(() => {
@@ -187,19 +207,31 @@ function ContentCanvas({
 
                                     <div className="examples-section">
                                         <h3>Examples</h3>
-                                        <div className="molecules-grid">
-                                            {subSubject.examples.map((ex, idx) => (
-                                                <div key={idx} className="molecule-card">
-                                                    <MoleculeViewer
-                                                        smiles={ex.smiles}
-                                                        onEdit={() => handleEditClick(ex.smiles)}
-                                                        width={300}
-                                                        height={200}
+                                        {subSubject.reactionExamples ? (
+                                            <div className="reactions-list">
+                                                {subSubject.reactionExamples.map((rxn, idx) => (
+                                                    <ReactionEquation
+                                                        key={idx}
+                                                        reaction={rxn}
+                                                        onExperiment={handleExperiment}
                                                     />
-                                                    <div className="molecule-label">{ex.name}</div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="molecules-grid">
+                                                {subSubject.examples.map((ex, idx) => (
+                                                    <div key={idx} className="molecule-card">
+                                                        <MoleculeViewer
+                                                            smiles={ex.smiles}
+                                                            onEdit={() => handleEditClick(ex.smiles)}
+                                                            width={300}
+                                                            height={200}
+                                                        />
+                                                        <div className="molecule-label">{ex.name}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <hr className="section-divider" />
                                 </div>
@@ -240,6 +272,7 @@ function ContentCanvas({
                         <MoleculeEditor
                             onMoleculeChange={onWorkbenchChange}
                             initialMolecule={originalMolecule || workbenchMolecule}
+                            initialConditions={workbenchConditions}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
                         />
