@@ -115,7 +115,6 @@ export class LogicEngine {
             mainChainAtoms: [],
             mainChainLen: 0,
             branches: [],
-            // substituentAtoms: [],
             branchData: [],
             rootPart: null,
             substituentParts: [],
@@ -143,12 +142,7 @@ export class LogicEngine {
         return {
             logs: ctx.logs,
             name: ctx.finalName,
-            nameParts: ctx.substituentParts.length > 0 || ctx.rootPart ? [...ctx.substituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])] : undefined, // Logic handled in assembleName but fallbacks here?
-            // Actually assembleName handles 'nameParts'. We shoud use ctx.nameParts? 
-            // The context has `substituentParts` and `rootPart`.
-            // Let's refine buildResult in next steps or stick to what assembleName produces.
-            // assembleName will populate `finalName` and `substituentParts`/`rootPart`.
-            // Let's just construct the final parts list here if not done.
+            nameParts: ctx.substituentParts.length > 0 || ctx.rootPart ? [...ctx.substituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])] : undefined,
             isValid: ctx.isValid,
             appliedRuleIds: ctx.appliedRuleIds,
             ruleResults: ctx.ruleResults,
@@ -799,7 +793,6 @@ export class LogicEngine {
             // Attached via linker? Not supported well yet.
             // return unknown
             return "Unknown"
-            // return "Complex-Cyclo-Sub"
         } else {
             // ACYCLIC SUBSTITUENT
 

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+backend/uv.lock
+backend/__pycache__
+backend/tests/__pycache__

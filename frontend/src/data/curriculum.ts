@@ -341,6 +341,35 @@ Carbon chains can form rings! These are called **cycloalkanes**.
                         logicType: 'check_cyclo_naming'
                     }
                 ]
+            },
+            {
+                id: 'alkanes-reactions',
+                section: 'Reactions',
+                name: 'Step 6: Reactions of Alkanes',
+                content: `
+### Free Radical Substitution
+Alkanes are generally unreactive due to strong sigma bonds and a lack of partial charges, but they undergo halogenation under specific conditions.
+
+#### Halogenation (Chlorination/Bromination)
+Alkanes react with Cl\u2082 or Br\u2082 in the presence of **heat (\u0394)** or **light (h\u03BD)** to form alkyl halides and hydrogen halides.
+
+- **Mechanism**: Proceeds via a radical chain reaction:
+  1. **Initiation**: Homolytic cleavage of the halogen.
+  2. **Propagation**: Radical transfer.
+  3. **Termination**: Radicals combine.
+
+- **Selectivity**:
+  - **Bromine (Br\u2082)**: Highly selective. Preferentially reacts with tertiary carbons over primary ones (3\u00B0 > 2\u00B0 > 1\u00B0) due to radical stability.
+  - **Chlorine (Cl\u2082)**: Less selective, yields mixtures of products.
+
+- **Limitations**: Fluorine reacts too violently; Iodine is too unreactive.
+                `,
+                examples: [
+                    { smiles: 'CC(C)C', name: 'Starting Material: Isobutane' },
+                    { smiles: 'CC(C)(Br)C', name: 'Product (Br2/hv): tert-Butyl bromide (Major)' },
+                    { smiles: 'CC(C)CCl', name: 'Product (Cl2/hv): Mixture' }
+                ],
+                rules: []
             }
         ]
     },
@@ -481,6 +510,40 @@ Once you have identified the High Priority group on Carbon A and Carbon B:
                     { smiles: 'F/C(Br)=C(\\Cl)I', name: '(E)-2-Bromo-1-chloro-2-fluoro-1-iodoethene' }
                 ],
                 rules: []
+            },
+            {
+                id: 'alkenes-reactions',
+                section: 'Reactions',
+                name: 'Step 5: Reactions of Alkenes',
+                content: `
+### Electrophilic Addition
+Alkenes are electron-rich nucleophiles (due to the \u03C0 bond) that react with electrophiles. The \u03C0 bond breaks to form two new \u03C3 bonds.
+
+#### 1. Addition via Carbocation Intermediates
+Subject to **Markovnikov\u2019s Rule** and rearrangements (3\u00B0 > 2\u00B0 > 1\u00B0).
+
+- **Hydrohalogenation (HX)**: Alkene + HCl/HBr \u2192 Alkyl Halide. H adds to the side with more H's (Markovnikov).
+- **Acid-Catalyzed Hydration**: Alkene + H\u2082O (H\u208A) \u2192 Alcohol.
+- **Addition of Alcohols**: Alkene + ROH (H\u208A) \u2192 Ether.
+
+#### 2. Addition without Rearrangement
+- **Hydroboration-Oxidation**: Alkene + 1) BH\u2083 2) H\u2082O\u2082, OH\u207B \u2192 Alcohol. **Anti-Markovnikov** addition of OH. Syn addition.
+- **Halogenation**: Alkene + Br\u2082/Cl\u2082 \u2192 Vicinal Dihalide. Anti addition via cyclic halonium ion.
+- **Halogenation (Halohydrin)**: Alkene + Br\u2082 + H\u2082O \u2192 Halohydrin (OH and Br). OH adds to the more substituted carbon.
+
+#### 3. Oxidation and Reduction
+- **Hydrogenation**: Alkene + H\u2082 (Pd/C) \u2192 Alkane. Syn addition.
+- **Epoxidation**: Alkene + RCOOOH (mCPBA) \u2192 Epoxide.
+- **Ozonolysis**: 1) O\u2083 2) Zn/DMS \u2192 Cleaves double bond to form Ketones/Aldehydes.
+- **Hydroxylation**: KMnO\u2084 or OsO\u2084 \u2192 Syn-diol.
+                `,
+                examples: [
+                    { smiles: 'CC=C', name: 'Propene' },
+                    { smiles: 'CC(Br)C', name: 'Product (HBr): 2-Bromopropane' },
+                    { smiles: 'CCCO', name: 'Product (Hydroboration): Propan-1-ol' },
+                    { smiles: 'BrCCBr', name: 'Product (Br2): 1,2-Dibromoethane' }
+                ],
+                rules: []
             }
         ]
     },
@@ -563,6 +626,46 @@ What if a molecule has **both** a double and a triple bond?
                         logicType: 'lowest_numbering'
                     }
                 ]
+            },
+            {
+                id: 'alkynes-reactions',
+                section: 'Reactions',
+                name: 'Step 3: Reactions of Alkynes',
+                content: `
+### Reactions of Alkynes
+Alkynes have two \u03C0 bonds and can undergo addition twice.
+
+#### Addition Reactions
+- **Hydrohalogenation (HX)**:
+  - 1 eq: Vinyl Halide.
+  - Excess: Geminal Dihalide.
+- **Halogenation (X\u2082)**:
+  - 1 eq: Dihaloalkene.
+  - Excess: Tetrahaloalkane.
+
+#### Hydration (Ketone/Aldehyde Synthesis)
+- **Acid-Catalyzed (HgSO\u2084)**: Forms **Ketones** (Markovnikov). Enol intermediate tautomerizes to ketone.
+- **Hydroboration-Oxidation**:
+  - Terminal Alkyne \u2192 **Aldehyde** (Anti-Markovnikov).
+  - Internal Alkyne \u2192 Ketone.
+
+#### Reduction
+- **Complete**: H\u2082 + Pd/C \u2192 Alkane.
+- **Partial (Cis)**: H\u2082 + Lindlar's Catalyst \u2192 Cis-Alkene.
+- **Partial (Trans)**: Na/NH\u2083(l) \u2192 Trans-Alkene.
+
+#### Acetylide Ion Chemistry
+Terminal alkynes are acidic (pKa \u2248 25).
+- **Alkylation**: R-C\u2261C-H + NaNH\u2082 \u2192 R-C\u2261C\u207B (Acetylide).
+- This nucleophile attacks primary alkyl halides (R'-X) to form a longer carbon chain: R-C\u2261C-R'.
+                `,
+                examples: [
+                    { smiles: 'CC#C', name: 'Propyne' },
+                    { smiles: 'CC(O)=C', name: 'Enol form (unstable)' },
+                    { smiles: 'CC(=O)C', name: 'Product (HgSO4): Acetone' },
+                    { smiles: 'CCC#C', name: 'Product (Alkylation): But-1-yne' }
+                ],
+                rules: []
             }
         ]
     },

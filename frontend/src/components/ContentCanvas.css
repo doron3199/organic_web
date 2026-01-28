@@ -135,6 +135,7 @@
     background-color: var(--bg-darker);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 /* Animations */

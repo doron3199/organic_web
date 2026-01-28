@@ -149,6 +149,16 @@
     transform: translateY(0);
 }
 
+.reaction-panel-container {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
 .generated-name-display {
     background: var(--bg-tertiary);
     padding: 8px 16px;

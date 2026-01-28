@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { LogicEngine } from './logicEngine';
 import { ALL_RULES } from '../data/allRules';
 import { rdkitService } from './rdkit';
@@ -7,10 +7,6 @@ describe('LogicEngine IUPAC Rules', () => {
 
     beforeEach(async () => {
         await rdkitService.initialize()
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
     });
 
     const alkanes = {

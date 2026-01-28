@@ -179,6 +179,35 @@ class RDKitService {
         }
     }
 
+    // Run a reaction given reactants and a reaction SMARTS via Backend
+    async runReaction(reactantsSMILES: string[], reactionSmarts: string): Promise<string | string[] | null> {
+        try {
+            const response = await fetch('http://localhost:8000/reaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reactants: reactantsSMILES, smarts: reactionSmarts })
+            });
+
+            if (!response.ok) {
+                console.error('Backend reaction request failed');
+                return null;
+            }
+
+            const data = await response.json();
+            const products = data.products;
+
+            // Maintain backward compatibility for single product returns
+            if (Array.isArray(products) && products.length === 1) {
+                return products[0];
+            }
+            return products;
+
+        } catch (error) {
+            console.error('Reaction execution error:', error);
+            return null;
+        }
+    }
+
     // Clean up resources
     cleanup() {
         if (this.rdkit) {

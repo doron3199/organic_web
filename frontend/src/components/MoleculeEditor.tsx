@@ -16,24 +16,29 @@ interface MoleculeEditorProps {
 
 const structServiceProvider = new StandaloneStructServiceProvider() as StructServiceProvider
 
+// ... imports
+import ReactionPanel from './ReactionPanel'
+
+// ... existing code ...
+
 function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolecule }: MoleculeEditorProps) {
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+
+    const [currentSmiles, setCurrentSmiles] = useState<string>('')
     const lastInternalSmiles = useRef<string | null>(null)
 
     // Update molecule if initialMolecule prop changes (e.g. loading new example)
     useEffect(() => {
         if (ketcherRef.current && initialMolecule) {
-            // Check if this update corresponds to the last SMILES we sent up
-            // If so, it's a self-update loop, so ignore it to prevent resetting view or clearing results
             if (initialMolecule === lastInternalSmiles.current) {
                 return
             }
-
             ketcherRef.current.setMolecule(initialMolecule).catch(console.error)
             setAnalysisResult(null)
+            setCurrentSmiles(initialMolecule) // Keep sync
             setMessage('Loaded new molecule')
         }
     }, [initialMolecule])
@@ -46,8 +51,22 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
             setMessage('Refreshed to original molecule')
             setAnalysisResult(null)
             lastInternalSmiles.current = null // Clear tracking on manual reset
+            setCurrentSmiles(initialMolecule || '')
         } catch (error) {
             console.error('Reset failed:', error)
+        }
+    }
+
+    const updateCurrentSmiles = async () => {
+        if (!ketcherRef.current) return
+        try {
+            const smiles = await ketcherRef.current.getSmiles()
+            setCurrentSmiles(smiles)
+            if (onMoleculeChange) onMoleculeChange(smiles)
+            return smiles
+        } catch (e) {
+            console.error(e)
+            return ''
         }
     }
 
@@ -55,9 +74,10 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
         if (!ketcherRef.current) return
 
         try {
-            const smiles = await ketcherRef.current.getSmiles()
+            const smiles = await updateCurrentSmiles()
+            if (!smiles) return
+
             lastInternalSmiles.current = smiles // Track this as internal update
-            if (onMoleculeChange) onMoleculeChange(smiles)
 
             const result = onNameMolecule(smiles)
             setAnalysisResult(result)
@@ -65,6 +85,20 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
         } catch (error) {
             console.error('Naming failed:', error)
             setMessage('Error identifying molecule')
+        }
+    }
+
+    const handleReactionUpdate = async (newSmiles: string) => {
+        if (!ketcherRef.current) return
+        try {
+            await ketcherRef.current.setMolecule(newSmiles)
+            setCurrentSmiles(newSmiles)
+            lastInternalSmiles.current = newSmiles
+            if (onMoleculeChange) onMoleculeChange(newSmiles)
+            setMessage('Product added to editor')
+            setAnalysisResult(null) // Reset analysis as molecule changed
+        } catch (e) {
+            console.error('Failed to update editor:', e)
         }
     }
 
@@ -111,6 +145,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
                         // Load initial molecule if provided
                         if (initialMolecule) {
                             ketcher.setMolecule(initialMolecule).catch(console.error)
+                            setCurrentSmiles(initialMolecule)
                         }
                     }}
                     errorHandler={(message: string) => {
@@ -133,9 +168,9 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
                     <button
                         className="action-btn smiles-btn"
                         onClick={async () => {
-                            if (ketcherRef.current) {
-                                const smiles = await ketcherRef.current.getSmiles()
-                                setAnalysisResult({ name: smiles, isValid: true, logs: [], appliedRuleIds: [], ruleResults: {} } as any)
+                            const s = await updateCurrentSmiles()
+                            if (s) {
+                                setAnalysisResult({ name: s, isValid: true, logs: [], appliedRuleIds: [], ruleResults: {} } as any)
                                 setMessage('SMILES generated')
                             }
                         }}
@@ -151,6 +186,15 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, onBack, onNameMolec
                         {renderInteractiveName(analysisResult)}
                     </div>
                 )}
+            </div>
+
+            {/* Reaction Panel Overlay/Section - Always Visible */}
+            <div className="reaction-panel-container fade-in">
+                <ReactionPanel
+                    currentMolecule={currentSmiles}
+                    onMoleculeUpdate={handleReactionUpdate}
+                    onRequestSmiles={updateCurrentSmiles}
+                />
             </div>
         </div>
     )
