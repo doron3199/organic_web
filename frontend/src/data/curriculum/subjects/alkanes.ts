@@ -42,7 +42,7 @@ Below are simple straight-chain alkanes. Notice how the name changes with length
             ],
             rules: [
                 {
-                    id: 'rule_longest_chain',
+                    id: 'rule-longest-chain',
                     name: 'Longest Chain Rule',
                     smarts: '[C][C]', // used for general pattern but logicType drives the algorithm
                     description: 'Identify the longest continuous carbon chain.',
@@ -98,10 +98,10 @@ The branch name is added as a prefix to the parent name.
                     logicType: 'longest_chain'
                 },
                 {
-                    id: 'rule_subs',
-                    name: 'Substituents',
+                    id: 'rule-identify-substituents',
+                    name: 'Identify Substituents',
                     smarts: '',
-                    description: '',
+                    description: 'Identify alkyl and halogen substituents.',
                     unlocked: true,
                     logicType: 'identify_substituents'
                 },
@@ -144,7 +144,7 @@ Number the carbon atoms in the parent chain starting from the end **closest** to
                 },
 
                 {
-                    id: 'rule_lowest_numbering',
+                    id: 'rule-lowest-numbering',
                     name: 'Lowest Numbering',
                     smarts: 'custom_numbering_logic',
                     description: 'Number the chain to give substituents (alkyls & halogens) the lowest possible numbers.',
@@ -203,12 +203,12 @@ When a molecule has more than one type of substituent, list them **alphabeticall
                 },
 
                 {
-                    id: 'rule_numbering',
-                    name: 'Numbering',
+                    id: 'rule-alphabetical-order',
+                    name: 'Alphabetical Order',
                     smarts: '',
-                    description: '',
+                    description: 'List substituents in alphabetical order.',
                     unlocked: true,
-                    logicType: 'lowest_numbering'
+                    logicType: 'alphabetical_order'
                 },
                 {
                     id: 'validate_alphabetical',
@@ -304,10 +304,10 @@ Carbon chains can form rings! These are called **cycloalkanes**.
                     logicType: 'check_alphabetical'
                 },
                 {
-                    id: 'validate_cyclo',
-                    name: 'Check: Cyclo Naming',
+                    id: 'rule-cyclo-naming',
+                    name: 'Cyclo Naming',
                     smarts: '',
-                    description: 'Validate cyclo- prefix and numbering rules for rings.',
+                    description: 'Apply rules for cyclic compounds.',
                     unlocked: true,
                     logicType: 'check_cyclo_naming'
                 }
@@ -329,21 +329,34 @@ Alkanes react with Cl\u2082 or Br\u2082 in the presence of **heat (\u0394)** or 
   2. **Propagation**: Radical transfer.
   3. **Termination**: Radicals combine.
 
+### Relative Stabilities of Alkyl Radicals
+The stability of alkyl radicals is crucial for determining the major product in halogenation defined by the bond dissociation energy.
+**Hyperconjugation** stabilizes the radical by donating electron density from adjacent C-H bonds into the half-empty p-orbital of the radical carbon.
+
+**Stability Order:**
+
+| Tertiary (3°) | Secondary (2°) | Primary (1°) | Methyl |
+| :---: | :---: | :---: | :---: |
+| ![Tertiary](/assets/tertiary_radical.svg) | ![Secondary](/assets/secondary_radical.svg) | ![Primary](/assets/primary_radical.svg) | ![Methyl](/assets/methyl_radical.svg) |
+| **Most Stable** | | | **Least Stable** |
+
 - **Selectivity**:
-  - **Bromine (Br\u2082)**: Highly selective. Preferentially reacts with tertiary carbons over primary ones (3\u00B0 > 2\u00B0 > 1\u00B0) due to radical stability.
+  - **Bromine (Br\u2082)**: Highly selective. Preferentially reacts with tertiary carbons over primary ones due to radical stability.
   - **Chlorine (Cl\u2082)**: Less selective, yields mixtures of products.
 
 - **Limitations**: Fluorine reacts too violently; Iodine is too unreactive.
             `,
             reactionExamples: [
                 {
+                    id: 'alkane_halogenation_br',
                     reactants: [
                         { smiles: 'CC(C)C', name: 'Isobutane' },
                         { smiles: 'BrBr', name: 'Bromine' }
                     ],
                     products: [
                         { smiles: 'CC(C)(Br)C', name: 'tert-Butyl bromide', selectivity: 'major', yield: 99 },
-                        { smiles: 'CC(C)CBr', name: 'Isobutyl bromide', selectivity: 'minor', yield: 1 }
+                        { smiles: 'CC(C)CBr', name: 'Isobutyl bromide', selectivity: 'minor', yield: 1 },
+                        { smiles: 'Br', name: 'HBr', isByproduct: true }
                     ],
                     conditions: 'hν or Δ'
                 },
@@ -354,7 +367,8 @@ Alkanes react with Cl\u2082 or Br\u2082 in the presence of **heat (\u0394)** or 
                     ],
                     products: [
                         { smiles: 'CC(C)(Cl)C', name: 'tert-Butyl chloride', selectivity: 'equal', yield: 64 },
-                        { smiles: 'CC(C)CCl', name: 'Isobutyl chloride', selectivity: 'equal', yield: 36 }
+                        { smiles: 'CC(C)CCl', name: 'Isobutyl chloride', selectivity: 'equal', yield: 36 },
+                        { smiles: 'Cl', name: 'HCl', isByproduct: true }
                     ],
                     conditions: 'hν or Δ'
                 }

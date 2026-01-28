@@ -67,6 +67,46 @@ const Cheatsheet = () => {
                 </div>
             </section>
 
+            {/* Section 1.8: Radical Stability */}
+            <section className="cs-section">
+                <h2>Relative Stabilities of Alkyl Radicals</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                        <strong>General Rule:</strong> 3° (Tertiary) &gt; 2° (Secondary) &gt; 1° (Primary) &gt; Methyl
+                    </div>
+                    <div className="alkyl-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+                        <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                            <div className="alkyl-name">Tertiary (3°)</div>
+                            <div style={{ padding: '1rem 0' }}>
+                                <img src="/assets/tertiary_radical.svg" alt="Tertiary" style={{ width: '100%', maxHeight: '120px' }} />
+                            </div>
+                            <small>Most Stable</small>
+                        </div>
+                        <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                            <div className="alkyl-name">Secondary (2°)</div>
+                            <div style={{ padding: '1rem 0' }}>
+                                <img src="/assets/secondary_radical.svg" alt="Secondary" style={{ width: '100%', maxHeight: '120px' }} />
+                            </div>
+                            <small>Intermediate</small>
+                        </div>
+                        <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                            <div className="alkyl-name">Primary (1°)</div>
+                            <div style={{ padding: '1rem 0' }}>
+                                <img src="/assets/primary_radical.svg" alt="Primary" style={{ width: '100%', maxHeight: '120px' }} />
+                            </div>
+                            <small>Less Stable</small>
+                        </div>
+                        <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                            <div className="alkyl-name">Methyl</div>
+                            <div style={{ padding: '1rem 0' }}>
+                                <img src="/assets/methyl_radical.svg" alt="Methyl" style={{ width: '100%', maxHeight: '120px' }} />
+                            </div>
+                            <small>Least Stable</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* 2. Alkyl Groups (Full Width) */}
             <section className="cs-section">
                 <h2>Alkyl Groups</h2>

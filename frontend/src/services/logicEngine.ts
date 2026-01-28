@@ -73,12 +73,34 @@ interface AnalysisContext {
 
 }
 
+const MOLECULE_BANK: Record<string, string> = {
+    'ClCl': 'Cl<sub>2</sub>',
+    'BrBr': 'Br<sub>2</sub>',
+    'Br': 'HBr',
+    'Cl': 'HCl',
+    'I': 'HI',
+    'F': 'HF',
+    '[H][H]': 'H<sub>2</sub>',
+    'O': 'H<sub>2</sub>O',
+}
+
 export class LogicEngine {
 
     static analyzeMolecule(
         smiles: string,
         currentSubSubject: SubSubject
     ): AnalysisResult {
+        // Molecule Bank Check
+        if (MOLECULE_BANK[smiles]) {
+            return {
+                logs: [],
+                name: MOLECULE_BANK[smiles],
+                isValid: true,
+                appliedRuleIds: [],
+                ruleResults: {}
+            }
+        }
+
         const ctx = this.initializeContext(smiles, currentSubSubject)
 
         this.log(ctx, 'Initialization', `Analyzing: ${smiles}`, 'success')
@@ -139,9 +161,14 @@ export class LogicEngine {
     }
 
     private static buildResult(ctx: AnalysisContext): AnalysisResult {
+        let finalName = ctx.finalName
+        if (finalName === 'Unknown Molecule' || ctx.isUnknown) {
+            finalName = `Unknown Molecule - ${ctx.smiles}`
+        }
+
         return {
             logs: ctx.logs,
-            name: ctx.finalName,
+            name: finalName,
             nameParts: ctx.substituentParts.length > 0 || ctx.rootPart ? [...ctx.substituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])] : undefined,
             isValid: ctx.isValid,
             appliedRuleIds: ctx.appliedRuleIds,

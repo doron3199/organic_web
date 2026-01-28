@@ -6,16 +6,31 @@ export const reactionRules: ReactionRule[] = [
     {
         id: 'alkane_halogenation_br',
         name: 'Free Radical Bromination',
-        smarts: '[C;H1,H2,H3,H4:1]>>[C:1][Br]', // Simplified: Replace H with Br (Logic engine will need to filter for selectivity 3>2>1)
+        reactionSmarts: '[C;H1,H2,H3,H4:1]>>[C:1][Br]',
+        reactant1Smarts: '[#6;H1,H2,H3,H4]', // Generic Alkane Carbon
+        reactant2Smarts: '[Br][Br]', // Br2
+        matchExplanation: 'Alkane + Br2',
         description: 'Selective substitution of Hydrogen with Bromine at the most substituted carbon.',
-        conditions: ['Br2', 'hv (Light) or \u0394 (Heat)']
+        conditions: ['hv (Light) or \u0394 (Heat)'], // Br2 is now a reactant, not a condition
+        selectivity: {
+            type: 'rank',
+            rules: [
+                { smarts: '[C;D4][Br]', label: 'major' }, // Tertiary (3 C + 1 Br = 4 heavy neighbors)
+                { smarts: '[C;D3][Br]', label: 'minor' }, // Secondary (2 C + 1 Br = 3 heavy neighbors)
+                { smarts: '[C;D2][Br]', label: 'minor' }, // Primary (1 C + 1 Br = 2 heavy neighbors)
+                { smarts: '[C;D1][Br]', label: 'minor' }  // Methyl (0 C + 1 Br = 1 heavy neighbor)
+            ]
+        }
     },
     {
         id: 'alkane_halogenation_cl',
         name: 'Free Radical Chlorination',
-        smarts: '[C;H1,H2,H3,H4:1]>>[C:1][Cl]', // Non-selective
+        reactionSmarts: '[C;H1,H2,H3,H4:1]>>[C:1][Cl]', // Non-selective
+        reactant1Smarts: '[#6;H1,H2,H3,H4]',
+        reactant2Smarts: '[Cl][Cl]', // Cl2
+        matchExplanation: 'Alkane + Cl2',
         description: 'Substitution of Hydrogen with Chlorine (Low selectivity).',
-        conditions: ['Cl2', 'hv (Light) or \u0394 (Heat)']
+        conditions: ['hv (Light) or \u0394 (Heat)']
     },
 
     // --- ALKENES ---
@@ -26,63 +41,86 @@ export const reactionRules: ReactionRule[] = [
         // SMARTS: [C:1]=[C:2] -> [H][C:1]-[C:2][Br] generic.
         // We will rely on RDKit or specific patterns for Markovnikov if possible, or multiple rules.
         // Simplified generic addition for now:
-        smarts: '[C:1]=[C:2]>>[C:1]([Br])[C:2]',
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]([Br])[C:2]',
+        reactant1Smarts: '[C]=[C]',
+        reactant2Smarts: '[Br]', // HBr - strictly it is H-Br, but SMARTS usually just looks for patterns. HBr usually entered as Br?
+        matchExplanation: 'Alkene + HBr',
         description: 'Addition of H-Br across a double bond (Markovnikov).',
-        conditions: ['HBr']
+        conditions: []
     },
     {
         id: 'alkene_hydration',
         name: 'Acid-Catalyzed Hydration',
-        smarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]',
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]',
+        reactant1Smarts: '[C]=[C]',
+        reactant2Smarts: '[OH2]', // H2O
+        matchExplanation: 'Alkene + H2O',
         description: 'Addition of water to form an alcohol (Markovnikov).',
-        conditions: ['H2O', 'H2SO4 (Cat.)']
+        conditions: ['Acid (H+)']
     },
     {
         id: 'alkene_hydroboration',
         name: 'Hydroboration-Oxidation',
-        smarts: '[C:1]=[C:2]>>[C:1][C:2]([OH])', // Needs logic to ensure Anti-Markovnikov
+        reactionSmarts: '[C:1]=[C:2]>>[C:1][C:2]([OH])', // Needs logic to ensure Anti-Markovnikov
+        reactant1Smarts: '[C]=[C]',
+        matchExplanation: 'Alkene (Hydroboration)',
         description: 'Addition of H-OH with Anti-Markovnikov regioselectivity.',
         conditions: ['1. BH3, THF', '2. H2O2, NaOH']
     },
     {
         id: 'alkene_halogenation',
         name: 'Halogenation (Bromination)',
-        smarts: '[C:1]=[C:2]>>[C:1]([Br])[C:2]([Br])',
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]([Br])[C:2]([Br])',
+        reactant1Smarts: '[C]=[C]',
+        reactant2Smarts: '[Br][Br]',
+        matchExplanation: 'Alkene + Br2',
         description: 'Anti-addition of Br2 to form a vicinal dibromide.',
-        conditions: ['Br2', 'CH2Cl2 (Solvent)']
+        conditions: ['CH2Cl2 (Solvent)']
     },
     {
         id: 'alkene_halohydrin',
         name: 'Halohydrin Formation',
-        smarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]([Br])', // OH on more sub, Br on less
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]([Br])', // OH on more sub, Br on less
+        reactant1Smarts: '[C]=[C]',
+        reactant2Smarts: '[Br][Br]',
+        matchExplanation: 'Alkene + Br2 + H2O',
         description: 'Addition of OH and Br (OH to more substituted Carbon).',
-        conditions: ['Br2', 'H2O']
+        conditions: ['H2O']
     },
     {
         id: 'alkene_hydrogenation',
         name: 'Hydrogenation',
-        smarts: '[C:1]=[C:2]>>[C:1][C:2]', // Adds H implied
+        reactionSmarts: '[C:1]=[C:2]>>[C:1][C:2]', // Adds H implied
+        reactant1Smarts: '[C]=[C]',
+        reactant2Smarts: '[H][H]',
+        matchExplanation: 'Alkene + H2',
         description: 'Reduction of double bond to single bond.',
-        conditions: ['H2', 'Pd/C or Pt']
+        conditions: ['Pd/C or Pt']
     },
     {
         id: 'alkene_epoxidation',
         name: 'Epoxidation',
-        smarts: '[C:1]=[C:2]>>[C:1]1[O][C:2]1',
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]1[O][C:2]1',
+        reactant1Smarts: '[C]=[C]',
+        matchExplanation: 'Alkene + Peroxyacid (mCPBA)',
         description: 'Formation of an epoxide ring.',
         conditions: ['mCPBA (Peroxyacid)']
     },
     {
         id: 'alkene_ozonolysis',
         name: 'Ozonolysis (Reductive)',
-        smarts: '[C:1]=[C:2]>>[C:1]=[O].[C:2]=[O]', // Cleavage
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]=[O].[C:2]=[O]', // Cleavage
+        reactant1Smarts: '[C]=[C]',
+        matchExplanation: 'Alkene (Ozonolysis)',
         description: 'Cleavage of double bond to form Carbonyls.',
         conditions: ['1. O3', '2. Zn/H2O or DMS']
     },
     {
         id: 'alkene_hydroxylation',
         name: 'Syn-Hydroxylation',
-        smarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]([OH])',
+        reactionSmarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]([OH])',
+        reactant1Smarts: '[C]=[C]',
+        matchExplanation: 'Alkene (Hydroxylation)',
         description: 'Formation of a cis-diol.',
         conditions: ['KMnO4 (Cold) or OsO4']
     },
@@ -91,58 +129,80 @@ export const reactionRules: ReactionRule[] = [
     {
         id: 'alkyne_hydrohalogenation_1eq',
         name: 'Hydrohalogenation (1 eq.)',
-        smarts: '[C:1]#[C:2]>>[C:1]([Br])=[C:2]',
+        reactionSmarts: '[C:1]#[C:2]>>[C:1]([Br])=[C:2]',
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[Br]',
+        matchExplanation: 'Alkyne + HBr (1 eq.)',
         description: 'Addition of 1 equivalent of HBr to form Vinyl Halide.',
-        conditions: ['HBr (1 eq.)']
+        conditions: ['1 eq.']
     },
     {
         id: 'alkyne_hydrohalogenation_2eq',
         name: 'Hydrohalogenation (Excess)',
-        smarts: '[C:1]#[C:2]>>[C:1]([Br])([Br])[C:2]',
+        reactionSmarts: '[C:1]#[C:2]>>[C:1]([Br])([Br])[C:2]',
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[Br]',
+        matchExplanation: 'Alkyne + HBr (Excess)',
         description: 'Addition of excess HBr to form Geminal Dihalide.',
-        conditions: ['HBr (Excess)']
+        conditions: ['Excess']
     },
     {
         id: 'alkyne_halogenation_1eq',
         name: 'Halogenation (1 eq.)',
-        smarts: '[C:1]#[C:2]>>[C:1]([Br])=[C:2]([Br])',
+        reactionSmarts: '[C:1]#[C:2]>>[C:1]([Br])=[C:2]([Br])',
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[Br][Br]',
+        matchExplanation: 'Alkyne + Br2 (1 eq.)',
         description: 'Addition of 1 eq. Br2 to form Dihaloalkene.',
-        conditions: ['Br2 (1 eq.)']
+        conditions: ['1 eq.']
     },
     {
         id: 'alkyne_hydration_acid',
         name: 'Acid-Catalyzed Hydration',
-        smarts: '[C:1]#[C:2]>>[C:1](=O)[C:2]', // Keto-enol tautomerism implied to Ketone
+        reactionSmarts: '[C:1]#[C:2]>>[C:1](=O)[C:2]', // Keto-enol tautomerism implied to Ketone
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[OH2]',
+        matchExplanation: 'Alkyne + H2O',
         description: 'Hydration to form a Ketone (Markovnikov).',
-        conditions: ['H2O', 'H2SO4', 'HgSO4']
+        conditions: ['Acid (H+)', 'HgSO4']
     },
     {
         id: 'alkyne_hydroboration',
         name: 'Hydroboration-Oxidation',
-        smarts: '[C:1]#[CH1:2]>>[C:1][C:2]=O', // Anti-Markovnikov to Aldehyde if terminal
+        reactionSmarts: '[C:1]#[CH1:2]>>[C:1][C:2]=O', // Anti-Markovnikov to Aldehyde if terminal
+        reactant1Smarts: '[C]#[CH1]',
+        matchExplanation: 'Terminal Alkyne (Hydroboration)',
         description: 'Hydration to form Aldehyde (Terminal) or Ketone (Internal).',
         conditions: ['1. R2BH', '2. H2O2, NaOH']
     },
     {
         id: 'alkyne_reduction_complete',
         name: 'Complete Reduction',
-        smarts: '[C:1]#[C:2]>>[C:1][C:2]',
+        reactionSmarts: '[C:1]#[C:2]>>[C:1][C:2]',
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[H][H]',
+        matchExplanation: 'Alkyne + H2',
         description: 'Reduction to Alkane.',
-        conditions: ['H2', 'Pd/C']
+        conditions: ['Pd/C']
     },
     {
         id: 'alkyne_reduction_trans',
         name: 'Dissolving Metal Reduction',
-        smarts: '[C:1]#[C:2]>>[C:1]/[C]=[C]/[C:2]', // Trans alkene
+        reactionSmarts: '[C:1]#[C:2]>>[C:1]/[C]=[C]/[C:2]', // Trans alkene
+        reactant1Smarts: '[C]#[C]',
+        matchExplanation: 'Alkyne (Na/NH3)',
         description: 'Reduction to Trans-Alkene.',
         conditions: ['Na', 'NH3 (l)']
     },
     {
         id: 'alkyne_reduction_cis',
         name: 'Lindlar Reduction',
-        smarts: '[C:1]#[C:2]>>[C:1]/[C]=[C]\\[C:2]', // Cis alkene
+        reactionSmarts: '[C:1]#[C:2]>>[C:1]/[C]=[C]\\[C:2]', // Cis alkene
+        reactant1Smarts: '[C]#[C]',
+        reactant2Smarts: '[H][H]',
+        matchExplanation: 'Alkyne + H2 (Lindlar)',
         description: 'Reduction to Cis-Alkene.',
-        conditions: ['H2', 'Lindlar Catalyst']
+        conditions: ['Lindlar Catalyst']
     },
     {
         id: 'alkyne_alkylation',
@@ -150,7 +210,9 @@ export const reactionRules: ReactionRule[] = [
         // This is a 2-step process. 1. Deprotonate [C]#[CH] -> [C]#[C:-] 2. Attack R-X
         // Only representing the net result if we can't do multi-step easily yet.
         // Let's assume the user selects "NaNH2" then "R-Br".
-        smarts: '[C:1]#[CH1]>>[C:1]#[C][C]', // Adds a Carbon (generic)
+        reactionSmarts: '[C:1]#[CH1]>>[C:1]#[C][C]', // Adds a Carbon (generic)
+        reactant1Smarts: '[C]#[CH1]',
+        matchExplanation: 'Terminal Alkyne (Alkylation)',
         description: 'Deprotonation followed by Nucleophilic Attack on Alkyl Halide.',
         conditions: ['1. NaNH2', '2. R-X']
     }

@@ -16,6 +16,9 @@ interface MoleculeEditorProps {
 }
 
 const structServiceProvider = new StandaloneStructServiceProvider() as StructServiceProvider
+if ('setMaxListeners' in structServiceProvider) {
+    (structServiceProvider as any).setMaxListeners(20)
+}
 
 // ... imports
 import ReactionPanel from './ReactionPanel'
@@ -203,8 +206,15 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 }
 
 function renderInteractiveName(result: AnalysisResult) {
+    const renderFormattedText = (text: string) => {
+        if (text.includes('<sub>')) {
+            return <span dangerouslySetInnerHTML={{ __html: text }} />
+        }
+        return text
+    }
+
     if (!result.nameParts || result.nameParts.length === 0) {
-        return <span className="generated-smiles" style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>{result.name || "Unknown"}</span>
+        return <span className="generated-smiles" style={{ fontFamily: 'monospace', fontSize: '1.2rem' }}>{renderFormattedText(result.name || "Unknown")}</span>
     }
 
     const handleHover = (ids: number[] | undefined) => {
@@ -250,12 +260,12 @@ function renderInteractiveName(result: AnalysisResult) {
                                     color: part.type === 'root' ? '#4dabf7' : part.type === 'substituent' ? '#ff8787' : 'inherit'
                                 }}
                             >
-                                {part.text}
+                                {renderFormattedText(part.text)}
                             </span>
                         ))
                     ) : (
                         <span style={{ fontSize: '1.2rem', color: '#4dabf7', fontWeight: 'bold' }}>
-                            {result.commonName}
+                            {renderFormattedText(result.commonName)}
                         </span>
                     )}
                     <span style={{ color: '#868e96', fontWeight: 'normal', margin: '0 8px', fontSize: '1rem' }}>or</span>
@@ -275,7 +285,7 @@ function renderInteractiveName(result: AnalysisResult) {
                         }}
                         title={part.type}
                     >
-                        {part.text}
+                        {renderFormattedText(part.text)}
                     </span>
                 ))}
             </span>

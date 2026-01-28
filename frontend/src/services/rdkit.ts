@@ -10,9 +10,16 @@ export interface Molecule {
 export interface ReactionRule {
     id: string
     name: string
-    smarts: string
     description: string
-    conditions: string[]
+    reactionSmarts: string // The actual transformation SMARTS
+    reactant1Smarts: string // SMARTS to identify first reactant (e.g. Substrate)
+    reactant2Smarts?: string // SMARTS to identify second reactant (e.g. Reagent like Br2)
+    matchExplanation?: string // Explanation of why this reaction is selected (e.g. "Alkane + Br2")
+    conditions: string[] // Required conditions (e.g. 'heat', 'light')
+    selectivity?: {
+        type: 'rank' | 'explicit',
+        rules: { smarts: string; label: 'major' | 'minor' | 'trace' | 'equal' }[]
+    }
 }
 
 export interface MatchResult {
@@ -167,7 +174,7 @@ class RDKitService {
             const qmol = this.rdkit.get_qmol(smarts)
             const match = mol.get_substruct_match(qmol)
 
-            const isMatch = match && match.length > 0
+            const isMatch = match !== '{}'
 
             mol.delete()
             qmol.delete()
@@ -180,12 +187,15 @@ class RDKitService {
     }
 
     // Run a reaction given reactants and a reaction SMARTS via Backend
-    async runReaction(reactantsSMILES: string[], reactionSmarts: string): Promise<string | string[] | null> {
+    async runReaction(reactantsSMILES: string[], reactionSmarts: string): Promise<string[] | null> {
         try {
             const response = await fetch('http://localhost:8000/reaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reactants: reactantsSMILES, smarts: reactionSmarts })
+                body: JSON.stringify({
+                    reactants: reactantsSMILES,
+                    smarts: reactionSmarts
+                })
             });
 
             if (!response.ok) {
@@ -194,13 +204,9 @@ class RDKitService {
             }
 
             const data = await response.json();
-            const products = data.products;
 
-            // Maintain backward compatibility for single product returns
-            if (Array.isArray(products) && products.length === 1) {
-                return products[0];
-            }
-            return products;
+            // Backend returns { products: string[] }
+            return data.products;
 
         } catch (error) {
             console.error('Reaction execution error:', error);

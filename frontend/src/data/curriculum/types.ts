@@ -18,9 +18,11 @@ export interface ReactionProduct {
     name: string;
     selectivity?: Selectivity;
     yield?: number; // Optional numeric yield (98, 2, 50)
+    isByproduct?: boolean;
 }
 
 export interface ReactionExample {
+    id?: string; // Links to global reaction rule ID (e.g. 'alkane_halogenation_br')
     reactants: { smiles: string; name?: string }[];
     products: ReactionProduct[];
     conditions: string;

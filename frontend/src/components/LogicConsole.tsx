@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Rule, initialCurriculum, SubSubject } from '../data/curriculum'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import MoleculeViewer from './MoleculeViewer'
+import CurriculumModal from './CurriculumModal'
 import './LogicConsole.css'
 
 export interface LogEntry {
@@ -51,7 +49,7 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
 
 
     const handleRuleClick = (ruleId: string) => {
-        // Find the sub-subject that contains this rule
+        // Find the sub-subject that contains this rule (Search by ID)
         for (const subject of initialCurriculum) {
             for (const sub of subject.subSubjects) {
                 if (sub.rules.some(r => r.id === ruleId)) {
@@ -126,37 +124,10 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
             </div>
 
             {/* Rule Detail Modal */}
-            {selectedSubSubject && (
-                <div className="modal-overlay" onClick={() => setSelectedSubSubject(null)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">{selectedSubSubject.name}</h3>
-                            <button className="modal-close" onClick={() => setSelectedSubSubject(null)}>×</button>
-                        </div>
-                        <div className="modal-body markdown-content">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {selectedSubSubject.content}
-                            </ReactMarkdown>
-
-                            {selectedSubSubject.examples && selectedSubSubject.examples.length > 0 && (
-                                <div className="modal-examples">
-                                    <h4>Examples</h4>
-                                    <div className="modal-examples-grid">
-                                        {selectedSubSubject.examples.map((ex, idx) => (
-                                            <div key={idx} className="modal-example-card">
-                                                <div className="modal-molecule-container">
-                                                    <MoleculeViewer smiles={ex.smiles} readOnly={true} width={220} height={140} />
-                                                </div>
-                                                <div className="modal-molecule-label">{ex.name}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CurriculumModal
+                topic={selectedSubSubject}
+                onClose={() => setSelectedSubSubject(null)}
+            />
         </div>
     )
 }

@@ -20,10 +20,10 @@ describe('Reaction Execution', () => {
     reactents_and_products.forEach(({ reactant, expectedProduct, smarts }) => {
         it(`correctly names ${reactant}`, async () => {
             // Mocking the backend response since we are in a unit test environment
-            vi.spyOn(rdkitService, 'runReaction').mockResolvedValue(expectedProduct);
+            vi.spyOn(rdkitService, 'runReaction').mockResolvedValue([expectedProduct]);
 
             const results = await rdkitService.runReaction([reactant], smarts);
-            expect(results).toEqual(expectedProduct);
+            expect(results).toContain(expectedProduct);
         });
     });
 

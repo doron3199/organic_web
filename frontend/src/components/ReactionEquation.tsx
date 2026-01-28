@@ -59,19 +59,21 @@ function ReactionEquation({ reaction, onExperiment }: ReactionEquationProps) {
                         else if (product.selectivity) chartLabel = product.selectivity.charAt(0).toUpperCase() + product.selectivity.slice(1)
 
                         return (
-                            <div key={idx} className="reaction-part">
+                            <div key={idx} className={`reaction-part ${product.isByproduct ? 'byproduct' : ''}`}>
                                 <MoleculeViewer
                                     smiles={product.smiles}
-                                    width={180}
-                                    height={120}
+                                    width={product.isByproduct ? 100 : 180}
+                                    height={product.isByproduct ? 80 : 120}
                                     readOnly={true}
                                 />
                                 <div className="reaction-label product-label">{product.name}</div>
-                                <SelectivityChart
-                                    type={product.selectivity}
-                                    percentage={product.yield}
-                                    label={chartLabel}
-                                />
+                                {!product.isByproduct && (
+                                    <SelectivityChart
+                                        type={product.selectivity}
+                                        percentage={product.yield}
+                                        label={chartLabel}
+                                    />
+                                )}
                                 {idx < reaction.products.length - 1 && (
                                     <div className="plus-sign">+</div>
                                 )}

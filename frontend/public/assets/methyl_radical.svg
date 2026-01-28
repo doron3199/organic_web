@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="26mm"
+   height="26mm"
+   viewBox="85 152 18 18"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="methyl_radical.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="11.502694"
+     inkscape:cx="351.43942"
+     inkscape:cy="613.29113"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke-width:0.264583"
+       x="94.350876"
+       y="161.72899"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="fill:#ffffff;stroke-width:0.264583"
+         x="94.350876"
+         y="161.72899">C</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke-width:0.264583"
+       x="100.58134"
+       y="159.26462"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="fill:#ffffff;stroke-width:0.264583"
+         x="100.58134"
+         y="159.26462">H</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke-width:0.264583"
+       x="88.066315"
+       y="159.26463"
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         style="fill:#ffffff;stroke-width:0.264583"
+         x="88.066315"
+         y="159.26463">H</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke-width:0.264583"
+       x="94.595909"
+       y="167.33195"
+       id="text4"><tspan
+         sodipodi:role="line"
+         id="tspan4"
+         style="fill:#ffffff;stroke-width:0.264583"
+         x="94.595909"
+         y="167.33195">H</tspan></text>
+    <circle
+       style="fill:#ffffff;stroke-width:0.264583"
+       id="path4"
+       r="0.26023629"
+       cy="161.65556"
+       cx="94.0429" />
+    <path
+       style="opacity:1;fill:#ffffff;stroke:#ffffff;stroke-width:0.10673;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       d="m 90.352224,158.30873 c 3.916958,1.83048 3.916958,1.83048 3.916958,1.83048"
+       id="path8" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.117136;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       d="m 96.634357,160.35428 c 3.910483,-2.20848 3.910483,-2.20848 3.910483,-2.20848"
+       id="path8-8" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.117136;stroke-dasharray:none;stroke-opacity:1;paint-order:fill markers stroke"
+       d="m 95.52922,164.80254 -0.04186,-2.79401"
+       id="path8-8-2"
+       sodipodi:nodetypes="cc" />
+  </g>
+</svg>

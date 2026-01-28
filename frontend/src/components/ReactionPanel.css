@@ -253,3 +253,29 @@ input:checked+.slider:before {
     /* Adjusted for better centering */
     background-color: white;
 }
+
+
+/* Clickable Title */
+.clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.clickable:hover {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+.reaction-explanation {
+    font-size: 0.8em;
+    color: #888;
+    font-weight: normal;
+    margin-left: 6px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.clickable:hover .reaction-explanation {
+    color: var(--text-secondary);
+    text-decoration: none;
+}

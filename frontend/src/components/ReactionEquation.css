@@ -64,6 +64,17 @@
     /* Spacing for plus signs */
 }
 
+/* Byproduct Styling */
+.reaction-part.byproduct {
+    opacity: 0.8;
+}
+
+.reaction-part.byproduct .reaction-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+
 .reaction-label {
     margin-top: 0.5rem;
     font-size: 0.9rem;
