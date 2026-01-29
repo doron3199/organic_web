@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union
 import uvicorn
 from reaction_logic import run_reaction
 
@@ -18,18 +18,19 @@ app.add_middleware(
 
 class ReactionRequest(BaseModel):
     reactants: List[str]
-    smarts: str
+    smarts: Union[str, List[str]]
 
 
 class ReactionResponse(BaseModel):
     products: List[str]
+    byproducts: List[str]
 
 
 @app.post("/reaction", response_model=ReactionResponse)
 async def execute_reaction(request: ReactionRequest):
     try:
-        products = run_reaction(request.reactants, request.smarts)
-        return {"products": products}
+        result = run_reaction(request.reactants, request.smarts)
+        return {"products": result["organic"], "byproducts": result["inorganic"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

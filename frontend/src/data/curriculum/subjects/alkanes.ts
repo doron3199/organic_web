@@ -361,6 +361,7 @@ The stability of alkyl radicals is crucial for determining the major product in 
                     conditions: 'hν or Δ'
                 },
                 {
+                    id: 'alkane_halogenation_cl',
                     reactants: [
                         { smiles: 'CC(C)C', name: 'Isobutane' },
                         { smiles: 'ClCl', name: 'Chlorine' }

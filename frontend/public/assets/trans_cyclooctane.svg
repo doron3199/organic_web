@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   viewBox="40 102 90 56"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="trans_cyclooctane.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="8"
+     inkscape:cx="30.5625"
+     inkscape:cy="31.1875"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="swatch1"
+       inkscape:swatch="solid">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+    </linearGradient>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:none;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.755906;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 46.003717,121.44981 -0.36803,23.55391 22.20473,7.48354 29.573417,-44.29056 25.515066,10.05887 0.73606,25.76209 -26.137081,9.08271 -35.330855,-43.05948 z"
+       id="path1"
+       sodipodi:nodetypes="ccccccccc" />
+    <path
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.75590551;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 64.964921,107.74806 36.104139,44.109 c -0.0791,-0.043 -0.11426,-0.1289 -0.11426,-0.1289"
+       id="path7"
+       sodipodi:nodetypes="ccc" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.755906;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 62.472656,109.84765 2.515625,-1.60937"
+       id="path2"
+       sodipodi:nodetypes="cc" />
+  </g>
+</svg>

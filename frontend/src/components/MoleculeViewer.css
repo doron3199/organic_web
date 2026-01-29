@@ -7,8 +7,8 @@
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s;
-    margin: 10px;
-    overflow: hidden;
+    margin: 0;
+    /* Removed overflow: hidden to prevent edge clipping */
 }
 
 .molecule-viewer-container:hover {
@@ -29,6 +29,10 @@
     /* Invert colors: White bg -> Black, Black lines -> White */
     filter: invert(1) hue-rotate(180deg);
     display: block;
+}
+
+.molecule-viewer-container.is-custom .molecule-canvas svg {
+    filter: none;
 }
 
 .edit-overlay-btn {

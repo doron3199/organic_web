@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { findMatchingReactions } from '../services/reactions'
 import { rdkitService } from '../services/rdkit'
 import { SubSubject, initialCurriculum } from '../data/curriculum'
+import { AVAILABLE_CONDITIONS } from '../services/conditions'
 import CurriculumModal from './CurriculumModal'
 import MoleculeViewer from './MoleculeViewer'
 import SelectivityChart from './SelectivityChart'
@@ -14,18 +15,17 @@ interface ReactionPanelProps {
     initialConditions?: string[]
 }
 
-const AVAILABLE_CONDITIONS = [
-    { id: 'heat', label: '🔥 Heat (\u0394)' },
-    { id: 'light', label: '☀️ Light (hv)' },
-    { id: 'acid', label: '🧪 Acid (H+)' },
-    { id: 'base', label: '🧼 Base (OH-)' },
-    { id: 'h2o', label: '💧 Water' },
-]
-
 function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, initialConditions }: ReactionPanelProps) {
     const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || ['h2o'])
 
-    const [results, setResults] = useState<{ reactionId: string, reactionName: string, matchExplanation?: string, products: { smiles: string, selectivity: string }[] }[]>([])
+    const [results, setResults] = useState<{
+        reactionId: string,
+        reactionName: string,
+        curriculum_subsubject_id: string,
+        matchExplanation?: string,
+        products: { smiles: string, selectivity: string }[],
+        byproducts: string[]
+    }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
     const [showConditionError, setShowConditionError] = useState(false)
@@ -44,41 +44,18 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const getMatchingRules = (smiles: string | null, conditions: string[]) => {
         if (!smiles) return []
         const reactantsParts = smiles.split('.')
-        const conditionMatchedRules = findMatchingReactions(conditions)
+        const condSet = new Set(conditions)
 
-        // STRICT REQUIREMENT: Input must be exactly 2 reactants for current logic
-        // (If we want to support 1 reactant later, we adjust this check)
-        if (reactantsParts.length !== 2) {
-            return []
-        }
+        const reactant1 = reactantsParts[0]
+        const reactant2 = reactantsParts[1]
 
-        const validRules = conditionMatchedRules.filter(rule => {
-            if (!rule.reactant2Smarts) return false
-            const [r1, r2] = reactantsParts
-
-            // Check Permutation 1: Input A matches Rule 1, Input B matches Rule 2
-            const match1 = rdkitService.getSubstructureMatch(r1, rule.reactant1Smarts) &&
-                rdkitService.getSubstructureMatch(r2, rule.reactant2Smarts)
-
-            // Check Permutation 2: Input A matches Rule 2, Input B matches Rule 1
-            const match2 = rdkitService.getSubstructureMatch(r1, rule.reactant2Smarts) &&
-                rdkitService.getSubstructureMatch(r2, rule.reactant1Smarts)
-
-            return match1 || match2
-        })
-
-        // Deduplicate
-        return validRules.filter((rule, index) => {
-            return validRules.findIndex(r => r.name === rule.name) === index
-        })
+        return findMatchingReactions(condSet, reactant1, reactant2)
     }
 
     // Filter reactions based on selected conditions and reactant availability
     useEffect(() => {
         // Error handling updates
-        if (currentMolecule && currentMolecule.split('.').length !== 2) {
-            // Only show unsupported error if we actually have a molecule but it's wrong count
-            // and we aren't just empty
+        if (currentMolecule && currentMolecule.split('.').length > 2) {
             setUnsupportedError(true)
         } else {
             setUnsupportedError(false)
@@ -109,43 +86,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         })
     }
 
-    const handleReactionInfoClick = (reactionId: string) => {
-        // Try to find exact match in examples or rules
+    const handleReactionInfoClick = (subsubjectId: string) => {
         for (const subject of initialCurriculum) {
-            for (const sub of subject.subSubjects) {
-                // Check reaction examples
-                if (sub.reactionExamples?.some(ex => ex.id === reactionId)) {
-                    setSelectedReactionInfo(sub)
-                    return
-                }
-                // Check rules just in case
-                if (sub.rules.some(r => r.id === reactionId)) {
-                    setSelectedReactionInfo(sub)
-                    return
-                }
-            }
-        }
-
-        // Fallback: Category matching based on ID string
-        if (reactionId.includes('alkane')) {
-            const subject = initialCurriculum.find(s => s.id === 'alkanes')
-            const sub = subject?.subSubjects.find(s => s.id === 'alkanes-reactions')
-            if (sub) {
-                setSelectedReactionInfo(sub)
-                return
-            }
-        }
-        if (reactionId.includes('alkene')) {
-            const subject = initialCurriculum.find(s => s.id === 'alkenes')
-            const sub = subject?.subSubjects.find(s => s.id === 'alkenes-reactions')
-            if (sub) {
-                setSelectedReactionInfo(sub)
-                return
-            }
-        }
-        if (reactionId.includes('alkyne')) {
-            const subject = initialCurriculum.find(s => s.id === 'alkynes')
-            const sub = subject?.subSubjects.find(s => s.id === 'alkynes-reactions')
+            const sub = subject.subSubjects.find(s => s.id === subsubjectId)
             if (sub) {
                 setSelectedReactionInfo(sub)
                 return
@@ -154,10 +97,6 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     }
 
     const handleRunReaction = async () => {
-        if (selectedConditions.length === 0) {
-            setShowConditionError(true)
-            return
-        }
         setShowConditionError(false)
 
         setSearchPerformed(false)
@@ -187,7 +126,14 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         }
 
         setIsRunning(true)
-        const allResults: { reactionId: string, reactionName: string, matchExplanation?: string, products: { smiles: string, selectivity: string }[] }[] = []
+        const allResults: {
+            reactionId: string,
+            reactionName: string,
+            curriculum_subsubject_id: string,
+            matchExplanation?: string,
+            products: { smiles: string, selectivity: string }[],
+            byproducts: string[]
+        }[] = []
 
         // Split molecule into independent reactants
         const reactantsSmiles = moleculeToReact.split('.');
@@ -210,16 +156,16 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             if (rule.reactant2Smarts && reactant2Candidates.length === 0) continue;
 
             const ruleProducts = new Map<string, { smiles: string, selectivity: string, rankIndex: number }>()
+            const ruleByproducts = new Set<string>()
 
             // STEP 2: Iterate and Run
             for (const r1 of reactant1Candidates) {
                 if (rule.reactant2Smarts) {
                     for (const r2 of reactant2Candidates) {
-                        const outcomes = await rdkitService.runReaction([r1, r2], rule.reactionSmarts)
-                        if (outcomes) {
-                            outcomes.forEach(pSmiles => {
+                        const outcome = await rdkitService.runReaction([r1, r2], rule.reactionSmarts)
+                        if (outcome) {
+                            outcome.products.forEach(pSmiles => {
                                 let matchIndex = 999;
-                                // Check selectivity rules to find priority
                                 if (rule.selectivity) {
                                     rule.selectivity.rules.forEach((selRule, idx) => {
                                         if (matchIndex === 999 && rdkitService.getSubstructureMatch(pSmiles, selRule.smarts)) {
@@ -229,13 +175,13 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                 }
                                 ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
                             })
+                            outcome.byproducts.forEach(bSmi => ruleByproducts.add(bSmi));
                         }
                     }
                 } else {
-                    // Single reactant path (if we ever support it in UI)
-                    const outcomes = await rdkitService.runReaction([r1], rule.reactionSmarts)
-                    if (outcomes) {
-                        outcomes.forEach(pSmiles => {
+                    const outcome = await rdkitService.runReaction([reactantsSmiles.join('.')], rule.reactionSmarts)
+                    if (outcome) {
+                        outcome.products.forEach(pSmiles => {
                             let matchIndex = 999;
                             if (rule.selectivity) {
                                 rule.selectivity.rules.forEach((selRule, idx) => {
@@ -246,13 +192,19 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                             }
                             ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
                         })
+                        outcome.byproducts.forEach(bSmi => ruleByproducts.add(bSmi));
                     }
                 }
             }
 
             // STEP 3: Determine Relative Selectivity
-            // Find the best rank (lowest index) actually present in this batch of products
-            if (ruleProducts.size > 0 && rule.selectivity) {
+            // If there's only one unique product, it's the major product
+            if (ruleProducts.size === 1) {
+                const singleProd = Array.from(ruleProducts.values())[0]
+                if (singleProd) singleProd.selectivity = 'major'
+            }
+            // Otherwise, find the best rank (lowest index) if rules exist
+            else if (ruleProducts.size > 0 && rule.selectivity) {
                 let bestRankFound = 999;
                 for (const prod of ruleProducts.values()) {
                     if (prod.rankIndex < bestRankFound) bestRankFound = prod.rankIndex
@@ -284,8 +236,10 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 allResults.push({
                     reactionId: rule.id,
                     reactionName: rule.name,
+                    curriculum_subsubject_id: rule.curriculum_subsubject_id,
                     matchExplanation: explanation,
-                    products: Array.from(ruleProducts.values()).map(p => ({ smiles: p.smiles, selectivity: p.selectivity }))
+                    products: Array.from(ruleProducts.values()).map(p => ({ smiles: p.smiles, selectivity: p.selectivity })),
+                    byproducts: Array.from(ruleByproducts)
                 })
             }
         }
@@ -367,7 +321,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                             <div key={resIdx} className="reaction-result-group">
                                 <h4
                                     className="reaction-result-title clickable"
-                                    onClick={() => handleReactionInfoClick(res.reactionId)}
+                                    onClick={() => handleReactionInfoClick(res.curriculum_subsubject_id)}
                                     title="Click to view reaction mechanism"
                                 >
                                     <span style={{ marginRight: '8px', fontSize: '1.1em', opacity: 0.8 }}>ⓘ</span>
@@ -375,24 +329,40 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                         {res.matchExplanation && `(${res.matchExplanation})`}
                                     </span>
                                 </h4>
-                                <div className="products-grid">
-                                    {res.products.map((prod, idx) => (
-                                        <div key={idx} className="product-card">
-                                            <div className="product-img">
-                                                <MoleculeViewer smiles={prod.smiles} width={150} height={100} readOnly={true} />
+                                <div className="products-layout-container">
+                                    <div className="products-grid main-organic">
+                                        {res.products.map((prod, idx) => (
+                                            <div key={idx} className="product-card">
+                                                <div className="product-img">
+                                                    <MoleculeViewer smiles={prod.smiles} width={140} height={100} readOnly={true} />
+                                                </div>
+                                                <button
+                                                    className="btn-small"
+                                                    onClick={() => handleAddToEditor(prod.smiles)}
+                                                >
+                                                    Add to Editor
+                                                </button>
+                                                <SelectivityChart
+                                                    type={prod.selectivity as any}
+                                                    label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
+                                                />
                                             </div>
-                                            <button
-                                                className="btn-small"
-                                                onClick={() => handleAddToEditor(prod.smiles)}
-                                            >
-                                                Add to Editor
-                                            </button>
-                                            <SelectivityChart
-                                                type={prod.selectivity as any}
-                                                label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
-                                            />
+                                        ))}
+                                    </div>
+
+                                    {res.byproducts.length > 0 && (
+                                        <div className="byproducts-sidebar">
+                                            <h5 className="byproducts-title">Inorganic Byproducts</h5>
+                                            <div className="byproducts-list">
+                                                {res.byproducts.map((bSmi, bIdx) => (
+                                                    <div key={bIdx} className="byproduct-item" title={bSmi}>
+                                                        <MoleculeViewer smiles={bSmi} width={60} height={50} readOnly={true} />
+                                                        <span className="byproduct-label">{bSmi}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         ))}

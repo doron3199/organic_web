@@ -82,7 +82,12 @@ function App() {
         setCurrentSubject(subject)
         setCurrentSubSubject(sub)
         setMode('study') // Default back to study mode on navigation
-        setScrollTargetId(sub.id) // Trigger scroll in ContentCanvas
+
+        // Reset scrollTargetId first to ensure change is detected even if same ID
+        setScrollTargetId(null)
+        setTimeout(() => {
+            setScrollTargetId(sub.id)
+        }, 0)
     }
 
     // Handler when user scrolls to a different section

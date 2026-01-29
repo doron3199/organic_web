@@ -11,11 +11,12 @@ export interface ReactionRule {
     id: string
     name: string
     description: string
-    reactionSmarts: string // The actual transformation SMARTS
+    curriculum_subsubject_id: string
+    reactionSmarts: string | string[] // The actual transformation SMARTS (can be multiple steps)
     reactant1Smarts: string // SMARTS to identify first reactant (e.g. Substrate)
-    reactant2Smarts?: string // SMARTS to identify second reactant (e.g. Reagent like Br2)
+    reactant2Smarts: string // SMARTS to identify second reactant (e.g. Reagent like Br2)
     matchExplanation?: string // Explanation of why this reaction is selected (e.g. "Alkane + Br2")
-    conditions: string[] // Required conditions (e.g. 'heat', 'light')
+    conditions: Set<string>[] // Required conditions (list of sets for OR logic)
     selectivity?: {
         type: 'rank' | 'explicit',
         rules: { smarts: string; label: 'major' | 'minor' | 'trace' | 'equal' }[]
@@ -25,6 +26,11 @@ export interface ReactionRule {
 export interface MatchResult {
     atoms: number[]
     bonds: number[]
+}
+
+export interface ReactionOutcome {
+    products: string[]
+    byproducts: string[]
 }
 
 class RDKitService {
@@ -100,10 +106,12 @@ class RDKitService {
 
             // Prepare drawing options
             const drawOpts = JSON.stringify({
-                ...options,
                 width,
                 height,
-                addAtomIndices: options.addAtomIndices ?? false
+                addAtomIndices: options.addAtomIndices ?? false,
+                padding: 0.15, // Add padding to avoid clipping at edges
+                bondLineWidth: 2, // Slightly thicker bonds for visibility
+                ...options
             })
 
             // Use get_svg_with_highlights if available for more options, otherwise get_svg
@@ -187,7 +195,7 @@ class RDKitService {
     }
 
     // Run a reaction given reactants and a reaction SMARTS via Backend
-    async runReaction(reactantsSMILES: string[], reactionSmarts: string): Promise<string[] | null> {
+    async runReaction(reactantsSMILES: string[], reactionSmarts: string | string[]): Promise<ReactionOutcome | null> {
         try {
             const response = await fetch('http://localhost:8000/reaction', {
                 method: 'POST',
@@ -205,8 +213,11 @@ class RDKitService {
 
             const data = await response.json();
 
-            // Backend returns { products: string[] }
-            return data.products;
+            // Backend returns { products: string[], byproducts: string[] }
+            return {
+                products: data.products,
+                byproducts: data.byproducts
+            };
 
         } catch (error) {
             console.error('Reaction execution error:', error);

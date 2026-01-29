@@ -65,10 +65,14 @@ function ContentCanvas({
     // Handle Auto-Scroll to Target
     useEffect(() => {
         if (scrollTargetId && mode === 'study') {
-            const el = document.getElementById(`section-${scrollTargetId}`)
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }
+            // Small delay to ensure any layout shifts/renders are complete
+            const timer = setTimeout(() => {
+                const el = document.getElementById(`section-${scrollTargetId}`)
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+            }, 100)
+            return () => clearTimeout(timer)
         }
     }, [scrollTargetId, mode])
 
@@ -161,7 +165,6 @@ function ContentCanvas({
                 {mode === 'study' ? (
                     <div id="study-scroll-container" className="study-container fade-in" ref={containerRef}>
                         {/* Iterating over ALL sub-subjects */}
-                        {/* Iterating over ALL sub-subjects */}
                         {subject.subSubjects.map((subSubject, index) => {
                             const prevSub = index > 0 ? subject.subSubjects[index - 1] : null
                             const showSectionHeader = subSubject.section && (index === 0 || subSubject.section !== prevSub?.section)
@@ -223,6 +226,8 @@ function ContentCanvas({
                                                     <div key={idx} className="molecule-card">
                                                         <MoleculeViewer
                                                             smiles={ex.smiles}
+                                                            customSvg={ex.customSvg}
+                                                            customSvgUrl={ex.customSvgUrl}
                                                             onEdit={() => handleEditClick(ex.smiles)}
                                                             width={300}
                                                             height={200}

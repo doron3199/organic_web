@@ -4,6 +4,8 @@ import './MoleculeViewer.css'
 
 interface MoleculeViewerProps {
     smiles: string
+    customSvg?: string
+    customSvgUrl?: string
     onEdit?: () => void
     width?: number
     height?: number
@@ -11,10 +13,15 @@ interface MoleculeViewerProps {
     readOnly?: boolean
 }
 
-function MoleculeViewer({ smiles, onEdit, width = 250, height = 150, className = '', readOnly = false }: MoleculeViewerProps) {
+function MoleculeViewer({ smiles, customSvg, customSvgUrl, onEdit, width = 250, height = 150, className = '', readOnly = false }: MoleculeViewerProps) {
     const [svg, setSvg] = useState<string>('')
 
     useEffect(() => {
+        if (customSvg || customSvgUrl) {
+            setSvg('')
+            return
+        }
+
         const updateSvg = () => {
             const generatedSvg = rdkitService.generateSVG(smiles, width, height, { addAtomIndices: false })
             if (generatedSvg) {
@@ -34,17 +41,32 @@ function MoleculeViewer({ smiles, onEdit, width = 250, height = 150, className =
         }, 500)
 
         return () => clearInterval(interval)
-    }, [smiles, width, height])
+    }, [smiles, width, height, customSvg])
+
+    const displaySvg = customSvg || svg;
 
     return (
-        <div className={`molecule-viewer-container ${className}`}>
+        <div className={`molecule-viewer-container ${className} ${customSvg || customSvgUrl ? 'is-custom' : ''}`}>
             <div
                 className="molecule-canvas"
-                dangerouslySetInnerHTML={{ __html: svg }}
-            />
+                style={customSvg || customSvgUrl ? { width, height } : {}}
+            >
+                {customSvgUrl ? (
+                    <img
+                        src={customSvgUrl}
+                        alt={smiles}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                ) : (
+                    <div
+                        style={{ width: '100%', height: '100%' }}
+                        dangerouslySetInnerHTML={{ __html: displaySvg }}
+                    />
+                )}
+            </div>
             {!readOnly && onEdit && (
                 <button className="edit-overlay-btn" onClick={onEdit}>
-                    <span className="edit-icon">✎</span> Edit / Experiment
+                    <span className="edit-icon">✎</span> Edit
                 </button>
             )}
         </div>

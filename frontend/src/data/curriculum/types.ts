@@ -33,7 +33,7 @@ export interface SubSubject {
     name: string
     rules: Rule[]
     content: string // Markdown or HTML content
-    examples: { smiles: string; name: string }[]
+    examples: { smiles: string; name: string; customSvg?: string; customSvgUrl?: string }[]
     reactionExamples?: ReactionExample[];
     isCompleted?: boolean
     section?: string
