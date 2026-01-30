@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Union
 import uvicorn
-from reaction_logic import run_reaction
+from reaction_logic import run_reaction, run_reaction_debug
 
 app = FastAPI()
 
@@ -31,6 +31,33 @@ async def execute_reaction(request: ReactionRequest):
     try:
         result = run_reaction(request.reactants, request.smarts)
         return {"products": result["organic"], "byproducts": result["inorganic"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ReactionStepModel(BaseModel):
+    step_id: str
+    step_index: int
+    smarts_used: str
+    input_smiles: List[str]
+    products: List[str]
+    parent_id: Union[str, None]
+    step_type: str
+    group_id: Union[str, None] = None
+
+
+class DebugReactionResponse(BaseModel):
+    steps: List[ReactionStepModel]
+    final_organic: List[str]
+    final_inorganic: List[str]
+
+
+@app.post("/reaction/debug", response_model=DebugReactionResponse)
+async def execute_reaction_debug(request: ReactionRequest):
+    """Run a reaction and return all intermediate steps for debugging."""
+    try:
+        result = run_reaction_debug(request.reactants, request.smarts)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -250,10 +250,11 @@ function ContentCanvas({
                     <Cheatsheet />
                 ) : mode === 'testing' ? (
                     <div className="workbench-container fade-in">
+                        {/* SMILES Input Row */}
                         <div style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
                             <input
                                 type="text"
-                                placeholder="Enter SMILES string (e.g. CCO)"
+                                placeholder="Enter SMILES string (e.g. CC=C.Br)"
                                 value={testSmiles}
                                 onChange={e => setTestSmiles(e.target.value)}
                                 style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
@@ -265,11 +266,14 @@ function ContentCanvas({
                                 Load
                             </button>
                         </div>
+
+                        {/* Molecule Editor with Debug Mode */}
                         <MoleculeEditor
                             onMoleculeChange={onWorkbenchChange}
                             initialMolecule={originalMolecule || workbenchMolecule}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
+                            showDebugPanel={true}
                         />
                     </div>
                 ) : (

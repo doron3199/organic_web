@@ -97,7 +97,7 @@ export const reactionRules: ReactionRule[] = [
         curriculum_subsubject_id: 'alkenes-hydration',
         reactionSmarts: [
             '[C:1]=[C:2].[OH2:3]>>[C:1][C+:2].[OH2:3]', // Step 1: Protonation (H2O is spectator)
-            '[C+:1].[OH2:2]>>[C:1][O+:2]', // Step 2: Water attack
+            '[C+:1].[OH2:2]>>[C+0:1][O+:2]', // Step 2: Water attack
             '[O+:1].[OH2:2]>>[O+0:1].[OH2:2]' // Step 3: Deprotonation (simplified)
         ],
         reactant1Smarts: '[C]=[C]',

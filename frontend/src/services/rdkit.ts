@@ -33,6 +33,23 @@ export interface ReactionOutcome {
     byproducts: string[]
 }
 
+export interface ReactionStep {
+    step_id: string
+    step_index: number
+    smarts_used: string
+    input_smiles: string[]
+    products: string[]
+    parent_id: string | null
+    step_type: 'initial' | 'reaction' | 'carbocation_intermediate' | 'carbocation_rearrangement'
+    group_id?: string
+}
+
+export interface DebugReactionOutcome {
+    steps: ReactionStep[]
+    finalProducts: string[]
+    finalByproducts: string[]
+}
+
 class RDKitService {
     private rdkit: any = null
     private initialized: boolean = false
@@ -221,6 +238,37 @@ class RDKitService {
 
         } catch (error) {
             console.error('Reaction execution error:', error);
+            return null;
+        }
+    }
+
+    // Run a debug reaction returning all intermediate steps
+    async runReactionDebug(reactantsSMILES: string[], reactionSmarts: string | string[]): Promise<DebugReactionOutcome | null> {
+        try {
+            const response = await fetch('http://localhost:8000/reaction/debug', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reactants: reactantsSMILES,
+                    smarts: reactionSmarts
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Backend debug reaction request failed');
+                return null;
+            }
+
+            const data = await response.json();
+
+            return {
+                steps: data.steps,
+                finalProducts: data.final_organic,
+                finalByproducts: data.final_inorganic
+            };
+
+        } catch (error) {
+            console.error('Debug reaction execution error:', error);
             return null;
         }
     }

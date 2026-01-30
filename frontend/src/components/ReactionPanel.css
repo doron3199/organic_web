@@ -354,3 +354,95 @@ input:checked+.slider:before {
         flex-wrap: wrap;
     }
 }
+
+.reaction-mechanism-btn {
+    background-color: #4c1d95;
+    /* Violet/Purple */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reaction-mechanism-btn:hover:not(:disabled) {
+    background-color: #7048e8;
+}
+
+.reaction-mechanism-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.mechanism-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.mechanism-modal-content {
+    background-color: var(--bg-primary);
+    width: 90vw;
+    height: 90vh;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.mechanism-modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-secondary);
+}
+
+.mechanism-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.mechanism-modal-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: #f8f9fa;
+}
+
+@media (prefers-color-scheme: dark) {
+    .mechanism-modal-body {
+        background-color: #1a1b1e;
+    }
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+.close-modal-btn:hover {
+    color: var(--text-primary);
+}

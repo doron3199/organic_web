@@ -1,6 +1,34 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import itertools
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class ReactionStepInfo:
+    """Represents a single step in the reaction tree."""
+
+    step_id: str
+    step_index: int
+    smarts_used: str
+    input_smiles: list[str]
+    products: list[str]
+    parent_id: Optional[str]
+    step_type: str  # 'reaction' | 'carbocation_rearrangement'
+    group_id: Optional[str] = None  # To visually group related products
+
+    def to_dict(self) -> dict:
+        return {
+            "step_id": self.step_id,
+            "step_index": self.step_index,
+            "smarts_used": self.smarts_used,
+            "input_smiles": self.input_smiles,
+            "products": self.products,
+            "parent_id": self.parent_id,
+            "step_type": self.step_type,
+            "group_id": self.group_id,
+        }
 
 
 def is_organic(smiles: str) -> bool:
@@ -204,3 +232,246 @@ def apply_carbocation_rearrangements(mol: Chem.Mol) -> list[Chem.Mol]:
             continue
 
     return rearranged_mols
+
+
+def run_reaction_debug(
+    reactants_smiles: list[str], reaction_smarts: str | list[str]
+) -> dict:
+    """
+    Runs a reaction with full debug info, returning all intermediate steps
+    including carbocation rearrangements as a tree structure.
+
+    Returns:
+        {
+            "steps": [ReactionStepInfo, ...],
+            "final_organic": [...],
+            "final_inorganic": [...]
+        }
+    """
+    if isinstance(reaction_smarts, str):
+        steps_list = [reaction_smarts]
+    else:
+        steps_list = reaction_smarts
+
+    all_steps: list[ReactionStepInfo] = []
+    step_counter = 0
+
+    # Helper: Detect if a molecule is a carbocation and return the degree (stability) of the C+ center
+    def get_carbocation_stability(mol):
+        for atom in mol.GetAtoms():
+            if atom.GetFormalCharge() == 1 and atom.GetSymbol() == "C":
+                return atom.GetDegree()
+        return -1
+
+    # Helper: Get all possible rearrangements (not just the best one)
+    def get_all_rearrangements(mol):
+        """Returns list of (rearranged_mol, shift_type) tuples for all possible rearrangements."""
+        rearrangements = []
+
+        rxn_hydride = AllChem.ReactionFromSmarts("[C;!H0:1]-[C+1:2]>>[C+1:1]-[C+0:2]")
+        rxn_methyl = AllChem.ReactionFromSmarts(
+            "[C:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C+0:2](-[CH3:3])"
+        )
+
+        current_stability = get_carbocation_stability(mol)
+
+        for rxn, shift_type in [
+            (rxn_hydride, "hydride_shift"),
+            (rxn_methyl, "methyl_shift"),
+        ]:
+            try:
+                prods = rxn.RunReactants((mol,))
+                for prod_tuple in prods:
+                    p = prod_tuple[0]
+                    try:
+                        Chem.SanitizeMol(p)
+                        new_stability = get_carbocation_stability(p)
+                        if new_stability > current_stability:
+                            rearrangements.append((p, shift_type))
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+
+        return rearrangements
+
+    # Track molecules with their parent step IDs: (mol, parent_step_id)
+    current_pool: list[tuple] = [
+        (Chem.MolFromSmiles(s), None) for s in reactants_smiles
+    ]
+
+    # Create initial step for reactants
+    initial_step_id = "step_0_reactants"
+    all_steps.append(
+        ReactionStepInfo(
+            step_id=initial_step_id,
+            step_index=0,
+            smarts_used="(initial reactants)",
+            input_smiles=[],
+            products=reactants_smiles,
+            parent_id=None,
+            step_type="initial",
+        )
+    )
+    step_counter = 1
+
+    # Update pool with initial step as parent
+    current_pool = [(Chem.MolFromSmiles(s), initial_step_id) for s in reactants_smiles]
+
+    for smarts_idx, smarts in enumerate(steps_list):
+        rxn = AllChem.ReactionFromSmarts(smarts)
+        num_templates = rxn.GetNumReactantTemplates()
+        next_pool: list[tuple] = []
+
+        # Get just the molecules for permutations
+        current_mols = [m for m, _ in current_pool]
+
+        # Generate all permutations of reactants from the pool
+        reactant_combinations = list(
+            itertools.permutations(range(len(current_mols)), num_templates)
+        )
+
+        for combo_indices in reactant_combinations:
+            reactants = tuple(current_mols[i] for i in combo_indices)
+            parent_ids = [current_pool[i][1] for i in combo_indices]
+            # Use the first parent as the main parent for simplicity
+            main_parent_id = parent_ids[0] if parent_ids else None
+
+            try:
+                products_tuple_list = rxn.RunReactants(reactants)
+                # remove duplicates from products_tuple_list
+                unique_products_tuple_list = []
+                seen_smiles = set()
+                for products in products_tuple_list:
+                    smi = Chem.MolToSmiles(products[0], isomericSmiles=True)
+                    if smi not in seen_smiles:
+                        seen_smiles.add(smi)
+                        unique_products_tuple_list.append(products)
+                products_tuple_list = unique_products_tuple_list
+
+                for products in products_tuple_list:
+                    import uuid
+
+                    # Generate a unique group ID for this specific reaction outcome/pathway
+                    current_group_id = f"grp_{str(uuid.uuid4())[:8]}"
+
+                    reaction_products = []
+
+                    for prod in products:
+                        try:
+                            prod.UpdatePropertyCache()
+                            Chem.SanitizeMol(prod)
+                            prod_smiles = Chem.MolToSmiles(prod, isomericSmiles=True)
+
+                            # Record the reaction step
+                            reaction_step_id = f"step_{step_counter}_rxn"
+                            input_smiles = [Chem.MolToSmiles(r) for r in reactants]
+
+                            reaction_products.append(prod_smiles)
+
+                            # Check for carbocation rearrangements
+                            if get_carbocation_stability(prod) > 0:
+                                # This is a carbocation - record it
+                                all_steps.append(
+                                    ReactionStepInfo(
+                                        step_id=reaction_step_id,
+                                        step_index=step_counter,
+                                        smarts_used=smarts,
+                                        input_smiles=input_smiles,
+                                        products=[prod_smiles],
+                                        parent_id=main_parent_id,
+                                        step_type="carbocation_intermediate",
+                                        group_id=current_group_id,
+                                    )
+                                )
+                                step_counter += 1
+
+                                # Get all possible rearrangements
+                                rearrangements = get_all_rearrangements(prod)
+
+                                if rearrangements:
+                                    for rearranged_mol, shift_type in rearrangements:
+                                        rearranged_smiles = Chem.MolToSmiles(
+                                            rearranged_mol, isomericSmiles=True
+                                        )
+                                        rearr_step_id = f"step_{step_counter}_rearr"
+
+                                        all_steps.append(
+                                            ReactionStepInfo(
+                                                step_id=rearr_step_id,
+                                                step_index=step_counter,
+                                                smarts_used=f"({shift_type})",
+                                                input_smiles=[prod_smiles],
+                                                products=[rearranged_smiles],
+                                                parent_id=reaction_step_id,
+                                                step_type="carbocation_rearrangement",
+                                                group_id=current_group_id,  # Share group ID with parent carbocation
+                                            )
+                                        )
+                                        step_counter += 1
+
+                                        # Add rearranged to pool
+                                        next_pool.append(
+                                            (rearranged_mol, rearr_step_id)
+                                        )
+
+                                # Also add unrearranged carbocation to pool (minor product path)
+                                next_pool.append((prod, reaction_step_id))
+                            else:
+                                # Not a carbocation - regular product
+                                all_steps.append(
+                                    ReactionStepInfo(
+                                        step_id=reaction_step_id,
+                                        step_index=step_counter,
+                                        smarts_used=smarts,
+                                        input_smiles=input_smiles,
+                                        products=[prod_smiles],
+                                        parent_id=main_parent_id,
+                                        step_type="reaction",
+                                        group_id=current_group_id,
+                                    )
+                                )
+                                step_counter += 1
+                                next_pool.append((prod, reaction_step_id))
+
+                        except Exception:
+                            continue
+
+            except Exception:
+                continue
+
+        # For multi-step, products of this step become reactants for next
+        if next_pool:
+            # clear pool from duplicates
+            unique_pool = []
+            seen_smiles = set()
+            for mol, parent_id in next_pool:
+                smi = Chem.MolToSmiles(mol, isomericSmiles=True)
+                if smi not in seen_smiles:
+                    seen_smiles.add(smi)
+                    unique_pool.append((mol, parent_id))
+            current_pool = unique_pool
+        else:
+            current_pool = []
+            break
+
+    # --- Final Separation ---
+    final_organic = set()
+    final_inorganic = set()
+
+    for mol, _ in current_pool:
+        if mol is None:
+            continue
+        smi = Chem.MolToSmiles(mol, isomericSmiles=True)
+        has_carbon = any(atom.GetSymbol() == "C" for atom in mol.GetAtoms())
+
+        if has_carbon:
+            final_organic.add(smi)
+        else:
+            final_inorganic.add(smi)
+
+    return {
+        "steps": [s.to_dict() for s in all_steps],
+        "final_organic": list(final_organic),
+        "final_inorganic": list(final_inorganic),
+    }

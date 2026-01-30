@@ -250,7 +250,6 @@ Like hydrohalogenation, this reaction follows **Markovnikov's Rule** and involve
                     id: 'alkene_hydration',
                     reactants: [
                         { smiles: 'CC=C', name: 'Propene' },
-                        { smiles: 'O', name: 'H₂O' },
                         { smiles: 'O', name: 'H₂O' }
                     ],
                     products: [

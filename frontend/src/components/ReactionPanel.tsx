@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { findMatchingReactions } from '../services/reactions'
-import { rdkitService } from '../services/rdkit'
+import { rdkitService, DebugReactionOutcome } from '../services/rdkit'
 import { SubSubject, initialCurriculum } from '../data/curriculum'
 import { AVAILABLE_CONDITIONS } from '../services/conditions'
 import CurriculumModal from './CurriculumModal'
 import MoleculeViewer from './MoleculeViewer'
 import SelectivityChart from './SelectivityChart'
+import { ReactionMechanismGraph } from './ReactionMechanismGraph'
 import './ReactionPanel.css'
 
 interface ReactionPanelProps {
@@ -13,10 +14,18 @@ interface ReactionPanelProps {
     onMoleculeUpdate: (smiles: string) => void
     onRequestSmiles?: () => Promise<string | undefined>
     initialConditions?: string[]
+    // New Props for Controlled State
+    selectedConditions?: string[]
+    onConditionsChange?: (conditions: string[]) => void
+    onReactionRun?: (reaction: { id: string, name: string, smarts: string | string[] } | null) => void
 }
 
-function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, initialConditions }: ReactionPanelProps) {
-    const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || ['h2o'])
+function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, initialConditions, selectedConditions: propConditions, onConditionsChange, onReactionRun }: ReactionPanelProps) {
+    // Internal state fallback if not controlled (for backward compat or isolated usage)
+    const [internalConditions, setInternalConditions] = useState<string[]>(initialConditions || ['h2o'])
+
+    // Use prop if available, otherwise internal state
+    const selectedConditions = propConditions !== undefined ? propConditions : internalConditions
 
     const [results, setResults] = useState<{
         reactionId: string,
@@ -24,7 +33,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         curriculum_subsubject_id: string,
         matchExplanation?: string,
         products: { smiles: string, selectivity: string }[],
-        byproducts: string[]
+        byproducts: string[],
+        smarts: string
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
@@ -33,12 +43,43 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [unsupportedError, setUnsupportedError] = useState(false)
     const [selectedReactionInfo, setSelectedReactionInfo] = useState<SubSubject | null>(null)
 
-    // Update conditions when prop changes (e.g. from Experiment button)
-    useEffect(() => {
-        if (initialConditions && initialConditions.length > 0) {
-            setSelectedConditions(initialConditions)
+    // Mechanism Modal State
+    const [mechanismResult, setMechanismResult] = useState<DebugReactionOutcome | null>(null)
+    const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
+
+    const handleViewMechanism = async (reactionName: string, smarts: string) => {
+        if (!currentMolecule) return
+
+        setIsMechanismLoading(reactionName)
+        try {
+            const reactants = currentMolecule.split('.')
+
+            // Handle potentially multi-line SMARTS string (for multi-step reactions)
+            // If it's a string, we check for newlines or just pass it if it's single
+            // ReactionDebugPanel logic handles string[] or single string. rdkitService expects string or string[].
+
+            let smartsArg: string | string[] = smarts
+            if (smarts.includes('\n')) {
+                smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
+            }
+
+            const result = await rdkitService.runReactionDebug(reactants, smartsArg)
+            if (result) {
+                setMechanismResult(result)
+            }
+        } catch (e) {
+            console.error("Failed to load mechanism:", e)
+        } finally {
+            setIsMechanismLoading(null)
         }
-    }, [initialConditions])
+    }
+
+    // Sync internal state if prop changes (just in case mixed usage) - likely not needed if controlled perfectly but safe
+    useEffect(() => {
+        if (initialConditions && initialConditions.length > 0 && propConditions === undefined) {
+            setInternalConditions(initialConditions)
+        }
+    }, [initialConditions, propConditions])
 
     // Helper: Determine valid rules for a given molecule and set of conditions
     const getMatchingRules = (smiles: string | null, conditions: string[]) => {
@@ -64,9 +105,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
 
 
     const handleConditionToggle = (id: string) => {
-        setSelectedConditions(prev => {
+        const updateConditions = (prev: string[]) => {
             let newConds: string[]
-
             if (isSingleSelect) {
                 // In single select mode:
                 // If clicking active one -> toggle off (empty)
@@ -80,10 +120,18 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 // Multi select mode (standard toggle)
                 newConds = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
             }
-
             if (newConds.length > 0) setShowConditionError(false)
             return newConds
-        })
+        }
+
+        if (onConditionsChange && propConditions !== undefined) {
+            // Controlled mode
+            const newConds = updateConditions(propConditions)
+            onConditionsChange(newConds)
+        } else {
+            // Uncontrolled
+            setInternalConditions(prev => updateConditions(prev))
+        }
     }
 
     const handleReactionInfoClick = (subsubjectId: string) => {
@@ -233,13 +281,19 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     explanation += ` + ${rule.conditions.join(', ')}`;
                 }
 
+                // Handle string[] smarts by joining
+                const smartsStr = Array.isArray(rule.reactionSmarts)
+                    ? rule.reactionSmarts.join('\n')
+                    : rule.reactionSmarts;
+
                 allResults.push({
                     reactionId: rule.id,
                     reactionName: rule.name,
                     curriculum_subsubject_id: rule.curriculum_subsubject_id,
                     matchExplanation: explanation,
                     products: Array.from(ruleProducts.values()).map(p => ({ smiles: p.smiles, selectivity: p.selectivity })),
-                    byproducts: Array.from(ruleByproducts)
+                    byproducts: Array.from(ruleByproducts),
+                    smarts: smartsStr
                 })
             }
         }
@@ -247,6 +301,17 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         setResults(allResults)
         setSearchPerformed(true)
         setIsRunning(false)
+
+        // If exactly one reaction matches, auto-trigger the debugger
+        if (allResults.length === 1 && onReactionRun) {
+            const res = allResults[0]
+            const rule = rulesToRun[0] // Since allResults.length === 1 and it corresponds to rulesToRun matches
+            onReactionRun({
+                id: res.reactionId,
+                name: res.reactionName,
+                smarts: rule.reactionSmarts
+            })
+        }
     }
 
     const handleAddToEditor = (productSmiles: string) => {
@@ -271,7 +336,12 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                 // If switching TO single select and multiple are selected, keep only first or clear?
                                 // Let's keep the most recent or just the first one to be safe.
                                 if (e.target.checked && selectedConditions.length > 1) {
-                                    setSelectedConditions([selectedConditions[0]])
+                                    const newConds = [selectedConditions[0]]
+                                    if (onConditionsChange && propConditions !== undefined) {
+                                        onConditionsChange(newConds)
+                                    } else {
+                                        setInternalConditions(newConds)
+                                    }
                                 }
                             }}
                         />
@@ -329,6 +399,15 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                         {res.matchExplanation && `(${res.matchExplanation})`}
                                     </span>
                                 </h4>
+                                <div style={{ padding: '0 0px 8px 0px' }}>
+                                    <button
+                                        className="reaction-mechanism-btn"
+                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts)}
+                                        disabled={isMechanismLoading === res.reactionName}
+                                    >
+                                        {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}
+                                    </button>
+                                </div>
                                 <div className="products-layout-container">
                                     <div className="products-grid main-organic">
                                         {res.products.map((prod, idx) => (
@@ -375,6 +454,25 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 topic={selectedReactionInfo}
                 onClose={() => setSelectedReactionInfo(null)}
             />
+
+            {/* Reaction Mechanism Modal */}
+            {mechanismResult && (
+                <div className="mechanism-modal-overlay" onClick={() => setMechanismResult(null)}>
+                    <div className="mechanism-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="mechanism-modal-header">
+                            <h3>Reaction Mechanism: {mechanismResult.reactionName || 'Details'}</h3>
+                            <button className="close-modal-btn" onClick={() => setMechanismResult(null)}>×</button>
+                        </div>
+                        <div className="mechanism-modal-body">
+                            <ReactionMechanismGraph
+                                debugResult={mechanismResult}
+                                onMoleculeUpdate={() => { }}
+                                interactive={false}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

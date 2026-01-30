@@ -13,6 +13,7 @@ interface MoleculeEditorProps {
     initialConditions?: string[]
     onBack: () => void
     onNameMolecule: (smiles: string) => AnalysisResult
+    showDebugPanel?: boolean
 }
 
 const structServiceProvider = new StandaloneStructServiceProvider() as StructServiceProvider
@@ -22,10 +23,11 @@ if ('setMaxListeners' in structServiceProvider) {
 
 // ... imports
 import ReactionPanel from './ReactionPanel'
+import ReactionDebugPanel from './ReactionDebugPanel'
 
 // ... existing code ...
 
-function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule }: MoleculeEditorProps) {
+function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule, showDebugPanel }: MoleculeEditorProps) {
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
@@ -33,6 +35,12 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
     const [currentSmiles, setCurrentSmiles] = useState<string>('')
     const lastInternalSmiles = useRef<string | null>(null)
+
+    // Lifted State for Reaction Conditions
+    const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || ['h2o'])
+
+    // State for triggering debugger from reaction panel
+    const [triggeredReaction, setTriggeredReaction] = useState<{ id: string, name: string, smarts: string | string[] } | null>(null)
 
     // Update molecule if initialMolecule prop changes (e.g. loading new example)
     useEffect(() => {
@@ -47,6 +55,13 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         }
     }, [initialMolecule])
 
+    // Update conditions if initialConditions prop changes
+    useEffect(() => {
+        if (initialConditions) {
+            setSelectedConditions(initialConditions)
+        }
+    }, [initialConditions])
+
     // Handle Reset
     const handleReset = async () => {
         if (!ketcherRef.current) return
@@ -56,6 +71,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             setAnalysisResult(null)
             lastInternalSmiles.current = null // Clear tracking on manual reset
             setCurrentSmiles(initialMolecule || '')
+            if (initialConditions) setSelectedConditions(initialConditions)
         } catch (error) {
             console.error('Reset failed:', error)
         }
@@ -192,14 +208,28 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                 )}
             </div>
 
+
             {/* Reaction Panel Overlay/Section - Always Visible */}
             <div className="reaction-panel-container fade-in">
                 <ReactionPanel
                     currentMolecule={currentSmiles}
-                    initialConditions={initialConditions}
+                    initialConditions={initialConditions} // Legacy prop, kept for init logic if needed, but state is now controlled
+                    selectedConditions={selectedConditions}
+                    onConditionsChange={setSelectedConditions}
                     onMoleculeUpdate={handleReactionUpdate}
                     onRequestSmiles={updateCurrentSmiles}
+                    onReactionRun={(reaction) => setTriggeredReaction(reaction)}
                 />
+
+                {/* Debug Panel - Only in Testing Mode */}
+                {showDebugPanel && (
+                    <ReactionDebugPanel
+                        currentMolecule={currentSmiles}
+                        onMoleculeUpdate={handleReactionUpdate}
+                        selectedConditions={selectedConditions}
+                        triggeredReaction={triggeredReaction}
+                    />
+                )}
             </div>
         </div>
     )
