@@ -74,8 +74,8 @@ export const reactionRules: ReactionRule[] = [
         name: 'Hydrohalogenation (HX)',
         curriculum_subsubject_id: 'alkenes-hydrohalogenation',
         reactionSmarts: [
-            '[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F,Cl,Br,I:3]', // Step 1: Protonation (X- is spectator)
-            '[C+:1].[F,Cl,Br,I:2]>>[C:1][F,Cl,Br,I:2]' // Step 2: Nucleophilic Attack
+            '[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]', // Step 1: Protonation (X- is spectator)
+            '[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]' // Step 2: Nucleophilic Attack
         ],
         reactant1Smarts: '[C]=[C]',
         reactant2Smarts: '[F,Cl,Br,I]', // Matches HF (F), HCl (Cl), HBr (Br), HI (I)

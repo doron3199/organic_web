@@ -317,7 +317,6 @@ Tertiary (3°) > Secondary (2°) > Primary (1°).
                     id: 'alkene_rearrangement_hx',
                     reactants: [
                         { smiles: 'CC(C)C=C', name: '3-Methylbut-1-ene' },
-                        { smiles: 'Br', name: 'HBr' },
                         { smiles: 'Br', name: 'HBr' }
                     ],
                     products: [

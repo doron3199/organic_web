@@ -33,51 +33,66 @@ def run_reaction(reactants_smiles: list[str], reaction_smarts: str | list[str]) 
 
     # Helper: Recursively stabilize carbocations via 1,2-shifts
     def stabilize_carbocation(mol):
-        # SMARTS for 1,2-hydride shift (move H to C+, move + to neighbor)
-        rxn_hydride = AllChem.ReactionFromSmarts(
-            "[Ch1,Ch2,Ch3:1]-[C+1:2]>>[C+1:1]-[C:2]"
-        )
-        # SMARTS for 1,2-methyl shift (move CH3 to C+, move + to neighbor)
+        """
+        Recursively stabilizes a carbocation via 1,2-hydride and 1,2-methyl shifts
+        until no more stable isomer can be found.
+        """
+        # 1. SMARTS for 1,2-hydride shift
+        # Matches: A Carbon with at least 1 H (neighbor) connected to a Cation
+        # Action: Swap the charge. SanitizeMol will auto-adjust the implicit Hydrogens.
+        rxn_hydride = AllChem.ReactionFromSmarts("[C;!H0:1]-[C+1:2]>>[C+1:1]-[C+0:2]")
+
+        # 2. SMARTS for 1,2-methyl shift
+        # Matches: A Carbon with a methyl group connected to a Cation
+        # Action: Move the methyl group (:3) to the cation, move charge to the donor.
         rxn_methyl = AllChem.ReactionFromSmarts(
-            "[C:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C:2](-[CH3:3])"
+            "[C:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C+0:2](-[CH3:3])"
         )
 
         moves = [rxn_hydride, rxn_methyl]
         current_mol = mol
 
-        # Limit iterations to prevent infinite loops in degenerate cases
-        for _ in range(5):
+        # Allow up to 10 iterations to prevent infinite loops (e.g., oscillating between equivalent cations)
+        for _ in range(10):
             current_stability = get_carbocation_stability(current_mol)
+
+            # If not a carbocation or invalid, stop
             if current_stability == -1:
-                break  # Not a carbocation
+                break
 
-            best_mol = current_mol
-            improved = False
+            best_mol_step = None
+            best_stability_step = current_stability
+            found_improvement = False
 
-            # Try all possible shifts
+            # Try all shift types
             for move in moves:
                 try:
-                    # Apply transformation
                     prods = move.RunReactants((current_mol,))
+
                     for prod_tuple in prods:
                         p = prod_tuple[0]
                         try:
+                            # CRITICAL: Sanitize to recalculate implicit Valences/Hydrogens
                             Chem.SanitizeMol(p)
+
                             new_stability = get_carbocation_stability(p)
-                            # If new C+ is more substituted (stable), keep it
-                            if new_stability > current_stability:
-                                best_mol = p
-                                current_stability = new_stability
-                                improved = True
-                        except ValueError:
-                            continue
+
+                            # Greedy approach: Find the single best move in this iteration
+                            if new_stability > best_stability_step:
+                                best_stability_step = new_stability
+                                best_mol_step = p
+                                found_improvement = True
+
+                        except Exception:
+                            continue  # Skip invalid molecules
                 except Exception:
                     continue
 
-            if improved:
-                current_mol = best_mol
+            # If we found a strictly better form, update and loop again
+            if found_improvement:
+                current_mol = best_mol_step
             else:
-                break  # No further stabilization possible
+                break  # Local maximum reached
 
         return current_mol
 
@@ -106,7 +121,13 @@ def run_reaction(reactants_smiles: list[str], reaction_smarts: str | list[str]) 
 
                         # Apply carbocation rearrangement logic
                         stable_prod = stabilize_carbocation(prod)
-                        next_step_mols.append(stable_prod)
+                        # Add the original intermediate (allows for minor products from unrearranged carbocations)
+                        next_step_mols.append(prod)
+
+                        # Add the rearranged/stabilized intermediate if it's different (major product)
+                        # We compare objects; stabilize_carbocation returns a new object if changes occurred.
+                        if stable_prod is not prod:
+                            next_step_mols.append(stable_prod)
             except Exception:
                 continue
 

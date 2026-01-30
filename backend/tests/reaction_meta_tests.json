@@ -96,7 +96,6 @@
             "id": "alkene_rearrangement_hx",
             "reactants": [
                 "CC(C)C=C",
-                "Br",
                 "Br"
             ],
             "expected_products": [
@@ -272,8 +271,8 @@
         "alkane_halogenation_br": "[C;H1,H2,H3,H4:1].[Br][Br]>>[C:1][Br].[Br]",
         "alkane_halogenation_cl": "[C;H1,H2,H3,H4:1].[Cl][Cl]>>[C:1][Cl].[Cl]",
         "alkene_hydrohalogenation": [
-            "[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F,Cl,Br,I:3]",
-            "[C+:1].[F,Cl,Br,I:2]>>[C:1][F,Cl,Br,I:2]"
+            "[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]",
+            "[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]"
         ],
         "alkene_hydration": [
             "[C:1]=[C:2].[OH2:3]>>[C:1][C+:2].[OH2:3]",
