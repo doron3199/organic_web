@@ -36,12 +36,9 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
         }
 
         const reactantsParts = currentMolecule.split('.')
-        const reactant1 = reactantsParts[0]
-        const reactant2 = reactantsParts[1]
-
         // Use selected conditions for filtering (default to empty if not provided)
         const conditions = new Set(selectedConditions || [])
-        const matches = findMatchingReactions(conditions, reactant1, reactant2)
+        const matches = findMatchingReactions(conditions, reactantsParts)
         setMatchingReactions(matches)
         setSelectedReactionIdx(-1)
     }, [currentMolecule, selectedConditions])
@@ -107,7 +104,7 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
             }
 
             const reactants = currentMolecule.split('.')
-            const result = await rdkitService.runReactionDebug(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0])
+            const result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true) as DebugReactionOutcome | null
 
             if (result) {
                 setDebugResult(result)
@@ -220,6 +217,7 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                                         {selectedStep.products.map((prod, idx) => (
                                             <div key={idx} className="detail-product">
                                                 <MoleculeViewer smiles={prod} width={100} height={80} readOnly={true} />
+                                                <div className="product-smiles-label">{prod}</div>
                                                 <button className="add-btn" onClick={() => onMoleculeUpdate(prod)} title="Add to editor">+</button>
                                             </div>
                                         ))}
@@ -243,6 +241,7 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                                             height={90}
                                             readOnly={true}
                                         />
+                                        <div className="product-smiles-label">{prod}</div>
                                         <button
                                             className="add-btn"
                                             onClick={() => onMoleculeUpdate(prod)}

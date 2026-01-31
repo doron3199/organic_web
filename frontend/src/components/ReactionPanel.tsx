@@ -39,12 +39,14 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
     const [showConditionError, setShowConditionError] = useState(false)
-    const [isSingleSelect, setIsSingleSelect] = useState(true)
-    const [unsupportedError, setUnsupportedError] = useState(false)
+
     const [selectedReactionInfo, setSelectedReactionInfo] = useState<SubSubject | null>(null)
 
     // Mechanism Modal State
-    const [mechanismResult, setMechanismResult] = useState<DebugReactionOutcome | null>(null)
+    interface MechanismResult extends DebugReactionOutcome {
+        reactionName: string
+    }
+    const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
 
     const handleViewMechanism = async (reactionName: string, smarts: string) => {
@@ -63,9 +65,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
             }
 
-            const result = await rdkitService.runReactionDebug(reactants, smartsArg)
+            const result = await rdkitService.runReaction(reactants, smartsArg, true) as import('../services/rdkit').DebugReactionOutcome | null
             if (result) {
-                setMechanismResult(result)
+                setMechanismResult({ ...result, reactionName })
             }
         } catch (e) {
             console.error("Failed to load mechanism:", e)
@@ -87,38 +89,22 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         const reactantsParts = smiles.split('.')
         const condSet = new Set(conditions)
 
-        const reactant1 = reactantsParts[0]
-        const reactant2 = reactantsParts[1]
-
-        return findMatchingReactions(condSet, reactant1, reactant2)
+        return findMatchingReactions(condSet, reactantsParts)
     }
 
-    // Filter reactions based on selected conditions and reactant availability
-    useEffect(() => {
-        // Error handling updates
-        if (currentMolecule && currentMolecule.split('.').length > 2) {
-            setUnsupportedError(true)
-        } else {
-            setUnsupportedError(false)
-        }
-    }, [selectedConditions, currentMolecule])
+
 
 
     const handleConditionToggle = (id: string) => {
         const updateConditions = (prev: string[]) => {
             let newConds: string[]
-            if (isSingleSelect) {
-                // In single select mode:
-                // If clicking active one -> toggle off (empty)
-                // If clicking inactive one -> replace all with this one
-                if (prev.includes(id)) {
-                    newConds = []
-                } else {
-                    newConds = [id]
-                }
+            // Single select mode:
+            // If clicking active one -> toggle off (empty)
+            // If clicking inactive one -> replace all with this one
+            if (prev.includes(id)) {
+                newConds = []
             } else {
-                // Multi select mode (standard toggle)
-                newConds = prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+                newConds = [id]
             }
             if (newConds.length > 0) setShowConditionError(false)
             return newConds
@@ -167,8 +153,6 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         const rulesToRun = getMatchingRules(moleculeToReact, selectedConditions)
 
         if (rulesToRun.length === 0) {
-            // If explicit run and no rules, maybe mismatch count?
-            if (moleculeToReact.split('.').length !== 2) setUnsupportedError(true)
             setSearchPerformed(true)
             return
         }
@@ -180,7 +164,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             curriculum_subsubject_id: string,
             matchExplanation?: string,
             products: { smiles: string, selectivity: string }[],
-            byproducts: string[]
+            byproducts: string[],
+            smarts: string
         }[] = []
 
         // Split molecule into independent reactants
@@ -188,60 +173,64 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
 
         // Try every matched rule
         for (const rule of rulesToRun) {
-            // STEP 1: Check if required reactants are present in the pot (using SMARTS)
-            const reactant1Candidates = reactantsSmiles.filter(smi =>
-                rdkitService.getSubstructureMatch(smi, rule.reactant1Smarts)
-            );
+            // STEP 1: Identify candidates for each reactant slot
+            const reactantIndices = reactantsSmiles.map((s, i) => ({ s, i }))
+            const slotsCandidatesIndices = rule.reactantsSmarts.map(pattern => {
+                return reactantIndices.filter(item => rdkitService.getSubstructureMatch(item.s, pattern))
+            })
 
-            let reactant2Candidates: string[] = [];
-            if (rule.reactant2Smarts) {
-                reactant2Candidates = reactantsSmiles.filter(smi =>
-                    rdkitService.getSubstructureMatch(smi, rule.reactant2Smarts!)
-                );
+            // If any required slot has no candidates, skip this rule
+            if (slotsCandidatesIndices.some(c => c.length === 0)) continue
+
+            // STEP 2: Generate valid combinations (distinct molecules for distinct slots)
+            const combinations: number[][] = []
+
+            const generate = (slotIdx: number, currentIndices: number[]) => {
+                if (slotIdx === rule.reactantsSmarts.length) {
+                    combinations.push([...currentIndices])
+                    return
+                }
+
+                for (const candidate of slotsCandidatesIndices[slotIdx]) {
+                    if (!currentIndices.includes(candidate.i)) {
+                        currentIndices.push(candidate.i)
+                        generate(slotIdx + 1, currentIndices)
+                        currentIndices.pop()
+                    }
+                }
             }
 
-            if (reactant1Candidates.length === 0) continue;
-            if (rule.reactant2Smarts && reactant2Candidates.length === 0) continue;
+            // If rule has 0 reactants (not typical), run once with empty?
+            if (rule.reactantsSmarts.length === 0) {
+                combinations.push([])
+            } else {
+                generate(0, [])
+            }
+
+            if (combinations.length === 0) continue
 
             const ruleProducts = new Map<string, { smiles: string, selectivity: string, rankIndex: number }>()
             const ruleByproducts = new Set<string>()
 
-            // STEP 2: Iterate and Run
-            for (const r1 of reactant1Candidates) {
-                if (rule.reactant2Smarts) {
-                    for (const r2 of reactant2Candidates) {
-                        const outcome = await rdkitService.runReaction([r1, r2], rule.reactionSmarts)
-                        if (outcome) {
-                            outcome.products.forEach(pSmiles => {
-                                let matchIndex = 999;
-                                if (rule.selectivity) {
-                                    rule.selectivity.rules.forEach((selRule, idx) => {
-                                        if (matchIndex === 999 && rdkitService.getSubstructureMatch(pSmiles, selRule.smarts)) {
-                                            matchIndex = idx;
-                                        }
-                                    })
+            // STEP 3: Iterate and Run combinations
+            for (const comboIndices of combinations) {
+                const reactantsForRun = comboIndices.map(i => reactantsSmiles[i])
+
+                const outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false)
+                if (outcome) {
+                    const reactionOutcome = outcome as import('../services/rdkit').ReactionOutcome
+                    reactionOutcome.products.forEach((pSmiles: string) => {
+                        let matchIndex = 999;
+                        if (rule.selectivity) {
+                            rule.selectivity.rules.forEach((selRule, idx) => {
+                                if (matchIndex === 999 && rdkitService.getSubstructureMatch(pSmiles, selRule.smarts)) {
+                                    matchIndex = idx;
                                 }
-                                ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
                             })
-                            outcome.byproducts.forEach(bSmi => ruleByproducts.add(bSmi));
                         }
-                    }
-                } else {
-                    const outcome = await rdkitService.runReaction([reactantsSmiles.join('.')], rule.reactionSmarts)
-                    if (outcome) {
-                        outcome.products.forEach(pSmiles => {
-                            let matchIndex = 999;
-                            if (rule.selectivity) {
-                                rule.selectivity.rules.forEach((selRule, idx) => {
-                                    if (matchIndex === 999 && rdkitService.getSubstructureMatch(pSmiles, selRule.smarts)) {
-                                        matchIndex = idx;
-                                    }
-                                })
-                            }
-                            ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
-                        })
-                        outcome.byproducts.forEach(bSmi => ruleByproducts.add(bSmi));
-                    }
+                        ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
+                    })
+                    reactionOutcome.byproducts.forEach((bSmi: string) => ruleByproducts.add(bSmi));
                 }
             }
 
@@ -325,33 +314,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             </div>
 
             <div className="conditions-selector">
-                <div className="toggle-switch-container">
-                    <span>Multi-Select</span>
-                    <label className="toggle-switch">
-                        <input
-                            type="checkbox"
-                            checked={isSingleSelect}
-                            onChange={(e) => {
-                                setIsSingleSelect(e.target.checked)
-                                // If switching TO single select and multiple are selected, keep only first or clear?
-                                // Let's keep the most recent or just the first one to be safe.
-                                if (e.target.checked && selectedConditions.length > 1) {
-                                    const newConds = [selectedConditions[0]]
-                                    if (onConditionsChange && propConditions !== undefined) {
-                                        onConditionsChange(newConds)
-                                    } else {
-                                        setInternalConditions(newConds)
-                                    }
-                                }
-                            }}
-                        />
-                        <span className="slider"></span>
-                    </label>
-                    <span>Single-Select</span>
-                </div>
-
                 {showConditionError && <div className="condition-error-msg">⚠️ Please select at least one condition</div>}
-                {unsupportedError && <div className="condition-error-msg">⚠️ Reaction not supported: Exact 2 reactants required</div>}
                 <h4>Select Conditions:</h4>
                 <div className="conditions-grid">
                     {AVAILABLE_CONDITIONS.map(cond => (

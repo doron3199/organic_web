@@ -13,8 +13,7 @@ export interface ReactionRule {
     description: string
     curriculum_subsubject_id: string
     reactionSmarts: string | string[] // The actual transformation SMARTS (can be multiple steps)
-    reactant1Smarts: string // SMARTS to identify first reactant (e.g. Substrate)
-    reactant2Smarts: string // SMARTS to identify second reactant (e.g. Reagent like Br2)
+    reactantsSmarts: string[] // SMARTS to identify reactants (e.g. [Substrate, Reagent])
     matchExplanation?: string // Explanation of why this reaction is selected (e.g. "Alkane + Br2")
     conditions: Set<string>[] // Required conditions (list of sets for OR logic)
     selectivity?: {
@@ -212,14 +211,20 @@ class RDKitService {
     }
 
     // Run a reaction given reactants and a reaction SMARTS via Backend
-    async runReaction(reactantsSMILES: string[], reactionSmarts: string | string[]): Promise<ReactionOutcome | null> {
+    // If debug=true, returns all intermediate steps; otherwise returns only final products
+    async runReaction(
+        reactantsSMILES: string[],
+        reactionSmarts: string | string[],
+        debug: boolean = false
+    ): Promise<ReactionOutcome | DebugReactionOutcome | null> {
         try {
             const response = await fetch('http://localhost:8000/reaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     reactants: reactantsSMILES,
-                    smarts: reactionSmarts
+                    smarts: reactionSmarts,
+                    debug: debug
                 })
             });
 
@@ -230,11 +235,20 @@ class RDKitService {
 
             const data = await response.json();
 
-            // Backend returns { products: string[], byproducts: string[] }
-            return {
-                products: data.products,
-                byproducts: data.byproducts
-            };
+            if (debug) {
+                // Return debug format
+                return {
+                    steps: data.steps,
+                    finalProducts: data.final_organic,
+                    finalByproducts: data.final_inorganic
+                } as DebugReactionOutcome;
+            } else {
+                // Return simple format
+                return {
+                    products: data.products,
+                    byproducts: data.byproducts
+                } as ReactionOutcome;
+            }
 
         } catch (error) {
             console.error('Reaction execution error:', error);
@@ -242,35 +256,10 @@ class RDKitService {
         }
     }
 
-    // Run a debug reaction returning all intermediate steps
+    // Deprecated: Use runReaction with debug=true instead
     async runReactionDebug(reactantsSMILES: string[], reactionSmarts: string | string[]): Promise<DebugReactionOutcome | null> {
-        try {
-            const response = await fetch('http://localhost:8000/reaction/debug', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    reactants: reactantsSMILES,
-                    smarts: reactionSmarts
-                })
-            });
-
-            if (!response.ok) {
-                console.error('Backend debug reaction request failed');
-                return null;
-            }
-
-            const data = await response.json();
-
-            return {
-                steps: data.steps,
-                finalProducts: data.final_organic,
-                finalByproducts: data.final_inorganic
-            };
-
-        } catch (error) {
-            console.error('Debug reaction execution error:', error);
-            return null;
-        }
+        const result = await this.runReaction(reactantsSMILES, reactionSmarts, true);
+        return result as DebugReactionOutcome | null;
     }
 
     // Clean up resources

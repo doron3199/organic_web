@@ -37,7 +37,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
     const lastInternalSmiles = useRef<string | null>(null)
 
     // Lifted State for Reaction Conditions
-    const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || ['h2o'])
+    const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || [])
 
     // State for triggering debugger from reaction panel
     const [triggeredReaction, setTriggeredReaction] = useState<{ id: string, name: string, smarts: string | string[] } | null>(null)
@@ -122,6 +122,22 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         }
     }
 
+    const handleQuickAdd = async (smilesToAdd: string, label: string) => {
+        if (!ketcherRef.current) return
+        try {
+            const current = await ketcherRef.current.getSmiles()
+            const newSmiles = current ? `${current}.${smilesToAdd}` : smilesToAdd
+            await ketcherRef.current.setMolecule(newSmiles)
+            setCurrentSmiles(newSmiles)
+            if (onMoleculeChange) onMoleculeChange(newSmiles)
+            setMessage(`Added ${label}`)
+            setAnalysisResult(null)
+        } catch (e) {
+            console.error('Quick add failed:', e)
+            setMessage(`Error adding ${label}`)
+        }
+    }
+
     return (
         <div className="molecule-editor-container">
             {/* Header Controls */}
@@ -141,6 +157,14 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                 >
                     ↺ Reset
                 </button>
+            </div>
+
+            {/* Quick Add Buttons */}
+            <div className="quick-add-bar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', justifyContent: 'center' }}>
+                <span style={{ alignSelf: 'center', fontSize: '0.9em', opacity: 0.8, marginRight: '8px' }}>Quick Add:</span>
+                <button className="btn-small" onClick={() => handleQuickAdd('[OH]S(=O)(=O)[OH]', 'H₂SO₄')} disabled={!isReady}>🧪 H₂SO₄</button>
+                <button className="btn-small" onClick={() => handleQuickAdd('[OH-]', 'OH⁻')} disabled={!isReady}>🧼 OH⁻</button>
+                <button className="btn-small" onClick={() => handleQuickAdd('O', 'H₂O')} disabled={!isReady}>💧 H₂O</button>
             </div>
 
             {/* Ketcher Editor */}

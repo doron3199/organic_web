@@ -274,6 +274,7 @@ function ContentCanvas({
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
                             showDebugPanel={true}
+                            initialConditions={workbenchConditions}
                         />
                     </div>
                 ) : (
