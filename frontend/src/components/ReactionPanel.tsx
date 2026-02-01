@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { findMatchingReactions } from '../services/reactions'
 import { rdkitService, DebugReactionOutcome } from '../services/rdkit'
 import { SubSubject, initialCurriculum } from '../data/curriculum'
-import { AVAILABLE_CONDITIONS } from '../services/conditions'
+import { AVAILABLE_CONDITIONS, QUICK_ADD_MOLECULES } from '../services/conditions'
 import CurriculumModal from './CurriculumModal'
 import MoleculeViewer from './MoleculeViewer'
 import SelectivityChart from './SelectivityChart'
@@ -22,7 +22,7 @@ interface ReactionPanelProps {
 
 function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, initialConditions, selectedConditions: propConditions, onConditionsChange, onReactionRun }: ReactionPanelProps) {
     // Internal state fallback if not controlled (for backward compat or isolated usage)
-    const [internalConditions, setInternalConditions] = useState<string[]>(initialConditions || ['h2o'])
+    const [internalConditions, setInternalConditions] = useState<string[]>(initialConditions || [])
 
     // Use prop if available, otherwise internal state
     const selectedConditions = propConditions !== undefined ? propConditions : internalConditions
@@ -34,7 +34,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         matchExplanation?: string,
         products: { smiles: string, selectivity: string }[],
         byproducts: string[],
-        smarts: string
+        smarts: string,
+        autoAdd?: (string | Record<string, never>)[],
+        rank?: number
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
@@ -49,7 +51,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
 
-    const handleViewMechanism = async (reactionName: string, smarts: string) => {
+    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[]) => {
         if (!currentMolecule) return
 
         setIsMechanismLoading(reactionName)
@@ -65,7 +67,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
             }
 
-            const result = await rdkitService.runReaction(reactants, smartsArg, true) as import('../services/rdkit').DebugReactionOutcome | null
+            const result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd) as import('../services/rdkit').DebugReactionOutcome | null
             if (result) {
                 setMechanismResult({ ...result, reactionName })
             }
@@ -153,6 +155,37 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         const rulesToRun = getMatchingRules(moleculeToReact, selectedConditions)
 
         if (rulesToRun.length === 0) {
+            // Fallback: Check if any selected condition acts as a reagent (e.g. KMnO4)
+            // If we find a Quick Add molecule that, when added to reactants, triggers a match
+            // then we auto-add it to the editor.
+            const conditionsWithMolecules = selectedConditions.filter(c => QUICK_ADD_MOLECULES[c]);
+
+            for (const condId of conditionsWithMolecules) {
+                const moleculeDefinition = QUICK_ADD_MOLECULES[condId];
+                const moleculeToAdd = moleculeDefinition.smiles;
+                // Add with dot separator
+                const testInternalSmiles = `${moleculeToReact}.${moleculeToAdd}`;
+                // Remove the condition from the check since it's now a reactant
+                const testConditions = selectedConditions.filter(c => c !== condId);
+
+                const testRules = getMatchingRules(testInternalSmiles, testConditions);
+
+                if (testRules.length > 0) {
+                    // Found a match! Add the reagent to the editor.
+                    onMoleculeUpdate(testInternalSmiles);
+
+                    // Also clear this condition to prevent re-triggering mismatch loop
+                    // since we've converted the condition into a reactant.
+                    if (onConditionsChange) {
+                        onConditionsChange(testConditions);
+                    } else {
+                        setInternalConditions(testConditions);
+                    }
+
+                    return;
+                }
+            }
+
             setSearchPerformed(true)
             return
         }
@@ -165,8 +198,14 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             matchExplanation?: string,
             products: { smiles: string, selectivity: string }[],
             byproducts: string[],
-            smarts: string
+            smarts: string,
+            autoAdd?: (string | Record<string, never>)[],
+            rank?: number
         }[] = []
+
+        // Determine the highest rank among the matching reactions
+        // Default rank is 1 if not specified.
+        const maxRank = Math.max(...rulesToRun.map(r => r.rank || 1));
 
         // Split molecule into independent reactants
         const reactantsSmiles = moleculeToReact.split('.');
@@ -216,7 +255,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             for (const comboIndices of combinations) {
                 const reactantsForRun = comboIndices.map(i => reactantsSmiles[i])
 
-                const outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false)
+                const outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false, rule.autoAdd)
                 if (outcome) {
                     const reactionOutcome = outcome as import('../services/rdkit').ReactionOutcome
                     reactionOutcome.products.forEach((pSmiles: string) => {
@@ -263,11 +302,30 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 }
             }
 
+
+
+            // STEP 4: Adjust based on Reaction Rank
+            const ruleRank = rule.rank || 1;
+            if (ruleRank < maxRank) {
+                // Downgrade all products to minor if reaction itself is minor
+                for (const prod of ruleProducts.values()) {
+                    prod.selectivity = 'minor';
+                }
+            }
+
             if (ruleProducts.size > 0) {
                 // Enhance match explanation with conditions
                 let explanation = rule.matchExplanation || '';
+
+                // Find the biggest condition set to display (assuming it covers the alternatives)
                 if (rule.conditions && rule.conditions.length > 0) {
-                    explanation += ` + ${rule.conditions.join(', ')}`;
+                    // Sort sets by size descending
+                    const sets = [...rule.conditions].sort((a, b) => b.size - a.size);
+                    const biggestSet = sets[0];
+                    if (biggestSet.size > 0) {
+                        const condStr = Array.from(biggestSet).join(' or ');
+                        explanation += ` + ${condStr}`;
+                    }
                 }
 
                 // Handle string[] smarts by joining
@@ -282,10 +340,15 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     matchExplanation: explanation,
                     products: Array.from(ruleProducts.values()).map(p => ({ smiles: p.smiles, selectivity: p.selectivity })),
                     byproducts: Array.from(ruleByproducts),
-                    smarts: smartsStr
+                    smarts: smartsStr,
+                    autoAdd: rule.autoAdd,
+                    rank: rule.rank || 1
                 })
             }
         }
+
+        // Sort by rank descending
+        allResults.sort((a, b) => (b.rank || 1) - (a.rank || 1));
 
         setResults(allResults)
         setSearchPerformed(true)
@@ -358,14 +421,20 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                     title="Click to view reaction mechanism"
                                 >
                                     <span style={{ marginRight: '8px', fontSize: '1.1em', opacity: 0.8 }}>ⓘ</span>
-                                    Via {res.reactionName} <span className="reaction-explanation">
+                                    Via {res.reactionName}
+                                    {results.length > 1 && res.rank && (
+                                        <span style={{ fontSize: '0.8em', color: '#666', marginLeft: '8px' }}>
+                                            (Rank: {res.rank})
+                                        </span>
+                                    )}
+                                    <span className="reaction-explanation">
                                         {res.matchExplanation && `(${res.matchExplanation})`}
                                     </span>
                                 </h4>
                                 <div style={{ padding: '0 0px 8px 0px' }}>
                                     <button
                                         className="reaction-mechanism-btn"
-                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts)}
+                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd)}
                                         disabled={isMechanismLoading === res.reactionName}
                                     >
                                         {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}

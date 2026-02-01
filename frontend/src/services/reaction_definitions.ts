@@ -11,10 +11,12 @@ export interface ReactionRule {
     reactantsSmarts: string[] // SMARTS to identify reactants (e.g. [Substrate, Reagent])
     matchExplanation?: string // Explanation of why this reaction is selected (e.g. "Alkane + Br2")
     conditions: Set<string>[] // Required conditions (list of sets for OR logic)
+    autoAdd?: (string | Record<string, never>)[] // Optional: molecules to auto-add at each step (SMILES string or empty object for no addition)
     selectivity?: {
         type: 'rank' | 'explicit',
         rules: { smarts: string; label: 'major' | 'minor' | 'trace' | 'equal' }[]
     }
+    rank?: number // Priority ranking for competing reactions (Higher = Major, Lower = Minor). Default 1.
 }
 
 // Helper to create OR condition sets
@@ -92,14 +94,14 @@ export const reactionRules: ReactionRule[] = [
         name: 'Acid-Catalyzed Hydration',
         curriculum_subsubject_id: 'alkenes-hydration',
         reactionSmarts: [
-            '[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-:3][SX4:4]', // Step 1: Protonation (H2O is spectator)
+            '[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]', // Step 1: Protonation (H2O is spectator)
             '[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]', // Step 2: Water attack
             '[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]' // Step 3: Deprotonation (simplified)
         ],
         reactantsSmarts: ['[C]=[C]', '[OH2]', '[$([SX4](=[OX1])(=[OX1])[OX2H1])]'], // H2O
         matchExplanation: 'Alkene + H2O',
         description: 'Addition of water to form an alcohol (Markovnikov).',
-        conditions: [new Set(), new Set(['acid'])],
+        conditions: [new Set()],
         selectivity: {
             type: 'rank',
             rules: [
@@ -114,14 +116,14 @@ export const reactionRules: ReactionRule[] = [
         name: 'Acid-Catalyzed Alcohol Addition',
         curriculum_subsubject_id: 'alkenes-alcohol-addition',
         reactionSmarts: [
-            '[C:1]=[C:2].[O:3][C:4]>>[C:1][C+:2].[O:3][C:4]', // Step 1: Protonation
-            '[C+:1].[O:2][C:3]>>[C:1][O+:2][C:3]', // Step 2: Alcohol attack
-            '[O+:1].[O:2][C:3]>>[O+0:1].[O:2][C:3]' // Step 3: Deprotonation
+            '[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]', // Step 1: Protonation (H2O is spectator)
+            '[C+:1].[OH:5][C:2] >> [C+0:1]-[OH+:5][C:2]', // Step 2: Water attack
+            '[C:1][OH1:2][C:3].[O-:4][S:5][OH:6] >>  [C:1][O+0H0:2][C:3].[O+0H:4][S:5][OH:6]' // Step 3: Deprotonation (simplified)
         ],
-        reactantsSmarts: ['[C]=[C]', '[O;H1][C]'], // Alcohol
+        reactantsSmarts: ['[C]=[C]', '[O;H1][C]', '[$([SX4](=[OX1])(=[OX1])[OX2H1])]'], // Alcohol
         matchExplanation: 'Alkene + Alcohol',
         description: 'Addition of an alcohol to form an ether (Markovnikov).',
-        conditions: [new Set(), new Set(['acid'])],
+        conditions: [new Set()],
         selectivity: {
             type: 'rank',
             rules: [
@@ -135,39 +137,53 @@ export const reactionRules: ReactionRule[] = [
         id: 'alkene_hydroboration',
         name: 'Hydroboration-Oxidation',
         curriculum_subsubject_id: 'alkenes-hydroboration',
-        reactionSmarts: '[C:1]=[C:2]>>[C:1][C:2]([OH])',
-        reactantsSmarts: ['[C]=[C]', '[OH2]'],
-        matchExplanation: 'Alkene (Hydroboration)',
-        description: 'Addition of H-OH with Anti-Markovnikov regioselectivity.',
-        conditions: [new Set()] // Simplified representation of 2nd step
+        reactionSmarts: [
+            '([C;H2,H1:1]=[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])', // Step 1: Hydroboration (syn-addition, anti-Markovnikov)
+            '[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]' // Step 2: Oxidation (BR2 replaced by OH)
+        ],
+        reactantsSmarts: ['[C]=[C]', '[B]'], // Alkene + Borane
+        matchExplanation: 'Alkene + BH₃ (Hydroboration)',
+        autoAdd: ['', '[OH-].OO.O'],
+        description: 'Addition of H-OH with Anti-Markovnikov regioselectivity via hydroboration-oxidation.',
+        conditions: [new Set('')]
     },
     {
         id: 'alkene_halogenation',
-        name: 'Halogenation (Bromination)',
+        name: 'Halogenation',
         curriculum_subsubject_id: 'alkenes-halogenation',
-        reactionSmarts: '[C:1]=[C:2].[Br:3][Br:4]>>[C:1]([Br:3])[C:2]([Br:4])',
-        reactantsSmarts: ['[C]=[C]', '[Br][Br]'],
-        matchExplanation: 'Alkene + Br2',
-        description: 'Anti-addition of Br2 to form a vicinal dibromide.',
+        reactionSmarts: ['[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]', '[C:1]1[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])'],
+        reactantsSmarts: ['[C]=[C]', '[Br,Cl][Br,Cl]'],
+        matchExplanation: 'Alkene + Halogen (Br2 or Cl2)',
+        description: 'Anti-addition of Halogen to form a vicinal dihalide.',
         conditions: [new Set()]
     },
     {
         id: 'alkene_halohydrin',
         name: 'Halohydrin Formation',
         curriculum_subsubject_id: 'alkenes-halogenation',
-        reactionSmarts: '[C:1]=[C:2].[Br:3][Br:4].[OH2:5]>>[C:1]([OH:5])[C:2]([Br:3]).[Br:4]', // OH on more sub, Br on less
-        reactantsSmarts: ['[C]=[C]', '[Br][Br]'],
-        matchExplanation: 'Alkene + Br2 + H2O',
-        description: 'Addition of OH and Br (OH to more substituted Carbon).',
-        conditions: [new Set()]
+        reactionSmarts: ['[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]', '[C:1]1[C:2][Br+,Cl+:3]1.[OH2:5]>>[C:1]([O+H2:5])[C:2]([Br+0,Cl+0:3])', '[C:1]([O+H2:5])[C:2]([Br,Cl:3]).[O:6]>>[C:1]([O+0H1:5])[C:2]([Br,Cl:3]).[O+:6]', '[OH3:8].[Br-,Cl-:7]>>[O+0H2:8].[Br+0,Cl+0:7]'], // OH on more sub, Br on less
+        reactantsSmarts: ['[C]=[C]', '[Br,Cl][Br,Cl]', '[OH2]'],
+        matchExplanation: 'Alkene + Halogen + H2O',
+        autoAdd: ['', '', 'O', ''],
+        description: 'Addition of OH and Halogen (OH to more substituted Carbon).',
+        conditions: [new Set()],
+        selectivity: {
+            type: 'rank',
+            rules: [
+                { smarts: '[C;D4][OH]', label: 'major' }, // Tertiary Alcohol
+                { smarts: '[C;D3][OH]', label: 'major' }, // Secondary Alcohol
+                { smarts: '[C;D2][OH]', label: 'minor' }  // Primary Alcohol
+            ]
+        },
+        rank: 2 // Major over normal Halogenation
     },
     {
         id: 'alkene_hydrogenation',
         name: 'Hydrogenation',
         curriculum_subsubject_id: 'alkenes-hydrogenation',
-        reactionSmarts: '[C:1]=[C:2].[H][H]>>[C:1][C:2]', // Adds H implied
-        reactantsSmarts: ['[C]=[C]', '[H][H]'],
-        matchExplanation: 'Alkene + H2',
+        reactionSmarts: '[C:1]=[C:2].[#1+0;!$(*~[!#1])]>>[C:1][C:2]', // Adds H implied
+        reactantsSmarts: ['[C]=[C]', '[#1+0;!$(*~[!#1])]'],
+        matchExplanation: 'Alkene + H2 (or H source)',
         description: 'Reduction of double bond to single bond.',
         conditions: [new Set(['pd_c'])]
     },
@@ -175,31 +191,35 @@ export const reactionRules: ReactionRule[] = [
         id: 'alkene_epoxidation',
         name: 'Epoxidation',
         curriculum_subsubject_id: 'alkenes-epoxidation',
-        reactionSmarts: '[C:1]=[C:2]>>[C:1]1[O][C:2]1',
-        reactantsSmarts: ['[C]=[C]', '[O]'],
+        reactionSmarts: '[C:1]=[C:2].[CX3:3](=[OX1:4])[OX2:5][OX2H1:6] >> [C:1]1[OX2:6][C:2]1.[CX3:3](=[OX1:4])[OX2H1:5]',
+        reactantsSmarts: ['[C]=[C]', '[CX3](=[OX1])[OX2][OX2H1]'],
         matchExplanation: 'Alkene + Peroxyacid (mCPBA)',
         description: 'Formation of an epoxide ring.',
-        conditions: [new Set(['acid'])] // mCPBA is an acid
+        conditions: [new Set()] // mCPBA is an acid
     },
     {
         id: 'alkene_ozonolysis',
         name: 'Ozonolysis (Reductive)',
         curriculum_subsubject_id: 'alkenes-ozonolysis',
-        reactionSmarts: '[C:1]=[C:2]>>[C:1]=[O].[C:2]=[O]', // Cleavage
-        reactantsSmarts: ['[C]=[C]', '[O]'],
+        reactionSmarts: '[C:1]=[C:2].[O-][O+]=O>>[C:1]=[O].[C:2]=[O]', // Cleavage
+        reactantsSmarts: ['[C]=[C]', '[O-][O+]=O'],
         matchExplanation: 'Alkene (Ozonolysis)',
         description: 'Cleavage of double bond to form Carbonyls.',
-        conditions: [new Set()] // 2nd step Zinc/H2O
+        conditions: [new Set(['cold'])] // 2nd step Zinc/H2O
     },
     {
         id: 'alkene_hydroxylation',
         name: 'Syn-Hydroxylation',
-        curriculum_subsubject_id: 'alkenes-epoxidation',
-        reactionSmarts: '[C:1]=[C:2]>>[C:1]([OH])[C:2]([OH])',
-        reactantsSmarts: ['[C]=[C]', '[O]'],
-        matchExplanation: 'Alkene (Hydroxylation)',
-        description: 'Formation of a cis-diol.',
-        conditions: or('heat') // Hot KMnO4 (heat/base) or OsO4
+        curriculum_subsubject_id: 'alkenes-hydroxylation',
+        reactionSmarts: [
+            '[C:1]=[C:2].[O-][Mn](=O)(=O)=O>>[C:1]1[O][Mn](=O)([O-])[O][C:2]1', // Step 1: Syn-addition to form cyclic manganate ester
+            '[C:1]1[O][Mn](=O)([O-])[O][C:2]1.[OH2:3]>>[C:1]([OH])[C:2]([OH])'    // Step 2: Hydrolysis to cis-diol
+        ],
+        reactantsSmarts: ['[C]=[C]', '[O-][Mn](=O)(=O)=O'],
+        matchExplanation: 'Alkene + KMnO4 (Syn-Hydroxylation)',
+        autoAdd: ['', 'O.O'], // Add water for the second step
+        description: 'Formation of a cis-diol via cyclic manganate ester.',
+        conditions: [new Set()] // Fallback match or KMnO4 as reagent
     },
 
     // --- ALKYNES ---
@@ -247,8 +267,11 @@ export const reactionRules: ReactionRule[] = [
         id: 'alkyne_hydroboration',
         name: 'Hydroboration-Oxidation',
         curriculum_subsubject_id: 'alkynes-hydration',
-        reactionSmarts: '[C:1]#[CH1:2].[B:3]>>[C:1][C:2]=O', // Anti-Markovnikov to Aldehyde if terminal
-        reactantsSmarts: ['[C]#[CH1]', '[O]'],
+        reactionSmarts: [
+            '([C;H2,H1:1]=[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])',
+            '[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]'
+        ],
+        reactantsSmarts: ['[C]=[CH1]', '[O]'],
         matchExplanation: 'Terminal Alkyne (Hydroboration)',
         description: 'Hydration to form Aldehyde (Terminal) or Ketone (Internal).',
         conditions: [new Set()]

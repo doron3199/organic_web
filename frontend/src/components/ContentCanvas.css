@@ -149,6 +149,7 @@
 
 }
 
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -159,4 +160,18 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Red Notice Box Style for Blockquotes */
+.markdown-content blockquote {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-left: 4px solid var(--error);
+    color: var(--text-primary);
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.markdown-content blockquote strong {
+    color: var(--error);
 }

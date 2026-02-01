@@ -16,6 +16,7 @@ export interface ReactionRule {
     reactantsSmarts: string[] // SMARTS to identify reactants (e.g. [Substrate, Reagent])
     matchExplanation?: string // Explanation of why this reaction is selected (e.g. "Alkane + Br2")
     conditions: Set<string>[] // Required conditions (list of sets for OR logic)
+    autoAdd?: (string | Record<string, never>)[] // Optional: molecules to auto-add at each step (SMILES string or empty object for no addition)
     selectivity?: {
         type: 'rank' | 'explicit',
         rules: { smarts: string; label: 'major' | 'minor' | 'trace' | 'equal' }[]
@@ -39,7 +40,8 @@ export interface ReactionStep {
     input_smiles: string[]
     products: string[]
     parent_id: string | null
-    step_type: 'initial' | 'reaction' | 'carbocation_intermediate' | 'carbocation_rearrangement'
+    parent_ids?: string[]  // For multiple parents (e.g., auto-add + previous step)
+    step_type: 'initial' | 'reaction' | 'carbocation_intermediate' | 'carbocation_rearrangement' | 'auto_add'
     group_id?: string
 }
 
@@ -215,7 +217,8 @@ class RDKitService {
     async runReaction(
         reactantsSMILES: string[],
         reactionSmarts: string | string[],
-        debug: boolean = false
+        debug: boolean = false,
+        autoAdd?: (string | Record<string, never>)[]
     ): Promise<ReactionOutcome | DebugReactionOutcome | null> {
         try {
             const response = await fetch('http://localhost:8000/reaction', {
@@ -224,7 +227,8 @@ class RDKitService {
                 body: JSON.stringify({
                     reactants: reactantsSMILES,
                     smarts: reactionSmarts,
-                    debug: debug
+                    debug: debug,
+                    autoAdd: autoAdd || []
                 })
             });
 

@@ -19,6 +19,7 @@ interface ReactionDebugPanelProps {
 
 function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditions, triggeredReaction }: ReactionDebugPanelProps) {
     const [smartsInput, setSmartsInput] = useState<string>('')
+    const [autoAddInput, setAutoAddInput] = useState<string>('')  // Auto-add molecules input
     const [debugResult, setDebugResult] = useState<DebugReactionOutcome | null>(null)
     const [isRunning, setIsRunning] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -54,7 +55,16 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                     ? triggeredReaction.smarts.join('\n')
                     : triggeredReaction.smarts
                 setSmartsInput(smarts)
-                handleRunDebug(triggeredReaction.smarts)
+                // Pass autoAdd directly from the matched reaction to avoid race condition
+                const matchedRule = matchingReactions[matchIdx]
+                // Also set the autoAddInput field for visibility
+                if (matchedRule.autoAdd) {
+                    const autoAddStr = matchedRule.autoAdd
+                        .map(entry => typeof entry === 'string' ? entry : '')
+                        .join('\n')
+                    setAutoAddInput(autoAddStr)
+                }
+                handleRunDebug(triggeredReaction.smarts, matchedRule.autoAdd)
             }
         }
     }, [triggeredReaction, matchingReactions])
@@ -72,10 +82,22 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                 ? rule.reactionSmarts.join('\n')
                 : rule.reactionSmarts
             setSmartsInput(smarts)
+
+            // Auto-fill autoAdd field
+            if (rule.autoAdd) {
+                const autoAddStr = rule.autoAdd
+                    .map(entry => typeof entry === 'string' ? entry : '')
+                    .join('\n')
+                setAutoAddInput(autoAddStr)
+            } else {
+                setAutoAddInput('')
+            }
+        } else {
+            setAutoAddInput('')
         }
     }
 
-    const handleRunDebug = async (overrideSMARTS?: string | string[]) => {
+    const handleRunDebug = async (overrideSMARTS?: string | string[], overrideAutoAdd?: (string | Record<string, never>)[]) => {
         const smartsToUse = overrideSMARTS || smartsInput
 
         if (!smartsToUse || (typeof smartsToUse === 'string' && !smartsToUse.trim())) {
@@ -103,8 +125,17 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                     .filter(s => s.length > 0)
             }
 
+            // Use overrideAutoAdd if provided, otherwise parse from autoAddInput textarea
+            let autoAdd: (string | Record<string, never>)[] | undefined = overrideAutoAdd
+            if (autoAdd === undefined && autoAddInput.trim()) {
+                // Parse autoAddInput - each line corresponds to a step
+                autoAdd = autoAddInput
+                    .split('\n')
+                    .map(line => line.trim())
+            }
+
             const reactants = currentMolecule.split('.')
-            const result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true) as DebugReactionOutcome | null
+            const result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true, autoAdd) as DebugReactionOutcome | null
 
             if (result) {
                 setDebugResult(result)
@@ -156,6 +187,18 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                     }}
                     placeholder="Enter SMARTS pattern(s), one per line for multi-step reactions"
                     rows={3}
+                />
+
+                <label>Auto-Add Molecules (per step):</label>
+                <textarea
+                    value={autoAddInput}
+                    onChange={(e) => {
+                        setAutoAddInput(e.target.value)
+                        setSelectedReactionIdx(-1)
+                    }}
+                    placeholder="SMILES to auto-add at each step (one per line, use . for multiple molecules)"
+                    rows={2}
+                    style={{ fontSize: '0.85rem' }}
                 />
 
                 <div className="current-molecule-info">

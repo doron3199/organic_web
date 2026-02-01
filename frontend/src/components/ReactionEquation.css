@@ -121,3 +121,44 @@
     color: var(--text-muted);
     font-weight: 300;
 }
+
+/* Auto-Add Molecules Section */
+.auto-add-molecules-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px dashed rgba(34, 197, 94, 0.4);
+    border-radius: 8px;
+    margin: 0 0.25rem;
+}
+
+.auto-add-label {
+    font-size: 0.7rem;
+    color: rgba(34, 197, 94, 0.9);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.auto-add-list {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.auto-add-molecule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.25rem;
+}
+
+.auto-add-name {
+    font-size: 0.65rem;
+    color: rgba(34, 197, 94, 0.8);
+    margin-top: 2px;
+    white-space: nowrap;
+}

@@ -107,6 +107,37 @@ const Cheatsheet = () => {
                 </div>
             </section>
 
+            {/* Section 1.9: Carbonyl Groups */}
+            <section className="cs-section">
+                <h2>Carbonyl Groups</h2>
+                <div className="alkyl-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+                    <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                        <div className="alkyl-name" style={{ color: '#4ade80' }}>Carbonyl Group</div>
+                        <div style={{ padding: '1rem 0' }}>
+                            <img src="/assets/carbonyl%20group.svg" alt="Carbonyl Group" style={{ width: '100%', maxHeight: '120px' }} />
+                        </div>
+                    </div>
+                    <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                        <div className="alkyl-name">Ketone</div>
+                        <div style={{ padding: '1rem 0' }}>
+                            <img src="/assets/ketone.svg" alt="Ketone" style={{ width: '100%', maxHeight: '120px' }} />
+                        </div>
+                    </div>
+                    <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                        <div className="alkyl-name">Aldehyde</div>
+                        <div style={{ padding: '1rem 0' }}>
+                            <img src="/assets/aldehyde_RH.svg" alt="Aldehyde" style={{ width: '100%', maxHeight: '120px' }} />
+                        </div>
+                    </div>
+                    <div className="alkyl-card" style={{ height: 'auto', padding: '1rem' }}>
+                        <div className="alkyl-name">Aldehyde</div>
+                        <div style={{ padding: '1rem 0' }}>
+                            <img src="/assets/aldehyde_HH.svg" alt="Aldehyde" style={{ width: '100%', maxHeight: '120px' }} />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* 2. Alkyl Groups (Full Width) */}
             <section className="cs-section">
                 <h2>Alkyl Groups</h2>

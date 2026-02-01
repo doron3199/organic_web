@@ -7,6 +7,7 @@ import ReactionEquation from './ReactionEquation'
 import MoleculeEditor from './MoleculeEditor'
 import Cheatsheet from './Cheatsheet'
 import { AnalysisResult } from '../services/logicEngine'
+import { QUICK_ADD_MOLECULES } from '../services/conditions'
 import './ContentCanvas.css'
 
 interface ContentCanvasProps {
@@ -45,19 +46,37 @@ function ContentCanvas({
     const [workbenchConditions, setWorkbenchConditions] = useState<string[]>([])
 
     const handleExperiment = (smiles: string, conditions: string) => {
-        onLoadExample(smiles)
-
-        // Parse conditions
+        let smilesToLoad = smiles
         const conds: string[] = []
         const condLower = conditions.toLowerCase()
+
+        // Dynamically check for Quick Add Molecules/Reagents in conditions string
+        // This avoids hardcoding specific reagents like KMnO4 or H2SO4
+        Object.entries(QUICK_ADD_MOLECULES).forEach(([key, molecule]) => {
+            // Check against key (usually simpler, e.g. 'kmno4')
+            const keyMatch = condLower.includes(key.toLowerCase());
+            // Check against label (e.g. 'H₂SO₄' or 'KMnO₄') - strip emoji if needed or just specific substring
+            const labelMatch = conditions.includes(molecule.label.replace(/^[^\w\d\s]+/, '').trim()) || conditions.includes(molecule.label);
+
+            if (keyMatch || labelMatch) {
+                // Avoid double adding if multiple checks match the same thing, but usually safe
+                // We assume unique reagents for now
+                smilesToLoad = `${smilesToLoad}.${molecule.smiles}`
+            }
+        });
+
         // Check for Heat: "heat", "Δ" (Capital Delta), "delta", "mix"
         if (condLower.includes('heat') || conditions.includes('Δ') || condLower.includes('delta') || condLower.includes('mix')) conds.push('heat')
         // Check for Light: "light", "hv", "hν" (Greek Nu)
         if (condLower.includes('light') || condLower.includes('hv') || conditions.includes('hν')) conds.push('light')
-        if (condLower.includes('acid') || condLower.includes('h+')) conds.push('acid')
-        if (condLower.includes('base') || condLower.includes('oh-') || condLower.includes('nanh2')) conds.push('base')
-        if (condLower.includes('h2o') || condLower.includes('water')) conds.push('h2o')
+        // Check for Pd/C
+        if (condLower.includes('pd/c') || condLower.includes('pd-c')) conds.push('pd_c')
+        // Check for Lindlar
+        if (condLower.includes('lindlar')) conds.push('lindlar')
+        // Check for Cold: "cold", "-78"
+        if (condLower.includes('cold') || conditions.includes('-78')) conds.push('cold')
 
+        onLoadExample(smilesToLoad)
         setWorkbenchConditions(conds)
         onSwitchMode('workbench')
     }

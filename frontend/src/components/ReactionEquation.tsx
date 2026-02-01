@@ -50,6 +50,27 @@ function ReactionEquation({ reaction, onExperiment }: ReactionEquationProps) {
                     <div className="reaction-arrow">→</div>
                 </div>
 
+                {/* Auto-Add Molecules (display only, not included in experiment) */}
+                {reaction.autoAddMolecules && reaction.autoAddMolecules.length > 0 && (
+                    <div className="auto-add-molecules-group">
+                        <div className="auto-add-label">+ reagents:</div>
+                        <div className="auto-add-list">
+                            {reaction.autoAddMolecules.map((mol, idx) => (
+                                <div key={idx} className="auto-add-molecule">
+                                    <MoleculeViewer
+                                        smiles={mol.smiles}
+                                        width={60}
+                                        height={45}
+                                        readOnly={true}
+                                    />
+                                    <span className="auto-add-name">{mol.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="reaction-arrow" style={{ fontSize: '1.2rem' }}>→</div>
+                    </div>
+                )}
+
                 {/* Products */}
                 <div className="products-group">
                     {reaction.products.map((product, idx) => {

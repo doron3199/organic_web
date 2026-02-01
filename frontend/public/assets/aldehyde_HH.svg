@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="26mm"
+   height="26mm"
+   viewBox="85 152 18 18"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="aldehyde_HH.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="5.751347"
+     inkscape:cx="62.507096"
+     inkscape:cy="64.593564"
+     inkscape:window-width="1440"
+     inkscape:window-height="829"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke-width:0.264583"
+       x="94.350876"
+       y="161.72899"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="fill:#ffffff;stroke-width:0.264583"
+         x="94.350876"
+         y="161.72899">C</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;paint-order:fill markers stroke;stroke-dasharray:none"
+       x="94.745712"
+       y="156.36327"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="fill:#ffffff;fill-opacity:1;stroke-width:0;stroke-dasharray:none"
+         x="94.745712"
+         y="156.36327">O</tspan></text>
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.138462;paint-order:fill markers stroke"
+       d="m 95.159744,159.22966 0.03185,-2.51605"
+       id="path3" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.138462;paint-order:fill markers stroke"
+       d="m 95.947882,159.20764 0.03185,-2.51605"
+       id="path3-8" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.138462;paint-order:fill markers stroke"
+       d="m 92.802092,164.75912 1.974622,-2.73899"
+       id="path3-1"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.138462;paint-order:fill markers stroke"
+       d="M 98.34377,164.79889 96.305453,162.1236"
+       id="path3-2"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;paint-order:fill markers stroke"
+       x="92.006714"
+       y="166.52303"
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         style="stroke-width:0;stroke-dasharray:none"
+         x="92.006714"
+         y="166.52303">H</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;paint-order:fill markers stroke"
+       x="97.675797"
+       y="166.5867"
+       id="text4"><tspan
+         sodipodi:role="line"
+         id="tspan4"
+         style="stroke-width:0;stroke-dasharray:none"
+         x="97.675797"
+         y="166.5867">H</tspan></text>
+  </g>
+</svg>

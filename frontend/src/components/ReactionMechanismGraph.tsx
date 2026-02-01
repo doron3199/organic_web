@@ -79,7 +79,9 @@ function StepNode({ data }: { data: StepNodeData }) {
             ? 'rearrangement'
             : safeType === 'initial'
                 ? 'initial'
-                : 'reaction'
+                : safeType === 'auto_add'
+                    ? 'auto-add'
+                    : 'reaction'
 
     const groupColor = getGroupColor(step.group_id)
 
@@ -187,18 +189,37 @@ export function ReactionMechanismGraph({
                 }
             }))
 
-            // 2. Create Edges
-            const initialEdges: Edge[] = steps
-                .filter(step => step.parent_id)
-                .map(step => ({
-                    id: `${step.parent_id}-${step.step_id}`,
-                    source: step.parent_id!,
-                    target: step.step_id,
-                    type: 'smoothstep',
-                    animated: true,
-                    style: { strokeWidth: 2, stroke: '#6366f1' },
-                    markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' }
-                }))
+            // 2. Create Edges - use parent_ids if available, otherwise fall back to parent_id
+            const initialEdges: Edge[] = []
+            steps.forEach(step => {
+                // Use parent_ids array if available, otherwise use parent_id
+                const parentIds: string[] = step.parent_ids?.length
+                    ? step.parent_ids
+                    : (step.parent_id ? [step.parent_id] : [])
+
+                parentIds.forEach(parentId => {
+                    // Find the parent step to check if it's auto_add
+                    const parentStep = steps.find(s => s.step_id === parentId)
+                    const isAutoAddEdge = parentStep?.step_type === 'auto_add'
+
+                    initialEdges.push({
+                        id: `${parentId}-${step.step_id}`,
+                        source: parentId,
+                        target: step.step_id,
+                        type: 'smoothstep',
+                        animated: true,
+                        style: {
+                            strokeWidth: 2,
+                            stroke: isAutoAddEdge ? '#22c55e' : '#6366f1',
+                            strokeDasharray: isAutoAddEdge ? '5,5' : undefined
+                        },
+                        markerEnd: {
+                            type: MarkerType.ArrowClosed,
+                            color: isAutoAddEdge ? '#22c55e' : '#6366f1'
+                        }
+                    })
+                })
+            })
 
             // 3. Apply Dagre Layout
             const g = new dagre.graphlib.Graph()

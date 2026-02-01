@@ -250,13 +250,13 @@ Like hydrohalogenation, this reaction follows **Markovnikov's Rule** and involve
                     id: 'alkene_hydration',
                     reactants: [
                         { smiles: 'CC=C', name: 'Propene' },
-                        { smiles: 'O', name: 'H₂O' }
+                        { smiles: 'O', name: 'H₂O' },
                     ],
                     products: [
                         { smiles: 'CC(O)C', name: 'Propan-2-ol', selectivity: 'major', yield: 90 },
                         { smiles: 'CCCO', name: 'Propan-1-ol', selectivity: 'minor', yield: 10 }
                     ],
-                    conditions: 'H+'
+                    conditions: 'H₂SO₄'
                 }
             ],
             examples: [],
@@ -282,13 +282,13 @@ Alcohols ($R-OH$) can add to alkenes in the presence of an acid catalyst to form
                     reactants: [
                         { smiles: 'CC=C', name: 'Propene' },
                         { smiles: 'CO', name: 'Methanol' },
-                        { smiles: 'CO', name: 'Methanol' }
+                        { smiles: 'S(=O)(=O)(O)O', name: 'Acid Catalyst (H₂SO₄)' }
                     ],
                     products: [
                         { smiles: 'CC(OC)C', name: '2-Methoxypropane', selectivity: 'major' },
                         { smiles: 'CCCOC', name: '1-Methoxypropane', selectivity: 'minor' }
                     ],
-                    conditions: 'H+'
+                    conditions: ''
                 }
             ],
             examples: [],
@@ -319,10 +319,11 @@ Tertiary (3°) > Secondary (2°) > Primary (1°).
                         { smiles: 'Br', name: 'HBr' }
                     ],
                     products: [
-                        { smiles: 'CC(C)(Br)CC', name: '2-Bromo-2-methylbutane', selectivity: 'major', yield: 60 },
-                        { smiles: 'CC(C)C(Br)C', name: '2-Bromo-3-methylbutane', selectivity: 'minor', yield: 40 }
+                        { smiles: 'CC(C)(Br)CC', name: '2-Bromo-2-methylbutane', selectivity: 'major', yield: 96 },
+                        { smiles: 'CC(C)C(Br)C', name: '2-Bromo-3-methylbutane', selectivity: 'minor', yield: 3 },
+                        { smiles: 'CC(C)CCBr', name: '2-Bromo-3-methylbutane', selectivity: 'minor', yield: 1 }
                     ],
-                    conditions: 'No Rearrangement vs Rearrangement'
+                    conditions: ''
                 }
             ],
             examples: [],
@@ -340,7 +341,7 @@ A two-step method to convert an alkene into an alcohol with **Anti-Markovnikov**
   1. **Hydroboration**: BH₃ adds across the double bond in a single concerted step. The Boron adds to the less hindered (less substituted) carbon.
   2. **Oxidation**: H₂O₂ and NaOH replace the Boron with an OH group, retaining stereochemistry.
 
-- **Outcome**: The $OH$ group ends up on the *less* substituted carbon.
+- **Outcome**: The OH group ends up on the *less* substituted carbon.
             `,
             reactionExamples: [
                 {
@@ -350,9 +351,14 @@ A two-step method to convert an alkene into an alcohol with **Anti-Markovnikov**
                         { smiles: 'B', name: 'BH3' }
                     ],
                     products: [
-                        { smiles: 'CCCO', name: 'Propan-1-ol', selectivity: 'major', yield: 99 }
+                        { smiles: 'CCCO', name: 'Propan-1-ol', selectivity: 'major', yield: 100 }
                     ],
-                    conditions: '1) BH3, 2) H2O2, NaOH'
+                    conditions: '',
+                    autoAddMolecules: [
+                        { smiles: '[OH-]', name: 'OH⁻' },
+                        { smiles: 'OO', name: 'H₂O₂' },
+                        { smiles: 'O', name: 'H₂O' }
+                    ]
                 }
             ],
             examples: [],
@@ -369,9 +375,6 @@ Addition of Cl₂ or Br₂ to form vicinal dihalides.
 - **Mechanism**:
   1. **Halonium Ion**: Formation of a cyclic bridged ion (e.g., bromonium ion).
   2. **Anti-Attack**: The second halogen atom attacks from the **opposite side** (Trans/Anti addition).
-
-#### Halohydrin Formation
-If the reaction is done in **water**, H₂O acts as the nucleophile in the second step, adding OH to the **more substituted** carbon.
             `,
             reactionExamples: [
                 {
@@ -383,8 +386,33 @@ If the reaction is done in **water**, H₂O acts as the nucleophile in the secon
                     products: [
                         { smiles: 'BrCCBr', name: '1,2-Dibromoethane', selectivity: 'major', yield: 100 }
                     ],
-                    conditions: 'CH2Cl2'
-                },
+                    conditions: ''
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
+            id: 'alkenes-halohydrin',
+            section: 'Reactions',
+            name: 'Halohydrin Formation',
+            content: `
+### Halohydrin Formation
+
+If the halogenation reaction is done in **water**, water competes with the halide ion to open the halonium ring.
+
+> **Notice!** Halogenation (The reaction above) also forms a minor product of alkyl halides.
+
+- **Mechanism (Major Product)**:
+  1. **Halonium Ion**: Formation of a cyclic bridged ion (e.g., bromonium ion).
+  2. **Nucleophilic Attack by Water**: Water acts as the nucleophile (since it is the solvent and in high concentration) and attacks the **more substituted** carbon.
+  3. **Deprotonation**: Loss of a proton yields the halohydrin.
+
+- **Mechanism (Minor Product)**:
+  1. **Halonium Ion**: Same intermediate.
+  2. **Nucleophilic Attack by Bromide**: The bromide ion (Br⁻) attacks the cyclic ion instead of water, forming the vicinal dibromide (1,2-dibromoalkane).
+            `,
+            reactionExamples: [
                 {
                     id: 'alkene_halohydrin',
                     reactants: [
@@ -393,10 +421,10 @@ If the reaction is done in **water**, H₂O acts as the nucleophile in the secon
                         { smiles: 'O', name: 'H2O' }
                     ],
                     products: [
-                        { smiles: 'CC(O)CBr', name: '1-Bromopropan-2-ol', selectivity: 'major', yield: 80 },
-                        { smiles: 'Br', name: 'HBr', isByproduct: true }
+                        { smiles: 'CC(O)CBr', name: '1-Bromopropan-2-ol', selectivity: 'major', yield: 99 },
+                        { smiles: 'CC(Br)CO', name: '1,2-Dibromopropane', selectivity: 'minor', yield: 1 },
                     ],
-                    conditions: 'H2O'
+                    conditions: ''
                 }
             ],
             examples: [],
@@ -432,15 +460,15 @@ Addition of H₂ across a double bond to form an alkane.
         {
             id: 'alkenes-epoxidation',
             section: 'Reactions',
-            name: 'Epoxidation & Hydroxylation',
+            name: 'Epoxidation',
             content: `
 ### Epoxidation
 Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-membered cyclic ether). The mechanism is concerted, meaning bonds break and form at the same time.
 
-### Syn-Hydroxylation
-Addition of two OH groups across the double bond to form a **cis-diol**.
-- **Reagents**: Cold KMnO₄ or OsO₄/H₂O₂.
-- **Stereochemistry**: **Syn addition** (both OH groups add to the same face).
+| Alkene | | Peroxyacid | | Epoxide | | Carboxylic Acid |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ![Alkene](/assets/alkene.svg) | **+** | ![Peroxyacid](/assets/peroxyacid.svg) | **→** | ![Epoxide](/assets/EPOXIDE.svg) | **+** | ![Carboxylic Acid](/assets/carboxylic_acid.svg) |
+| **alkene** | | **peroxyacid** | | **epoxide** | | **carboxylic acid** |
             `,
             reactionExamples: [
                 {
@@ -452,16 +480,31 @@ Addition of two OH groups across the double bond to form a **cis-diol**.
                         { smiles: 'O1[C@@H]2CCCC[C@H]12', name: 'Cyclohexene oxide', selectivity: 'major' }
                     ],
                     conditions: 'mCPBA'
-                },
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
+            id: 'alkenes-hydroxylation',
+            section: 'Reactions',
+            name: 'Syn-Hydroxylation',
+            content: `
+### Syn-Hydroxylation
+Addition of two OH groups across the double bond to form a **cis-diol**.
+- **Reagents**: Cold KMnO₄ or OsO₄/H₂O₂.
+- **Stereochemistry**: **Syn addition** (both OH groups add to the same face).
+            `,
+            reactionExamples: [
                 {
                     id: 'alkene_hydroxylation',
                     reactants: [
-                        { smiles: 'CC=C', name: 'Propene' }
+                        { smiles: 'C1CC=CCC1', name: 'Cyclohexene' }
                     ],
                     products: [
-                        { smiles: 'CC(O)CO', name: 'Propane-1,2-diol', selectivity: 'major' }
+                        { smiles: 'OC1C(O)CCCC1', name: '1,2-DiMethylCycloHexane', selectivity: 'major' }
                     ],
-                    conditions: 'OsO4'
+                    conditions: 'KMnO₄'
                 }
             ],
             examples: [],
@@ -484,13 +527,14 @@ A powerful reaction that **cleaves** the C=C double bond completely.
                 {
                     id: 'alkene_ozonolysis',
                     reactants: [
+                        { smiles: '[O-][O+]=O', name: 'Ozone' },
                         { smiles: 'CC(C)=CC', name: '2-Methylbut-2-ene' }
                     ],
                     products: [
                         { smiles: 'CC(C)=O', name: 'Acetone', selectivity: 'major' },
                         { smiles: 'CC=O', name: 'Acetaldehyde', selectivity: 'major' }
                     ],
-                    conditions: '1) O3, 2) DMS'
+                    conditions: 'Cold, -78°C'
                 }
             ],
             examples: [],

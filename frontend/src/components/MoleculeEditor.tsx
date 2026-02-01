@@ -6,6 +6,7 @@ import 'ketcher-react/dist/index.css'
 import './MoleculeEditor.css'
 
 import { AnalysisResult } from '../services/logicEngine'
+import { QUICK_ADD_MOLECULES } from '../services/conditions'
 
 interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
@@ -162,9 +163,16 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             {/* Quick Add Buttons */}
             <div className="quick-add-bar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', justifyContent: 'center' }}>
                 <span style={{ alignSelf: 'center', fontSize: '0.9em', opacity: 0.8, marginRight: '8px' }}>Quick Add:</span>
-                <button className="btn-small" onClick={() => handleQuickAdd('[OH]S(=O)(=O)[OH]', 'H₂SO₄')} disabled={!isReady}>🧪 H₂SO₄</button>
-                <button className="btn-small" onClick={() => handleQuickAdd('[OH-]', 'OH⁻')} disabled={!isReady}>🧼 OH⁻</button>
-                <button className="btn-small" onClick={() => handleQuickAdd('O', 'H₂O')} disabled={!isReady}>💧 H₂O</button>
+                {Object.entries(QUICK_ADD_MOLECULES).map(([key, item]) => (
+                    <button
+                        key={key}
+                        className="btn-small"
+                        onClick={() => handleQuickAdd(item.smiles, item.label)}
+                        disabled={!isReady}
+                    >
+                        {item.label}
+                    </button>
+                ))}
             </div>
 
             {/* Ketcher Editor */}

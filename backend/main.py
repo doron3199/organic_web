@@ -20,6 +20,7 @@ class ReactionRequest(BaseModel):
     reactants: List[str]
     smarts: Union[str, List[str]]
     debug: bool = False  # Optional, defaults to False
+    autoAdd: List[Union[str, dict]] = []  # Optional: molecules to auto-add at each step
 
 
 class ReactionResponse(BaseModel):
@@ -34,7 +35,12 @@ async def execute_reaction(request: ReactionRequest):
     or detailed step-by-step info if debug=True.
     """
     try:
-        result = run_reaction(request.reactants, request.smarts, debug=request.debug)
+        result = run_reaction(
+            request.reactants,
+            request.smarts,
+            debug=request.debug,
+            auto_add=request.autoAdd,
+        )
 
         if request.debug:
             # Return debug format
@@ -67,7 +73,9 @@ class DebugReactionResponse(BaseModel):
 async def execute_reaction_debug(request: ReactionRequest):
     """Run a reaction and return all intermediate steps for debugging."""
     try:
-        result = run_reaction(request.reactants, request.smarts, debug=True)
+        result = run_reaction(
+            request.reactants, request.smarts, debug=True, auto_add=request.autoAdd
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

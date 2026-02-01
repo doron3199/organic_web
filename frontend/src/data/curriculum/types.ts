@@ -26,6 +26,7 @@ export interface ReactionExample {
     reactants: { smiles: string; name?: string }[];
     products: ReactionProduct[];
     conditions: string;
+    autoAddMolecules?: { smiles: string; name: string }[];  // Molecules auto-added during reaction (e.g., oxidation reagents)
 }
 
 export interface SubSubject {
