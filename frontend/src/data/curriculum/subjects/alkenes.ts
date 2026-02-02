@@ -531,8 +531,8 @@ A powerful reaction that **cleaves** the C=C double bond completely.
                         { smiles: 'CC(C)=CC', name: '2-Methylbut-2-ene' }
                     ],
                     products: [
-                        { smiles: 'CC(C)=O', name: 'Acetone', selectivity: 'major' },
-                        { smiles: 'CC=O', name: 'Acetaldehyde', selectivity: 'major' }
+                        { smiles: 'CC(C)=O', name: 'Acetone', selectivity: 'equal' },
+                        { smiles: 'CC=O', name: 'Acetaldehyde', selectivity: 'equal' }
                     ],
                     conditions: 'Cold, -78°C'
                 }

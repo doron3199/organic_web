@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="26mm"
+   height="26mm"
+   viewBox="85 152 18 18"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="alkyne-flat.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="5.751347"
+     inkscape:cx="64.767436"
+     inkscape:cy="64.593564"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;paint-order:fill markers stroke;stroke-dasharray:none"
+       x="89.554367"
+       y="162.38269"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="stroke-width:0;stroke-dasharray:none"
+         x="89.554367"
+         y="162.38269" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;paint-order:fill markers stroke"
+       x="88.821846"
+       y="162.47823"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         style="stroke-width:0"
+         x="88.821846"
+         y="162.47823">RCH  CH<tspan
+   style="font-size:65%;baseline-shift:sub"
+   id="tspan4">2</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.19808px;writing-mode:lr-tb;direction:ltr;fill:#ffffff;stroke:#ffffff;stroke-width:0;stroke-dasharray:none;paint-order:fill markers stroke"
+       x="88.758148"
+       y="160.56731"
+       id="text3"><tspan
+         sodipodi:role="line"
+         id="tspan3"
+         style="stroke-width:0"
+         x="88.758148"
+         y="160.56731" /></text>
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.13846154;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 93.631005,162.19159 h 1.2421"
+       id="path4" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.138462;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 94.873105,161.74571 -1.273949,0.0318"
+       id="path5" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.121088;stroke-dasharray:none;paint-order:fill markers stroke"
+       d="m 93.63008,161.34448 1.212102,-0.0256"
+       id="path6" />
+  </g>
+</svg>

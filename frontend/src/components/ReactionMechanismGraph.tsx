@@ -110,8 +110,8 @@ function StepNode({ data }: { data: StepNodeData }) {
                     <div key={idx} className="flow-product">
                         <MoleculeViewer
                             smiles={prod}
-                            width={80}
-                            height={60}
+                            width={150}
+                            height={150}
                             readOnly={true}
                         />
                         {/* Only show Add button if interactive */}
@@ -227,8 +227,8 @@ export function ReactionMechanismGraph({
             g.setDefaultEdgeLabel(() => ({}))
 
             // Use slightly larger dimensions for layout to ensure spacing
-            const NODE_WIDTH = 240
-            const NODE_HEIGHT = 180
+            const NODE_WIDTH = 300
+            const NODE_HEIGHT = 220
 
             initialNodes.forEach(node => {
                 g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT })

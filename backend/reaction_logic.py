@@ -94,6 +94,31 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
 
     current_stability = get_carbocation_stability(mol)
 
+    # Check for vinyl carbocation (C+ on a double bond)
+    # If the carbocation center has a double bond, it's a vinyl cation.
+    # Vinyl cations are sp-hybridized (linear) and generally do not rearrange via 1,2-shifts.
+    is_vinyl = False
+    for atom in mol.GetAtoms():
+        if atom.GetFormalCharge() == 1 and atom.GetSymbol() == "C":
+            # Check 1: Double Bond to C
+            for bond in atom.GetBonds():
+                if bond.GetBondType() == Chem.BondType.DOUBLE:
+                    is_vinyl = True
+                    break
+
+            # Check 2: Hybridization (Vinyl Cations are sp hybridized)
+            if not is_vinyl:
+                if atom.GetHybridization() == Chem.HybridizationType.SP:
+                    is_vinyl = True
+
+            # Check 3: Geometry heuristic (optional, but sp check should cover it)
+
+        if is_vinyl:
+            break
+
+    if is_vinyl:
+        return []
+
     for rxn, shift_type in [
         (rxn_hydride, "hydride_shift"),
         (rxn_methyl, "methyl_shift"),

@@ -81,87 +81,150 @@ What if a molecule has **both** a double and a triple bond?
             ]
         },
         {
-            id: 'alkynes-addition',
+            id: 'alkynes-addition-hx',
             section: 'Reactions',
-            name: 'Addition to Alkynes',
+            name: 'Addition of HX',
             content: `
-### Addition of HX and X₂
-Alkynes have two π bonds and can undergo addition reactions twice.
+### Hydrohalogenation (HX)
+Alkynes contain two π bonds and can react with hydrogen halides (like HBr, HCl) twice.
 
-- **Hydrohalogenation (HX)**:
-  - **1 Equivalent**: Forms a **vinyl halide**.
-  - **Excess**: Forms a **geminal dihalide** (both halogens on the same carbon).
-- **Halogenation (X₂)**:
-  - **1 Equivalent**: Forms a **dihaloalkene** (usually trans).
-  - **Excess**: Forms a **tetrahaloalkane**.
+- **1 Equivalent**: Forms a **vinyl halide**.
+  - Follows **Markovnikov's Rule**: H adds to the less substituted carbon to form the more stable vinyl cation.
+- **Excess**: Forms a **geminal dihalide** (both halogens on the same carbon).
+
+#### Relative Stabilities of Carbocations
+The stability of the carbocation intermediate determines the major product. **Hyperconjugation** and inductive effects stabilize the positive charge by donating electron density from adjacent C-C or C-H bonds.
+
+**Stability Order:**
+
+| Tertiary (3°) | Secondary (2°) | 2° Vinylic | Primary (1°) | 1° Vinylic | Methyl | Vinyl |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ![Tertiary](/assets/tertiary_carbocation.svg) | ![Secondary](/assets/secondary_carbocation.svg) | ![2° Vinylic](/assets/secondary_vinylic_cation.svg) | ![Primary](/assets/primary_carbocation.svg) | ![1° Vinylic](/assets/primary_vinylic_cation.svg) | ![Methyl](/assets/methyl_carbocation.svg) | ![Vinyl](/assets/vinyl_cation.svg) |
+| **Most Stable** | | | | | | **Least Stable** |
             `,
             reactionExamples: [
                 {
                     id: 'alkyne_hydrohalogenation_1eq',
                     reactants: [
-                        { smiles: 'CC#C', name: 'Propyne' },
-                        { smiles: 'Br', name: 'HBr' }
+                        { smiles: 'CC#CC', name: 'but-2-yne' },
+                        { smiles: 'Cl', name: 'HCl' }
                     ],
                     products: [
-                        { smiles: 'CC(Br)=C', name: '2-Bromopropene', selectivity: 'major' }
+                        { smiles: 'CC(Cl)=CC', name: '2-Chlorobut-2-ene', selectivity: 'major' }
                     ],
-                    conditions: '1 eq.'
+                    conditions: ''
                 },
                 {
                     id: 'alkyne_hydrohalogenation_2eq',
                     reactants: [
-                        { smiles: 'CC#C', name: 'Propyne' },
+                        { smiles: 'CC#CCC', name: 'Pent-2-yne' },
                         { smiles: 'Br', name: 'HBr' },
                         { smiles: 'Br', name: 'HBr' }
                     ],
                     products: [
-                        { smiles: 'CC(Br)(Br)C', name: '2,2-Dibromopropane', selectivity: 'major' }
+                        { smiles: 'CC(Br)(Br)CCC', name: '2,2-Dibromopentane', selectivity: 'equal' },
+                        { smiles: 'CCC(CC)(Br)Br', name: '3,3-Dibromopentane', selectivity: 'equal' }
                     ],
                     conditions: 'Excess'
-                },
-                {
-                    id: 'alkyne_halogenation_1eq',
-                    reactants: [
-                        { smiles: 'CC#C', name: 'Propyne' },
-                        { smiles: 'BrBr', name: 'Bromine' }
-                    ],
-                    products: [
-                        { smiles: 'CC(Br)=C(Br)', name: '1,2-Dibromopropene', selectivity: 'major' }
-                    ],
-                    conditions: '1 eq.'
                 }
             ],
             examples: [],
             rules: []
         },
         {
-            id: 'alkynes-hydration',
+            id: 'alkynes-addition-x2',
             section: 'Reactions',
-            name: 'Hydration (Ketones & Aldehydes)',
+            name: 'Addition of X₂',
             content: `
-### Hydration of Alkynes
-Addition of H₂O across the triple bond forms an **enol**, which rapidly tautomerizes to a stable carbonyl group (Ketone or Aldehyde).
+### Halogenation (X₂)
+Alkynes react with halogens (X₂ = Cl₂, Br₂).
 
-#### 1. Acid-Catalyzed (Markovnikov)
-Using HgSO₄ and H₂SO₄. 
-- Result: **Ketone** (Markovnikov addition of OH).
+- **1 Equivalent**: Forms a **dihaloalkene**.
+  - Usually occurs with **anti-addition** (trans stereochemistry).
+- **Excess**: Forms a **tetrahaloalkane**.
 
-#### 2. Hydroboration-Oxidation (Anti-Markovnikov)
-Using R₂BH (like Disiamylborane) followed by H₂O₂/NaOH.
-- Result: **Aldehyde** (from terminal alkyne).
+#### Relative Reactivity
+Alkene > Alkyne > Halo-substituted Alkene
+
+| Alkene | | Alkyne | | Halo-substituted Alkene |
+| :---: | :---: | :---: | :---: | :---: |
+| ![Alkene](/assets/alkene_flat.svg) | **>** | ![Alkyne](/assets/alkyne_flat.svg) | **>** | ![Halo](/assets/halo_substituted_alkene.svg) |
+| **Most Reactive** | | | | **Least Reactive** |
+            `,
+            reactionExamples: [
+                {
+                    id: 'alkyne_halogenation_1eq',
+                    reactants: [
+                        { smiles: 'CC#CC', name: 'But-2-yne' },
+                        { smiles: 'BrBr', name: 'Bromine' }
+                    ],
+                    products: [
+                        { smiles: 'C/C(=C(\Br)/C)/Br', name: '2,3-DiBromobut-2-ene', selectivity: 'major' }
+                    ],
+                    conditions: ''
+                },
+                {
+                    id: 'alkyne_halogenation_2eq',
+                    reactants: [
+                        { smiles: 'CC#CC', name: 'But-2-yne' },
+                        { smiles: 'BrBr', name: 'Bromine' },
+                        { smiles: 'BrBr', name: 'Bromine' }
+                    ],
+                    products: [
+                        { smiles: 'CC(C(Br)(Br)C)(Br)Br', name: '2,2,3,3-TetraBromoButane', selectivity: 'major' }
+                    ],
+                    conditions: 'Excess'
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
+            id: 'alkynes-hydration-acid',
+            section: 'Reactions',
+            name: 'Acid-Catalyzed Hydration',
+            content: `
+### Acid-Catalyzed Hydration
+Alkynes react with water in the presence of acid (H₂SO₄) and a mercury catalyst (HgSO₄) to form ketones.
+
+- **Mechanism**:
+  1. **Enol Formation**: Water adds to the triple bond (Markovnikov addition) to form a vinyl alcohol (Enol).
+  2. **Tautomerization**: The unstable enol rapidly rearranges (tautomerizes) via proton transfer to form the more stable **Ketone**.
+
+#### Markovnikov's Rule
+The OH group adds to the **more substituted** carbon. For terminal alkynes, this always yields a **Methyl Ketone**.
             `,
             reactionExamples: [
                 {
                     id: 'alkyne_hydration_acid',
                     reactants: [
-                        { smiles: 'CC#C', name: 'Propyne' },
+                        { smiles: 'CC#CC', name: 'But-2-yne' },
                         { smiles: 'O', name: 'H2O' }
                     ],
                     products: [
-                        { smiles: 'CC(=O)C', name: 'Acetone', selectivity: 'major' }
+                        { smiles: 'CCC(=O)C', name: '2-MethylButanal', selectivity: 'major' }
                     ],
-                    conditions: 'HgSO4, H+, H2O'
-                },
+                    conditions: 'H₂SO₄'
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
+            id: 'alkynes-hydration-hydroboration',
+            section: 'Reactions',
+            name: 'Hydroboration-Oxidation',
+            content: `
+### Hydroboration-Oxidation
+To convert a terminal alkyne into an **Aldehyde** (Anti-Markovnikov product), we use hydroboration-oxidation.
+
+- **Reagents**: A bulky borane like **Disiamylborane (Sia₂BH)** or **9-BBN** is often used to stop addition at the alkene stage.
+- **Mechanism**:
+  1. **Hydroboration**: Boron adds to the **less hindered** terminal carbon (Anti-Markovnikov).
+  2. **Oxidation**: Basic Hydrogen Peroxide (H₂O₂, NaOH) converts the C-B bond to a C-OH enol.
+  3. **Tautomerization**: The enol rearranges to form an **Aldehyde**.
+            `,
+            reactionExamples: [
                 {
                     id: 'alkyne_hydroboration',
                     reactants: [
@@ -171,23 +234,27 @@ Using R₂BH (like Disiamylborane) followed by H₂O₂/NaOH.
                     products: [
                         { smiles: 'CCC=O', name: 'Propanal', selectivity: 'major' }
                     ],
-                    conditions: '1) R2BH, 2) H2O2, NaOH'
+                    conditions: '',
+                    autoAddMolecules: [
+                        { smiles: '[OH-]', name: 'OH⁻' },
+                        { smiles: 'OO', name: 'H₂O₂' },
+                        { smiles: 'O', name: 'H₂O' }
+                    ]
                 }
             ],
             examples: [],
             rules: []
         },
         {
-            id: 'alkynes-reduction',
+            id: 'alkynes-reduction-complete',
             section: 'Reactions',
-            name: 'Reduction of Alkynes',
+            name: 'Complete Reduction',
             content: `
-### Complete and Partial Reduction
-You can control whether you reduce an alkyne all the way to an alkane or stop at an alkene.
+### Catalytic Hydrogenation
+Alkynes can be reduced completely to **Alkanes** by adding two equivalents of hydrogen gas (H₂).
 
-- **To Alkane**: Use H₂ with Pd/C or Pt.
-- **To Cis-Alkene**: Use H₂ and **Lindlar's Catalyst** (a "poisoned" catalyst).
-- **To Trans-Alkene**: Use **Sodium in Liquid Ammonia** (Na/NH₃(l)).
+- **Reagents**: H₂ gas with a metal catalyst (Pt, Pd, Ni).
+- **Process**: The reaction is difficult to stop at the alkene stage with standard catalysts, so it proceeds all the way to the alkane.
             `,
             reactionExamples: [
                 {
@@ -201,7 +268,24 @@ You can control whether you reduce an alkyne all the way to an alkane or stop at
                         { smiles: 'CCCC', name: 'Butane', selectivity: 'major' }
                     ],
                     conditions: 'Pd/C'
-                },
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
+            id: 'alkynes-reduction-cis',
+            section: 'Reactions',
+            name: 'Reduction to Cis-Alkene',
+            content: `
+### Lindlar's Reduction
+To stop the hydrogenation at the alkene stage, a **Poisoned Catalyst** is used.
+
+- **Reagent**: H₂ + **Lindlar's Catalyst** (Pd/CaCO₃ deactivated with lead acetate or quinoline).
+- **Stereochemistry**: **Syn-Addition**. Both hydrogen atoms add to the same face of the alkene (surface catalysis).
+- **Result**: A **Cis-Alkene** (Z-Alkene).
+            `,
+            reactionExamples: [
                 {
                     id: 'alkyne_reduction_cis',
                     reactants: [
@@ -212,17 +296,6 @@ You can control whether you reduce an alkyne all the way to an alkane or stop at
                         { smiles: 'C/C=C\\C', name: 'cis-But-2-ene', selectivity: 'major' }
                     ],
                     conditions: 'Lindlar Catalyst'
-                },
-                {
-                    id: 'alkyne_reduction_trans',
-                    reactants: [
-                        { smiles: 'CC#CC', name: 'But-2-yne' },
-                        { smiles: '[H][H]', name: 'H2' }
-                    ],
-                    products: [
-                        { smiles: 'C/C=C/C', name: 'trans-But-2-ene', selectivity: 'major' }
-                    ],
-                    conditions: 'Na, NH3(l)'
                 }
             ],
             examples: [],
@@ -230,27 +303,54 @@ You can control whether you reduce an alkyne all the way to an alkane or stop at
         },
         {
             id: 'alkynes-alkylation',
-            section: 'Reactions',
-            name: 'Acetylide Chemistry',
+            section: 'Synthesis',
+            name: 'Alkylation of Acetylide Ions',
             content: `
-### Formation of Acetylide Ions
-Terminal alkynes are unusually acidic (pKa ≈ 25). Strong bases like **NaNH₂** can deprotonate them to form an **Acetylide Ion** (R-C≡C⁻).
+### Formation of C-C Bonds
+One of the most useful reactions of alkynes is the **Alkylation** of terminal alkynes. This allows us to extend the carbon chain and synthesize larger alkynes from smaller ones.
 
-### Carbon-Carbon Bond Formation
-The acetylide ion is a powerful nucleophile. It reacts with **primary alkyl halides** to form a new $C-C$ bond, effectively lengthening the carbon chain.
+#### Step 1: Deprotonation
+Terminal alkynes are weakly acidic (pKa ≈ 25). A **very strong base** like **Sodium Amide (NaNH₂)** is required to remove the proton from the terminal carbon, forming an **Acetylide Ion**.
+- *Note*: Hydroxide ion (OH⁻, pKa ≈ 15.7) is **not** strong enough to deprotonate an alkyne. We need the amide ion (NH₂⁻, pKa ≈ 38 for NH₃).
+
+#### Step 2: Alkylation
+The resulting Acetylide Ion is a strong nucleophile.
+
             `,
             reactionExamples: [
                 {
-                    id: 'alkyne_alkylation',
+                    id: 'alkyne_deprotonation',
                     reactants: [
-                        { smiles: 'C#C', name: 'Ethyne' },
-                        { smiles: 'CI', name: 'Methyl Iodide' }
+                        { smiles: 'CC#C', name: 'Propyne' },
+                        { smiles: '[NH2-]', name: 'NH2' }
                     ],
                     products: [
-                        { smiles: 'CC#C', name: 'Propyne', selectivity: 'major' },
-                        { smiles: 'I', name: 'HI', isByproduct: true }
+                        { smiles: 'CC#[C-]', name: 'Propyne Acetylide', selectivity: 'major' }
                     ],
-                    conditions: '1) NaNH2, 2) CH3I'
+                    conditions: ''
+                },
+                {
+                    id: 'acetylide_alkylation',
+                    reactants: [
+                        { smiles: 'CC#[C-]', name: 'Propyne Acetylide' },
+                        { smiles: 'CCBr', name: 'Ethyl Bromide' }
+                    ],
+                    products: [
+                        { smiles: 'CC#CCC', name: 'Pent-2-yne', selectivity: 'major' }
+                    ],
+                    conditions: ''
+                },
+                {
+                    id: 'carbon_carbon_addition',
+                    reactants: [
+                        { smiles: 'CC#C', name: 'Propyne' },
+                        { smiles: '[NH2-]', name: 'NH2' },
+                        { smiles: 'CCBr', name: 'Ethyl Bromide' }
+                    ],
+                    products: [
+                        { smiles: 'CC#CCC', name: 'Pent-2-yne', selectivity: 'major' }
+                    ],
+                    conditions: ''
                 }
             ],
             examples: [],

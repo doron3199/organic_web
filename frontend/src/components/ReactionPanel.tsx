@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { findMatchingReactions } from '../services/reactions'
+import { findMatchingReactions, findNextReactionStep } from '../services/reactions'
 import { rdkitService, DebugReactionOutcome } from '../services/rdkit'
 import { SubSubject, initialCurriculum } from '../data/curriculum'
 import { AVAILABLE_CONDITIONS, QUICK_ADD_MOLECULES } from '../services/conditions'
@@ -32,7 +32,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         reactionName: string,
         curriculum_subsubject_id: string,
         matchExplanation?: string,
-        products: { smiles: string, selectivity: string }[],
+        products: { smiles: string, selectivity: string, nextStep?: { ruleName: string, requiredReactants: string[] } }[],
         byproducts: string[],
         smarts: string,
         autoAdd?: (string | Record<string, never>)[],
@@ -138,7 +138,6 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         setSearchPerformed(false)
         setResults([])
 
-        // 1. Fetch latest SMILES directly to ensure we aren't using stale state
         let moleculeToReact = currentMolecule
         if (onRequestSmiles) {
             const latestSmiles = await onRequestSmiles()
@@ -196,7 +195,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             reactionName: string,
             curriculum_subsubject_id: string,
             matchExplanation?: string,
-            products: { smiles: string, selectivity: string }[],
+            products: { smiles: string, selectivity: string, nextStep?: { ruleName: string, requiredReactants: string[] } }[],
             byproducts: string[],
             smarts: string,
             autoAdd?: (string | Record<string, never>)[],
@@ -270,25 +269,54 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                         ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
                     })
                     reactionOutcome.byproducts.forEach((bSmi: string) => ruleByproducts.add(bSmi));
+
+                    // Add unused inorganic reactants (Spectators) to byproducts
+                    // This ensures excess reagents (like HBr) are visible in the results
+                    const unusedIndices = reactantIndices.filter(ri => !comboIndices.includes(ri.i));
+                    unusedIndices.forEach(ri => {
+                        // Heuristic for inorganic: No 'C' or simple check. 
+                        // Using a simple check: if it doesn't contain 'C' (except common inorganic C like CO2? Not handling that complexity for now)
+                        // Actually, let's just check if it has Carbon.
+                        if (!ri.s.includes('C') && !ri.s.includes('c')) {
+                            ruleByproducts.add(ri.s);
+                        }
+                    });
                 }
+            }
+
+            // Check for chained reactions for each unique product
+            // This needs to be done AFTER we have all unique products for this rule
+            // But we are constructing the result object per rule.
+
+            const processedProducts: { smiles: string, selectivity: string, nextStep?: { ruleName: string, requiredReactants: string[] }, rankIndex: number }[] = []
+
+            for (const prod of ruleProducts.values()) {
+                // Check if this product can react further
+                // We use the original reactant pool (reactantsSmiles) + the product
+                const nextStep = findNextReactionStep(prod.smiles, reactantsSmiles, new Set(selectedConditions))
+
+                processedProducts.push({
+                    ...prod,
+                    nextStep: nextStep ? { ruleName: nextStep.rule.name, requiredReactants: nextStep.requiredReactants } : undefined
+                })
             }
 
             // STEP 3: Determine Relative Selectivity
             // If there's only one unique product, it's the major product
-            if (ruleProducts.size === 1) {
-                const singleProd = Array.from(ruleProducts.values())[0]
+            if (processedProducts.length === 1) {
+                const singleProd = processedProducts[0]
                 if (singleProd) singleProd.selectivity = 'major'
             }
             // Otherwise, find the best rank (lowest index) if rules exist
-            else if (ruleProducts.size > 0 && rule.selectivity) {
+            else if (processedProducts.length > 0 && rule.selectivity) {
                 let bestRankFound = 999;
-                for (const prod of ruleProducts.values()) {
+                for (const prod of processedProducts) {
                     if (prod.rankIndex < bestRankFound) bestRankFound = prod.rankIndex
                 }
 
                 // If we found any hierarchy matches
                 if (bestRankFound !== 999) {
-                    for (const prod of ruleProducts.values()) {
+                    for (const prod of processedProducts) {
                         if (prod.rankIndex === bestRankFound) {
                             prod.selectivity = 'major'
                         } else if (prod.rankIndex < 999) {
@@ -308,12 +336,12 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             const ruleRank = rule.rank || 1;
             if (ruleRank < maxRank) {
                 // Downgrade all products to minor if reaction itself is minor
-                for (const prod of ruleProducts.values()) {
+                for (const prod of processedProducts) {
                     prod.selectivity = 'minor';
                 }
             }
 
-            if (ruleProducts.size > 0) {
+            if (processedProducts.length > 0) {
                 // Enhance match explanation with conditions
                 let explanation = rule.matchExplanation || '';
 
@@ -338,7 +366,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     reactionName: rule.name,
                     curriculum_subsubject_id: rule.curriculum_subsubject_id,
                     matchExplanation: explanation,
-                    products: Array.from(ruleProducts.values()).map(p => ({ smiles: p.smiles, selectivity: p.selectivity })),
+                    products: processedProducts.map(p => ({ smiles: p.smiles, selectivity: p.selectivity, nextStep: p.nextStep })),
                     byproducts: Array.from(ruleByproducts),
                     smarts: smartsStr,
                     autoAdd: rule.autoAdd,
@@ -368,6 +396,10 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
 
     const handleAddToEditor = (productSmiles: string) => {
         onMoleculeUpdate(productSmiles)
+    }
+
+    const handleContinueReaction = (reactants: string[]) => {
+        onMoleculeUpdate(reactants.join('.'))
     }
 
     return (
@@ -453,6 +485,16 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                                 >
                                                     Add to Editor
                                                 </button>
+                                                {prod.nextStep && (
+                                                    <button
+                                                        className="btn-small btn-continue"
+                                                        style={{ marginTop: '4px', backgroundColor: '#1565c0', color: 'white', border: '1px solid #0d47a1' }}
+                                                        onClick={() => handleContinueReaction(prod.nextStep!.requiredReactants)}
+                                                        title={`Apply next reaction: ${prod.nextStep.ruleName}`}
+                                                    >
+                                                        Continue &rarr;
+                                                    </button>
+                                                )}
                                                 <SelectivityChart
                                                     type={prod.selectivity as any}
                                                     label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}

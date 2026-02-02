@@ -20,7 +20,7 @@ export function getReactionMechanism(reactionId: string): string {
 
 // Find matched reactions based on selected conditions and reactants
 export function findMatchingReactions(selectedConditions: Set<string>, reactants: string[]): ReactionRule[] {
-    return reactionRules.filter(rule => {
+    const matches = reactionRules.filter(rule => {
         // 1. Check conditions (Set equality match)
         const conditionMatch = rule.conditions.some(set => {
             // Rule condition set must be a subset of selected conditions? 
@@ -71,6 +71,23 @@ export function findMatchingReactions(selectedConditions: Set<string>, reactants
         // Simple distinct match check
         return checkSubsetMatch(reactants, patterns)
     })
+
+    return matches.map(rule => {
+        if (rule.append_reaction) {
+            const appendedRule = getReactionById(rule.append_reaction)
+            if (appendedRule) {
+                const baseSmarts = Array.isArray(rule.reactionSmarts) ? rule.reactionSmarts : [rule.reactionSmarts]
+                const appendSmarts = Array.isArray(appendedRule.reactionSmarts) ? appendedRule.reactionSmarts : [appendedRule.reactionSmarts]
+
+                return {
+                    ...rule,
+                    reactionSmarts: [...baseSmarts, ...appendSmarts],
+                    selectivity: appendedRule.selectivity
+                }
+            }
+        }
+        return rule
+    })
 }
 
 // Helper for generic N matching
@@ -91,4 +108,65 @@ function matchRecursive(reactants: string[], patterns: string[], patternIdx: num
         }
     }
     return false
+}
+
+export function findNextReactionStep(
+    productSmiles: string,
+    originalReactants: string[],
+    conditions: Set<string>
+): { rule: ReactionRule, requiredReactants: string[] } | null {
+    // Pool includes the new product and all original reactants (reagents)
+    const pool = [productSmiles, ...originalReactants]
+
+    // Find all rules that match this pool
+    const matchedRules = findMatchingReactions(conditions, pool)
+
+    for (const rule of matchedRules) {
+        const patterns = rule.reactantsSmarts
+
+        // We need to verify that 'productSmiles' is actually used in the match as one of the reactants
+        // and identifying exactly which other reactants are needed.
+
+        // Strategy: Iterate over which pattern the product matches
+        for (let pIdx = 0; pIdx < patterns.length; pIdx++) {
+            if (rdkitService.getSubstructureMatch(productSmiles, patterns[pIdx])) {
+                // The product matches pattern[pIdx].
+                // Now try to match the OTHER patterns using the REST of the pool (originalReactants)
+
+                const remainingPatterns = patterns.filter((_, idx) => idx !== pIdx)
+                const usedIndicesInOriginal = new Set<number>()
+
+                const othersFound = matchDistinctFromPool(originalReactants, remainingPatterns, usedIndicesInOriginal)
+
+                if (othersFound) {
+                    // Found a valid combination!
+                    // Construct the required reactants list: Product + The matched originals
+                    const matchedOriginals = Array.from(usedIndicesInOriginal).map(idx => originalReactants[idx])
+                    return {
+                        rule,
+                        requiredReactants: [productSmiles, ...matchedOriginals]
+                    }
+                }
+            }
+        }
+    }
+
+    return null
+}
+
+function matchDistinctFromPool(pool: string[], patterns: string[], usedIndices: Set<number>): boolean {
+    if (patterns.length === 0) return true;
+
+    // Try to match patterns[0]
+    const pattern = patterns[0];
+    for (let i = 0; i < pool.length; i++) {
+        if (!usedIndices.has(i) && rdkitService.getSubstructureMatch(pool[i], pattern)) {
+            usedIndices.add(i);
+            if (matchDistinctFromPool(pool, patterns.slice(1), usedIndices)) {
+                return true;
+            }
+            usedIndices.delete(i);
+        }
+    }
+    return false;
 }

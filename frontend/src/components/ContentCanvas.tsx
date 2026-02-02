@@ -212,9 +212,6 @@ function ContentCanvas({
                                             }}>
                                                 {subSubject.section}
                                             </h1>
-                                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', margin: '0.5rem 0 2rem' }}>
-                                                The systematic set of rules for naming chemical compounds.
-                                            </p>
                                         </div>
                                     )}
 

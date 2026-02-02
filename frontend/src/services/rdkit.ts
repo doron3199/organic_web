@@ -21,6 +21,8 @@ export interface ReactionRule {
         type: 'rank' | 'explicit',
         rules: { smarts: string; label: 'major' | 'minor' | 'trace' | 'equal' }[]
     }
+    rank?: number
+    append_reaction?: string
 }
 
 export interface MatchResult {

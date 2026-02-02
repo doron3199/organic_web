@@ -68,7 +68,7 @@
     overflow-y: auto;
     scroll-behavior: smooth;
     padding: 40px 60px;
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
     font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
     /* Cleaner font for dark mode */
