@@ -81,6 +81,22 @@ async def execute_reaction_debug(request: ReactionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class SubstitutionRequest(BaseModel):
+    reactants: List[str]
+    conditions: List[str]
+
+
+@app.post("/reaction/substitution_elimination")
+async def execute_substitution_elimination(request: SubstitutionRequest):
+    try:
+        from substitution_elimination import run_substitution_elimination
+
+        result = run_substitution_elimination(request.reactants, request.conditions)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class ParseRequest(BaseModel):
     smiles: str
 

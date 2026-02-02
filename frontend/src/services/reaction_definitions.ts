@@ -365,5 +365,16 @@ export const reactionRules: ReactionRule[] = [
                 { smarts: '[C]#[C][C]', label: 'major' }, // Success
             ]
         }
+    },
+    // --- SUBSTITUTION & ELIMINATION ---
+    {
+        id: 'elimination_substitution',
+        name: 'Elimination Substitution',
+        curriculum_subsubject_id: 'elimination-substitution',
+        reactionSmarts: '',
+        reactantsSmarts: ['[CX4][F,Cl,Br,I]', '[*]'], // Alkyl Halide + Nucleophile
+        matchExplanation: 'Elimination Substitution',
+        description: 'Elimination Substitution',
+        conditions: [new Set()],
     }
 ]

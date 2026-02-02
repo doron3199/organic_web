@@ -83,6 +83,23 @@ function StepNode({ data }: { data: StepNodeData }) {
                     ? 'auto-add'
                     : 'reaction'
 
+    // Determine label from group ID
+    let mechanismLabel = '';
+    if (step.group_id) {
+        const lowerId = step.group_id.toLowerCase();
+
+        if (lowerId.includes('sn2')) {
+            mechanismLabel = 'SN2';
+        } else if (lowerId.includes('sn1')) {
+            mechanismLabel = 'SN1';
+        } else if (lowerId.includes('e2')) {
+            mechanismLabel = 'E2';
+        } else if (lowerId.includes('e1')) {
+            mechanismLabel = 'E1';
+        } else {
+            mechanismLabel = '';
+        }
+    }
     const groupColor = getGroupColor(step.group_id)
 
     return (
@@ -91,17 +108,41 @@ function StepNode({ data }: { data: StepNodeData }) {
             onClick={() => interactive && onSelect && onSelect(step)}
             style={{
                 // Add a left accent border for the group
-                borderLeft: step.group_id ? `4px solid ${groupColor}` : undefined,
+                borderLeft: step.group_id ? `6px solid ${groupColor}` : undefined,
                 // Optional: subtle glow
                 boxShadow: (isSelected && step.group_id)
                     ? `0 0 0 2px var(--bg-secondary), 0 0 0 4px ${groupColor}`
                     : undefined,
-                cursor: interactive ? 'pointer' : 'default'
+                cursor: interactive ? 'pointer' : 'default',
+                position: 'relative',
+                overflow: 'visible' // Allow badges to overlap
             }}
         >
             <Handle type="target" position={Position.Top} />
 
+            {/* Mechanism Label Badge */}
+            {mechanismLabel && (
+                <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: groupColor,
+                    color: '#fff',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    zIndex: 10,
+                    whiteSpace: 'nowrap'
+                }}>
+                    {mechanismLabel}
+                </div>
+            )}
+
             <div className="flow-node-header">
+
                 <span className="step-type-badge">{safeType.replace(/_/g, ' ')}</span>
             </div>
 
@@ -223,7 +264,8 @@ export function ReactionMechanismGraph({
 
             // 3. Apply Dagre Layout
             const g = new dagre.graphlib.Graph()
-            g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 80 })
+            // Increased nodesep to make branches wider apart
+            g.setGraph({ rankdir: 'TB', nodesep: 150, ranksep: 80 })
             g.setDefaultEdgeLabel(() => ({}))
 
             // Use slightly larger dimensions for layout to ensure spacing
@@ -287,7 +329,7 @@ export function ReactionMechanismGraph({
                 fitViewOptions={{ padding: 0.2 }}
                 minZoom={0.1}
                 maxZoom={2}
-                nodesDraggable={false}
+                nodesDraggable={true}
                 nodesConnectable={false}
                 elementsSelectable={interactive}
                 defaultEdgeOptions={{

@@ -186,45 +186,57 @@
         {
             "id": "alkyne_hydrohalogenation_1eq",
             "reactants": [
-                "CC#C",
-                "Br"
+                "CC#CC",
+                "Cl"
             ],
             "expected_products": [
-                "CC(Br)=C"
+                "CC(Cl)=CC"
             ]
         },
         {
             "id": "alkyne_hydrohalogenation_2eq",
             "reactants": [
-                "CC#C",
+                "CC#CCC",
                 "Br",
                 "Br"
             ],
             "expected_products": [
-                "CC(Br)(Br)C"
+                "CC(Br)(Br)CCC",
+                "CCC(CC)(Br)Br"
             ]
         },
         {
             "id": "alkyne_halogenation_1eq",
             "reactants": [
-                "CC#C",
+                "CC#CC",
                 "BrBr"
             ],
             "expected_products": [
-                "CC(Br)=C(Br)"
+                "C/C(=C(Br)/C)/Br"
+            ]
+        },
+        {
+            "id": "alkyne_halogenation_2eq",
+            "reactants": [
+                "CC#CC",
+                "BrBr",
+                "BrBr"
+            ],
+            "expected_products": [
+                "CC(C(Br)(Br)C)(Br)Br"
             ]
         },
         {
             "id": "alkyne_hydration_acid",
             "reactants": [
-                "CC#C",
+                "CC#CC",
                 "O"
             ],
             "expected_products": [
-                "CC(=O)C"
+                "CCC(=O)C"
             ],
             "conditionMolecules": [
-                "O"
+                "[OH]S(=O)(=O)[OH]"
             ]
         },
         {
@@ -235,10 +247,6 @@
             ],
             "expected_products": [
                 "CCC=O"
-            ],
-            "conditionMolecules": [
-                "[OH-]",
-                "O"
             ]
         },
         {
@@ -263,24 +271,34 @@
             ]
         },
         {
-            "id": "alkyne_reduction_trans",
+            "id": "alkyne_deprotonation",
             "reactants": [
-                "CC#CC",
-                "[H][H]"
+                "CC#C",
+                "[NH2-]"
             ],
             "expected_products": [
-                "C/C=C/C"
+                "CC#[C-]"
             ]
         },
         {
-            "id": "alkyne_alkylation",
+            "id": "acetylide_alkylation",
             "reactants": [
-                "C#C",
-                "CI"
+                "CC#[C-]",
+                "CCBr"
             ],
             "expected_products": [
+                "CC#CCC"
+            ]
+        },
+        {
+            "id": "carbon_carbon_addition",
+            "reactants": [
                 "CC#C",
-                "I"
+                "[NH2-]",
+                "CCBr"
+            ],
+            "expected_products": [
+                "CC#CCC"
             ]
         }
     ],
@@ -329,7 +347,7 @@
         "alkene_halogenation": {
             "reactionSmarts": [
                 "[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])"
+                "[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])"
             ],
             "autoAdd": []
         },
@@ -348,7 +366,7 @@
             ]
         },
         "alkene_hydrogenation": {
-            "reactionSmarts": "[C:1]=[C:2].[#1+0;!$(*~[!#1])]>>[C:1][C:2]",
+            "reactionSmarts": "[C:1]=[C:2].[HH]>>[C:1][C:2]",
             "autoAdd": []
         },
         "alkene_epoxidation": {
@@ -370,42 +388,67 @@
             ]
         },
         "alkyne_hydrohalogenation_1eq": {
-            "reactionSmarts": "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C:1]([F,Cl,Br,I:3])=[C:2]",
+            "reactionSmarts": [
+                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F,Cl,Br,I:3]",
+                "[C+:1]=[C:2].[F,Cl,Br,I:3]>>[C+0:1]=[C:2]([F,Cl,Br,I:3])"
+            ],
             "autoAdd": []
         },
         "alkyne_hydrohalogenation_2eq": {
-            "reactionSmarts": "[C:1]#[C:2].[F,Cl,Br,I:3].[F,Cl,Br,I:4]>>[C:1]([F,Cl,Br,I:3])([F,Cl,Br,I:4])[C:2]",
+            "reactionSmarts": [
+                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]",
+                "[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]>>[C+0:1]=[C:2]([F+0,Cl+0,Br+0,I+0:3])"
+            ],
             "autoAdd": []
         },
         "alkyne_halogenation_1eq": {
-            "reactionSmarts": "[C:1]#[C:2].[Br:3][Br:4]>>[C:1]([Br:3])=[C:2]([Br:4])",
+            "reactionSmarts": [
+                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
+                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])"
+            ],
+            "autoAdd": []
+        },
+        "alkyne_halogenation_2eq": {
+            "reactionSmarts": [
+                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
+                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])"
+            ],
             "autoAdd": []
         },
         "alkyne_hydration_acid": {
-            "reactionSmarts": "[C:1]#[C:2].[OH2:3]>>[C:1](=[O:3])[C:2]",
+            "reactionSmarts": [
+                "[C:1]#[C:2].[OX2H1:3][SX4:4] >> [C+:1]=[C:2].[O-H0:3][SX4:4]",
+                "[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
+                "[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
+                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]"
+            ],
             "autoAdd": []
         },
         "alkyne_hydroboration": {
             "reactionSmarts": [
-                "([C;H2,H1:1]=[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
-                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]"
+                "([C;H2,H1:1]#[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
+                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
+                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]"
             ],
-            "autoAdd": []
+            "autoAdd": [
+                "",
+                "[OH-].OO.O"
+            ]
         },
         "alkyne_reduction_complete": {
-            "reactionSmarts": "[C:1]#[C:2].[H][H].[H][H]>>[C:1][C:2]",
-            "autoAdd": []
-        },
-        "alkyne_reduction_trans": {
-            "reactionSmarts": "[#6:3][#6:1]#[#6:2][#6:4].[H][H]>>[#6:3]/[#6:1]=[#6:2]/[#6:4]",
+            "reactionSmarts": "[C:1]#[C:2].[HH].[HH]>>[C:1][C:2]",
             "autoAdd": []
         },
         "alkyne_reduction_cis": {
-            "reactionSmarts": "[#6:3][#6:1]#[#6:2][#6:4].[H][H]>>[#6:3]/[#6:1]=[#6:2]\\[#6:4]",
+            "reactionSmarts": "[#6:3][#6:1]#[#6:2][#6:4].[HH]>>[#6:3]/[#6:1]=[#6:2]\\[#6:4]",
             "autoAdd": []
         },
-        "alkyne_alkylation": {
-            "reactionSmarts": "[C:1]#[CH1].[#6:2][Br,Cl,I:3]>>[C:1]#[C][#6:2].[Br,Cl,I:3]",
+        "alkyne_deprotonation": {
+            "reactionSmarts": "[C:1]#[C;H1:2].[NH2-]>>[C:1]#[C-:2].[NH3]",
+            "autoAdd": []
+        },
+        "acetylide_alkylation": {
+            "reactionSmarts": "[C:1]#[C-:2].[C:3][F,Cl,Br,I:4]>>[C:1]#[C+0:2][C:3].[F-,Cl-,Br-,I-:4]",
             "autoAdd": []
         }
     }

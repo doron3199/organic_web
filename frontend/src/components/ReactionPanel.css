@@ -338,7 +338,7 @@
 
 .mechanism-modal-content {
     background-color: var(--bg-primary);
-    width: 90vw;
+    width: 96vw;
     height: 90vh;
     border-radius: 8px;
     display: flex;

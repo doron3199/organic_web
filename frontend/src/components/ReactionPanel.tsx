@@ -36,7 +36,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         byproducts: string[],
         smarts: string,
         autoAdd?: (string | Record<string, never>)[],
-        rank?: number
+        rank?: number,
+        mechanism?: string  // logic engine mechanism (e.g. "SN2")
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
@@ -51,23 +52,37 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
 
-    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[]) => {
+    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string) => {
         if (!currentMolecule) return
 
         setIsMechanismLoading(reactionName)
         try {
             const reactants = currentMolecule.split('.')
+            let result: import('../services/rdkit').DebugReactionOutcome | null = null
 
-            // Handle potentially multi-line SMARTS string (for multi-step reactions)
-            // If it's a string, we check for newlines or just pass it if it's single
-            // ReactionDebugPanel logic handles string[] or single string. rdkitService expects string or string[].
+            if (reactionId === 'elimination_substitution') {
+                // Special handling for Substitution/Elimination
+                // For mechanism view, we need to pass conditions again.
+                // We assume 'selectedConditions' state is current.
+                // Check type of selectedConditions. It is string[] based on lines 28 & 16.
+                const outcome = await rdkitService.runSubstitutionElimination(reactants, selectedConditions)
+                if (outcome) {
+                    result = {
+                        steps: outcome.steps,
+                        finalProducts: outcome.finalProducts,
+                        finalByproducts: outcome.finalByproducts
+                    } as import('../services/rdkit').DebugReactionOutcome
+                }
+            } else {
+                // Handle potentially multi-line SMARTS string (for multi-step reactions)
+                let smartsArg: string | string[] = smarts
+                if (smarts.includes('\n')) {
+                    smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
+                }
 
-            let smartsArg: string | string[] = smarts
-            if (smarts.includes('\n')) {
-                smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
+                result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd) as import('../services/rdkit').DebugReactionOutcome | null
             }
 
-            const result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd) as import('../services/rdkit').DebugReactionOutcome | null
             if (result) {
                 setMechanismResult({ ...result, reactionName })
             }
@@ -254,7 +269,41 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             for (const comboIndices of combinations) {
                 const reactantsForRun = comboIndices.map(i => reactantsSmiles[i])
 
-                const outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false, rule.autoAdd)
+                let outcome;
+
+                if (rule.id === 'elimination_substitution') {
+                    // Special handling for Substitution/Elimination logic
+                    // Check type of selectedConditions. It is string[] based on lines 28 & 16.
+                    outcome = await rdkitService.runSubstitutionElimination(reactantsForRun, selectedConditions)
+
+                    // The result has "explanation" and "mechanisms" in it. We might want to use them.
+                    // But here we are mapping to `matchExplanation` of the result object.
+                    // The standard valid outcome structure is expected.
+                    // See line 259 cast.
+                    // We need to make sure 'outcome' matches the shape expected or we modify how we process.
+                    // The runSubstitutionElimination returns an object with steps, finalProducts.
+                    // Let's adapt it to look like ReactionOutcome/DebugReactionOutcome.
+                    if (outcome) {
+                        // Attach explanation to rule or handle it.
+                        // For now, let's piggyback interpretation here if feasible or just return standard structure.
+                        // But we want the "White Box" explanation.
+                        if (outcome.explanation) {
+                            rule.matchExplanation = outcome.explanation
+                        }
+                        // Also map finalProducts to products
+                        outcome.products = outcome.finalProducts
+                        outcome.byproducts = outcome.finalByproducts
+
+                        // Store mechanism for display
+                        if (outcome.mechanisms && outcome.mechanisms.length > 0) {
+                            // Temporarily attach to rule to pass to result construction below
+                            (rule as any)._detectedMechanism = outcome.mechanisms.join(' + ');
+                        }
+                    }
+                } else {
+                    outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false, rule.autoAdd)
+                }
+
                 if (outcome) {
                     const reactionOutcome = outcome as import('../services/rdkit').ReactionOutcome
                     reactionOutcome.products.forEach((pSmiles: string) => {
@@ -370,7 +419,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     byproducts: Array.from(ruleByproducts),
                     smarts: smartsStr,
                     autoAdd: rule.autoAdd,
-                    rank: rule.rank || 1
+                    rank: rule.rank || 1,
+                    mechanism: (rule as any)._detectedMechanism
                 })
             }
         }
@@ -463,10 +513,58 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                         {res.matchExplanation && `(${res.matchExplanation})`}
                                     </span>
                                 </h4>
+
+
+                                {/* Special Explanation Widget for Substitution/Elimination or complex matches */}
+                                {res.reactionId === 'elimination_substitution' && res.matchExplanation && (
+                                    <div style={{
+                                        backgroundColor: '#1e3a8a', // Dark blue
+                                        border: '1px solid #3b82f6',
+                                        borderRadius: '8px',
+                                        padding: '16px',
+                                        margin: '12px 0 20px 0',
+                                        color: '#e0f2fe', // Light blue text
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'baseline',
+                                            justifyContent: 'space-between',
+                                            marginBottom: '8px',
+                                            borderBottom: '1px solid #3b82f6',
+                                            paddingBottom: '8px'
+                                        }}>
+                                            <span style={{
+                                                fontSize: '2rem',
+                                                fontWeight: '800',
+                                                color: '#60a5fa',
+                                                letterSpacing: '1px'
+                                            }}>
+                                                {res.mechanism || 'REACTION'}
+                                            </span>
+                                            <span style={{
+                                                textTransform: 'uppercase',
+                                                fontSize: '0.75rem',
+                                                opacity: 0.8,
+                                                letterSpacing: '1px'
+                                            }}>
+                                                Chemistry Engine Logic
+                                            </span>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '1rem',
+                                            lineHeight: '1.6',
+                                            opacity: 0.95
+                                        }}>
+                                            {res.matchExplanation}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div style={{ padding: '0 0px 8px 0px' }}>
                                     <button
                                         className="reaction-mechanism-btn"
-                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd)}
+                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd, res.reactionId)}
                                         disabled={isMechanismLoading === res.reactionName}
                                     >
                                         {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}
@@ -518,8 +616,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                     )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        ))
+                        }
+                    </div >
                 )
             }
 
@@ -530,24 +629,26 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             />
 
             {/* Reaction Mechanism Modal */}
-            {mechanismResult && (
-                <div className="mechanism-modal-overlay" onClick={() => setMechanismResult(null)}>
-                    <div className="mechanism-modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="mechanism-modal-header">
-                            <h3>Reaction Mechanism: {mechanismResult.reactionName || 'Details'}</h3>
-                            <button className="close-modal-btn" onClick={() => setMechanismResult(null)}>×</button>
-                        </div>
-                        <div className="mechanism-modal-body">
-                            <ReactionMechanismGraph
-                                debugResult={mechanismResult}
-                                onMoleculeUpdate={() => { }}
-                                interactive={false}
-                            />
+            {
+                mechanismResult && (
+                    <div className="mechanism-modal-overlay" onClick={() => setMechanismResult(null)}>
+                        <div className="mechanism-modal-content" onClick={e => e.stopPropagation()}>
+                            <div className="mechanism-modal-header">
+                                <h3>Reaction Mechanism: {mechanismResult.reactionName || 'Details'}</h3>
+                                <button className="close-modal-btn" onClick={() => setMechanismResult(null)}>×</button>
+                            </div>
+                            <div className="mechanism-modal-body">
+                                <ReactionMechanismGraph
+                                    debugResult={mechanismResult}
+                                    onMoleculeUpdate={() => { }}
+                                    interactive={false}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
 

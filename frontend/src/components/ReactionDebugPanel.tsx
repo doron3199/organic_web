@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import {
     rdkitService,
     ReactionStep,
@@ -99,8 +99,12 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
 
     const handleRunDebug = async (overrideSMARTS?: string | string[], overrideAutoAdd?: (string | Record<string, never>)[]) => {
         const smartsToUse = overrideSMARTS || smartsInput
+        // Check if the currently selected reaction is the special Substitution/Elimination one
+        const selectedRule = selectedReactionIdx >= 0 ? matchingReactions[selectedReactionIdx] : null
+        const isSubstitutionElimination = selectedRule?.id === 'elimination_substitution' || (triggeredReaction?.id === 'elimination_substitution')
 
-        if (!smartsToUse || (typeof smartsToUse === 'string' && !smartsToUse.trim())) {
+        // Validation: Require SMARTS unless it's the special reaction
+        if (!isSubstitutionElimination && (!smartsToUse || (typeof smartsToUse === 'string' && !smartsToUse.trim()))) {
             setError('Please enter a SMARTS string or select a reaction from the dropdown')
             return
         }
@@ -115,33 +119,56 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
         setSelectedStep(null)
 
         try {
-            let smartsSteps: string[] = []
-            if (Array.isArray(smartsToUse)) {
-                smartsSteps = smartsToUse
+            let result: DebugReactionOutcome | null = null
+
+            // Determine if we should use the special backend logic
+            // Only use it if it's the substitution/elimination reaction AND no manual SMARTS are provided
+            const hasManualInput = smartsToUse && (typeof smartsToUse === 'string' ? smartsToUse.trim().length > 0 : smartsToUse.length > 0)
+
+            if (isSubstitutionElimination && !hasManualInput) {
+                // Special handling for Substitution/Elimination
+                // We pass the selected conditions. If triggered from workbench, we might want to pass those specific conditions.
+                // But here we rely on 'selectedConditions' prop which syncs with the workbench usually.
+                const conditions = selectedConditions || []
+                const reactants = currentMolecule.split('.')
+                // Cast to any to access the extended properties if needed, but DebugReactionOutcome is sufficient for the graph
+                // The service method returns { steps, finalProducts, finalByproducts, explanation, mechanisms }
+                const outcome = await rdkitService.runSubstitutionElimination(reactants, conditions)
+                if (outcome) {
+                    result = {
+                        steps: outcome.steps,
+                        finalProducts: outcome.finalProducts,
+                        finalByproducts: outcome.finalByproducts
+                    } as DebugReactionOutcome
+                }
             } else {
-                smartsSteps = smartsToUse
-                    .split('\n')
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0)
-            }
+                // Standard SMARTS execution
+                let smartsSteps: string[] = []
+                if (Array.isArray(smartsToUse)) {
+                    smartsSteps = smartsToUse
+                } else {
+                    smartsSteps = smartsToUse
+                        .split('\n')
+                        .map(s => s.trim())
+                        .filter(s => s.length > 0)
+                }
 
-            // Use overrideAutoAdd if provided, otherwise parse from autoAddInput textarea
-            let autoAdd: (string | Record<string, never>)[] | undefined = overrideAutoAdd
-            if (autoAdd === undefined && autoAddInput.trim()) {
-                // Parse autoAddInput - each line corresponds to a step
-                autoAdd = autoAddInput
-                    .split('\n')
-                    .map(line => line.trim())
-            }
+                // Use overrideAutoAdd if provided, otherwise parse from autoAddInput textarea
+                let autoAdd: (string | Record<string, never>)[] | undefined = overrideAutoAdd
+                if (autoAdd === undefined && autoAddInput.trim()) {
+                    // Parse autoAddInput - each line corresponds to a step
+                    autoAdd = autoAddInput
+                        .split('\n')
+                        .map(line => line.trim())
+                }
 
-            const reactants = currentMolecule.split('.')
-            const result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true, autoAdd) as DebugReactionOutcome | null
+                const reactants = currentMolecule.split('.')
+                result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true, autoAdd) as DebugReactionOutcome | null
+            }
 
             if (result) {
                 setDebugResult(result)
-                console.log("debug result")
-                // full print as object
-                console.log(JSON.stringify(result, null, 2))
+                console.log("debug result", result)
             } else {
                 setError('No results returned from reaction')
             }

@@ -262,6 +262,46 @@ class RDKitService {
         }
     }
 
+    // Run a specialized substitution/elimination reaction with backend logic
+    async runSubstitutionElimination(
+        reactantsSMILES: string[],
+        conditions: string[]
+    ): Promise<any | null> {
+        try {
+            const response = await fetch('http://localhost:8000/reaction/substitution_elimination', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reactants: reactantsSMILES,
+                    conditions: conditions
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Backend substitution/elimination request failed');
+                return null;
+            }
+
+            const data = await response.json();
+
+            // Map the backend result structure to what the UI expects
+            // Backend returns: { products: [], steps: [], mechanisms: [], explanation: "" }
+            // DebugReactionOutcome expects: { steps: [], finalProducts: [], finalByproducts: [] }
+
+            return {
+                steps: data.steps,
+                finalProducts: data.products,
+                finalByproducts: [], // We could extract byproducts (inorganic) if backend provides
+                mechanisms: data.mechanisms, // Pass through for UI
+                explanation: data.explanation // Pass through for UI
+            };
+
+        } catch (error) {
+            console.error('Reaction execution error:', error);
+            return null;
+        }
+    }
+
     // Deprecated: Use runReaction with debug=true instead
     async runReactionDebug(reactantsSMILES: string[], reactionSmarts: string | string[]): Promise<DebugReactionOutcome | null> {
         const result = await this.runReaction(reactantsSMILES, reactionSmarts, true);
