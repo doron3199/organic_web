@@ -1,6 +1,13 @@
 
 // Static data definitions for reactions
 // No dependencies on RDKit service or browser globals
+const BENZENE_SMARTS = 'c1ccccc1'
+
+const BENZENE_STEPS = [
+    '[CH]1({XXX})[C+][CH]=[CH][CH]=[CH]1>>[C]1({XXX})[C]=[CH][C+][CH]=[CH]1',
+    '[C]1({XXX})[C]=[CH][C+][CH]=[CH]1>>[C]1({XXX})[CH]=[CH][CH]=[CH][C+]1',
+    '[C]1({XXX})[CH]=[CH][CH]=[CH][C+]1>>[c]1({XXX})[cH][cH][cH][cH][cH]1'
+]
 
 export interface ReactionRule {
     id: string
@@ -433,80 +440,124 @@ export const reactionRules: ReactionRule[] = [
         id: 'benzene_bromination',
         name: 'Bromination (EAS)',
         curriculum_subsubject_id: 'aromatics-halogenation',
-        // Step 1: Formation of sigma complex (simplified as direct substitution for now, or we can show intermediate)
-        // [cH:1] matches aromatic C-H
         reactionSmarts: [
-            '[c;H1:1].[Br][Br]>>[c:1][Br].[Br]' // Simplified global transformation
+            '[Br][Br].[Fe](Br)(Br)Br>>[Br][Br+][Fe-](Br)(Br)Br',
+            '[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[Br][Br+][Fe-](Br)(Br)Br>>[CH:1]1(Br)[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1.[Fe-](Br)(Br)(Br)Br',
+            '[CH]1(Br)[C+][CH]=[CH][CH]=[CH]1>>[C]1(Br)[C]=[CH][C+][CH]=[CH]1',
+            '[C]1(Br)[C]=[CH][C+][CH]=[CH]1>>[C]1(Br)[CH]=[CH][CH]=[CH][C+]1',
+            '[C]1(Br)[CH]=[CH][CH]=[CH][C+]1.[N]>>[c]1(Br)[cH][cH][cH][cH][cH]1.[N+]',
+            '[N+].[Fe-](Br)(Br)(Br)Br>>[N].Br.[Fe](Br)(Br)Br'
         ],
-        reactantsSmarts: ['[c;H1]', '[Br][Br]'],
+        reactantsSmarts: ['[Br][Br]', '[c;H1]', '[Fe](Br)(Br)Br'],
+        autoAdd: ['', '', '', '', 'N'],
         matchExplanation: 'Benzene + Br2 (FeBr3)',
         description: 'Electrophilic Aromatic Substitution: H replaced by Br.',
-        conditions: [new Set(['febr3']), new Set(['alcl3'])] // Lewis acid required
+        conditions: [new Set()]
     },
     {
         id: 'benzene_chlorination',
         name: 'Chlorination (EAS)',
         curriculum_subsubject_id: 'aromatics-halogenation',
-        reactionSmarts: '[c;H1:1].[Cl][Cl]>>[c:1][Cl].[Cl]',
-        reactantsSmarts: ['[c;H1]', '[Cl][Cl]'],
+        reactionSmarts: [
+            '[Cl][Cl].[Fe](Cl)(Cl)Cl>>[Cl][Cl+][Fe-](Cl)(Cl)Cl',
+            '[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[Cl][Cl+][Fe-](Cl)(Cl)Cl>>[CH:1]1(Cl)[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1.[Fe-](Cl)(Cl)(Cl)Cl',
+            '[CH]1(Cl)[C+][CH]=[CH][CH]=[CH]1>>[C]1(Cl)[C]=[CH][C+][CH]=[CH]1',
+            '[C]1(Cl)[C]=[CH][C+][CH]=[CH]1>>[C]1(Cl)[CH]=[CH][CH]=[CH][C+]1',
+            '[C]1(Cl)[CH]=[CH][CH]=[CH][C+]1.[N]>>[c]1(Cl)[cH][cH][cH][cH][cH]1.[N+]',
+            '[N+].[Fe-](Cl)(Cl)(Cl)Cl>>[N].Cl.[Fe](Cl)(Cl)Cl'
+        ], reactantsSmarts: ['[c;H1]', '[Cl][Cl]', '[Fe](Cl)(Cl)Cl'],
+        autoAdd: ['', '', '', '', 'N'],
         matchExplanation: 'Benzene + Cl2 (FeCl3)',
         description: 'Electrophilic Aromatic Substitution: H replaced by Cl.',
-        conditions: [new Set(['fecl3']), new Set(['alcl3'])]
+        conditions: [new Set()]
     },
     {
         id: 'benzene_nitration',
         name: 'Nitration',
         curriculum_subsubject_id: 'aromatics-nitration',
         reactionSmarts: [
-            // Generation of NO2+ is usually implied, we start with attack
-            '[c;H1:1].[N+:2](=[O:3])([O-:4])[O:5]>>[c:1][N+:2](=[O:3])[O-:4]' // Matches HNO3 structure roughly
+            '[N+](=O)([O-])[OH].[S](=O)(=O)([OH])[OH]>>[N+](=O)([O-])[O+H2].[S](=O)(=O)([O-])[OH]',
+            '[N+](=O)([O-])[OH2].[S](=O)(=O)([O-])[OH]>>[N+](=O)=O.[S](=O)(=O)([O-])[OH].[OH2]',
+            '[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[N+](=O)=O>>[CH:1]1([N+](=O)[O-])[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1',
+            '[CH]1([N+](=O)[O-])[C+][CH]=[CH][CH]=[CH]1>>[C]1([N+](=O)[O-])[C]=[CH][C+][CH]=[CH]1',
+            '[C]1([N+](=O)[O-])[C]=[CH][C+][CH]=[CH]1>>[C]1([N+](=O)[O-])[CH]=[CH][CH]=[CH][C+]1',
+            '[C]1([N+](=O)[O-])[CH]=[CH][CH]=[CH][C+]1.[S](=O)(=O)([O-])[OH]>>[c]1([N+](=O)[O-])[cH][cH][cH][cH][cH]1.[S](=O)(=O)([OH])[OH]',
         ],
-        reactantsSmarts: ['[c;H1]', '[$([N+](=O)([O-])O)]'], // HNO3
+        reactantsSmarts: ['[c;H1]', '[N+](=O)([O-])O', '[S](=O)(=O)(O)O'],
         matchExplanation: 'Benzene + HNO3 (H2SO4)',
         description: 'Electrophilic Aromatic Substitution: H replaced by Nitro group.',
-        conditions: [new Set(['h2so4'])]
+        conditions: [new Set()]
     },
     {
         id: 'benzene_sulfonation',
         name: 'Sulfonation',
         curriculum_subsubject_id: 'aromatics-sulfonation',
-        reactionSmarts: '[c;H1:1].[S:2](=[O:3])(=[O:4])([O:5])>>[c:1][S:2](=[O:3])(=[O:4])[O]',
-        // Matches H2SO4 or SO3. Simplified transformation to SO3H
-        reactantsSmarts: ['[c;H1]', '[$([S](=O)(=O))]'], // Matches SO3 or H2SO4 source
-        matchExplanation: 'Benzene + H2SO4 (Fuming)',
+        reactionSmarts: [
+            '[S](=O)(=O)([OH])[OH].[S](=O)(=O)([OH])[OH]>>[S](=O)(=O)([OH])[O+H2].[S](=O)(=O)([OH])[O-]',
+            '[S](=O)(=O)([OH])[O+H2]>>[S+](=O)(=O)([OH]).[OH2]',
+            '[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[S+](=O)(=O)([OH])>>[CH:1]1([S](=O)(=O)([OH]))[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1',
+            '[CH]1([S](=O)(=O)([OH]))[C+][CH]=[CH][CH]=[CH]1>>[C]1([S](=O)(=O)([OH]))[C]=[CH][C+][CH]=[CH]1',
+            '[C]1([S](=O)(=O)([OH]))[C]=[CH][C+][CH]=[CH]1>>[C]1([S](=O)(=O)([OH]))[CH]=[CH][CH]=[CH][C+]1',
+            '[C]1([S](=O)(=O)([OH]))[CH]=[CH][CH]=[CH][C+]1.[S](=O)(=O)([O-])[OH]>>[c]1([S](=O)(=O)([OH]))[cH][cH][cH][cH][cH]1.[S](=O)(=O)([OH])[OH]',
+        ],
+        reactantsSmarts: ['[c;H1]', '[S](=O)(=O)(O)O', '[S](=O)(=O)(O)O'],
+        matchExplanation: 'Benzene + SO3 (H2SO4)',
         description: 'Electrophilic Aromatic Substitution: H replaced by Sulfonic Acid.',
-        conditions: [new Set(['heat'])]
+        conditions: [new Set()]
     },
     {
         id: 'friedel_crafts_alkylation',
         name: 'Friedel-Crafts Alkylation',
         curriculum_subsubject_id: 'aromatics-fc-alkylation',
-        // R-Cl + AlCl3 -> R+ -> Attack
-        // Ideally we show the carbocation intermediate to allow rearrangement
         reactionSmarts: [
-            // Step 1: Alkyl Halide becomes Carbocation (Lewis Acid abstraction)
-            '[CX4:1][F,Cl,Br,I]>>[C+:1]',
-            // Step 2: Attack on Ring
-            '[c;H1:2].[C+:1]>>[c:2][C:1]'
+            '[C:1][Cl].[Al](Cl)(Cl)Cl>>[C:1][Cl+][Al-](Cl)(Cl)Cl',
+            '[C:1][Cl+][Al-](Cl)(Cl)Cl>>[C+:1].[Al-](Cl)(Cl)(Cl)Cl',
+            '[cH:2]1[cH:3][cH:4][cH:5][cH:6][cH:7]1.[C+:1]>>[CH:2]1([C+0:1])[C+:3][CH:4]=[CH:5][CH:6]=[CH:7]1',
+            '[CH]1([C:1])[C+][CH]=[CH][CH]=[CH]1>>[CH]1([C:1])[CH]=[CH][CH+][CH]=[CH]1',
+            '[CH]1([C:1])[CH]=[CH][CH+][CH]=[CH]1>>[CH]1([C:1])[CH]=[CH][CH]=[CH][CH+]1',
+            '[CH]1([C:1])[CH]=[CH][CH]=[CH][CH+]1.[Al-](Cl)(Cl)(Cl)Cl>>[c]1([C:1])[cH][cH][cH][cH][cH]1.[Al](Cl)(Cl)Cl.Cl',
         ],
-        reactantsSmarts: ['[c;H1]', '[CX4][F,Cl,Br,I]'],
-        matchExplanation: 'Benzene + Alkyl Halide (AlCl3)',
+        reactantsSmarts: ['[c;H1]', '[CX4][Cl]', '[Al](Cl)(Cl)Cl'],
+        matchExplanation: 'Benzene + Alkyl Chloride (AlCl3)',
         description: 'Alkylation of the aromatic ring. Rearrangements possible.',
-        conditions: [new Set(['alcl3']), new Set(['febr3'])]
+        conditions: [new Set()]
     },
     {
-        id: 'friedel_crafts_acylation',
+        id: 'friedel_crafts_acylation', // TODO: add acid anhydride support
         name: 'Friedel-Crafts Acylation',
         curriculum_subsubject_id: 'aromatics-fc-acylation',
-        // R-COCl -> R-C=O+ -> Attack
         reactionSmarts: [
-            '[C:1](=[O:2])[Cl]>>[C+:1]#[O:2]', // Acylium ion formation
-            '[c;H1:3].[C+:1]#[O:2]>>[c:3][C:1]=[O:2]'
+            '[C:1](=[O:2])[Cl].[Al](Cl)(Cl)Cl>>[C:1](=[O:2])[Cl+][Al-](Cl)(Cl)Cl',
+            '[C:1](=[O:2])[Cl+][Al-](Cl)(Cl)Cl>>[C+:1]=[O:2].[Al-](Cl)(Cl)(Cl)Cl',
+            '[cH:3]1[cH:4][cH:5][cH:6][cH:7][cH:8]1.[C+:1]=[O:2]>>[CH:3]1([C+0:1]=[O:2])[C+:4][CH:5]=[CH:6][CH:7]=[CH:8]1',
+            '[CH]1([C:1]=[O:2])[C+][CH]=[CH][CH]=[CH]1>>[CH]1([C:1]=[O:2])[CH]=[CH][CH+][CH]=[CH]1',
+            '[CH]1([C:1]=[O:2])[CH]=[CH][CH+][CH]=[CH]1>>[CH]1([C:1]=[O:2])[CH]=[CH][CH]=[CH][CH+]1',
+            '[CH]1([C:1]=[O:2])[CH]=[CH][CH]=[CH][CH+]1.[Al-](Cl)(Cl)(Cl)Cl>>[c]1([C:1]=[O:2])[cH][cH][cH][cH][cH]1.[Al](Cl)(Cl)Cl.Cl'
         ],
-        reactantsSmarts: ['[c;H1]', '[C](=[O])[Cl]'],
+        reactantsSmarts: ['[c;H1]', '[C](=[O])[Cl]', '[Al](Cl)(Cl)Cl'],
         matchExplanation: 'Benzene + Acyl Chloride (AlCl3)',
         description: 'Acylation of the aromatic ring (No rearrangement).',
-        conditions: [new Set(['alcl3'])]
+        conditions: [new Set()]
+    },
+    {
+        id: 'intramolecular_friedel_crafts_acylation_5',
+        name: 'Intramolecular Friedel-Crafts (5-ring)',
+        curriculum_subsubject_id: 'aromatics-fc-acylation',
+        reactionSmarts: '[c;H1:1]:[c:2]-[C:3]-[C:4]-[C:5](=[O:6])[Cl].[Al](Cl)(Cl)Cl>>[c:1]1:[c:2]-[C:3]-[C:4]-[C:5]1=[O:6].[Cl].[Al](Cl)(Cl)Cl',
+        reactantsSmarts: ['[c;H1]:[c]-[C]-[C]-[C](=[O])[Cl]', '[Al](Cl)(Cl)Cl'],
+        matchExplanation: 'Intramolecular Acylation (5-ring)',
+        description: 'Formation of 5-membered ring via intramolecular Friedel-Crafts Acylation.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'intramolecular_friedel_crafts_acylation_6',
+        name: 'Intramolecular Friedel-Crafts (6-ring)',
+        curriculum_subsubject_id: 'aromatics-fc-acylation',
+        reactionSmarts: '[c;H1:1]:[c:2]-[C:3]-[C:4]-[C:7]-[C:5](=[O:6])[Cl].[Al](Cl)(Cl)Cl>>[c:1]1:[c:2]-[C:3]-[C:4]-[C:7]-[C:5]1=[O:6].[Cl].[Al](Cl)(Cl)Cl',
+        reactantsSmarts: ['[c;H1]:[c]-[C]-[C]-[C]-[C](=[O])[Cl]', '[Al](Cl)(Cl)Cl'],
+        matchExplanation: 'Intramolecular Acylation (6-ring)',
+        description: 'Formation of 6-membered ring via intramolecular Friedel-Crafts Acylation.',
+        conditions: [new Set()]
     },
 
     // --- ALCOHOLS & ETHERS ---

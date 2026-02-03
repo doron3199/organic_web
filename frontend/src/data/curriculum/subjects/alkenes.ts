@@ -282,13 +282,12 @@ Alcohols (R-OH) can add to alkenes in the presence of an acid catalyst to form *
                     reactants: [
                         { smiles: 'CC=C', name: 'Propene' },
                         { smiles: 'CO', name: 'Methanol' },
-                        { smiles: 'S(=O)(=O)(O)O', name: 'Acid Catalyst (H₂SO₄)' }
                     ],
                     products: [
                         { smiles: 'CC(OC)C', name: '2-Methoxypropane', selectivity: 'major' },
                         { smiles: 'CCCOC', name: '1-Methoxypropane', selectivity: 'minor' }
                     ],
-                    conditions: ''
+                    conditions: 'H₂SO₄'
                 }
             ],
             examples: [],

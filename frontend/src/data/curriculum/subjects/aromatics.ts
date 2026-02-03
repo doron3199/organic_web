@@ -130,7 +130,6 @@ Replaces a Hydrogen with a Halogen (Br or Cl).
                     reactants: [
                         { smiles: 'c1ccccc1', name: 'Benzene' },
                         { smiles: 'BrBr', name: 'Bromine' },
-                        { smiles: '[Fe](Br)(Br)Br', name: 'FeBr3' }
                     ],
                     products: [
                         { smiles: 'Brc1ccccc1', name: 'Bromobenzene', yield: 100 }
@@ -154,19 +153,18 @@ Replaces a Hydrogen with a Nitro group (NO₂).
     -   Sulfuric acid protonates Nitric acid, causing water to leave and forming the highly reactive nitronium ion.
 -   **Product**: Nitrobenzene.
 -   **Utility**: The nitro group can be reduced to an amine (NH₂) later.
-            `,
+`,
             reactionExamples: [
                 {
                     id: 'benzene_nitration',
                     reactants: [
                         { smiles: 'c1ccccc1', name: 'Benzene' },
                         { smiles: '[N+](=O)([O-])O', name: 'HNO3' },
-                        { smiles: 'OS(=O)(=O)O', name: 'H2SO4' }
                     ],
                     products: [
                         { smiles: '[N+](=O)([O-])c1ccccc1', name: 'Nitrobenzene', yield: 100 }
                     ],
-                    conditions: 'H2SO4'
+                    conditions: 'H₂SO₄'
                 }
             ],
             examples: [],
@@ -189,12 +187,12 @@ Replaces a Hydrogen with a Sulfonic Acid group (SO₃H).
                     id: 'benzene_sulfonation',
                     reactants: [
                         { smiles: 'c1ccccc1', name: 'Benzene' },
-                        { smiles: 'OS(=O)(=O)O', name: 'H2SO4' }
+                        { smiles: 'OS(=O)(=O)O', name: 'H₂SO₄' }
                     ],
                     products: [
                         { smiles: 'OS(=O)(=O)c1ccccc1', name: 'Benzenesulfonic acid', yield: 100 }
                     ],
-                    conditions: 'Fuming, Heat'
+                    conditions: 'H₂SO₄'
                 }
             ],
             examples: [],
@@ -219,12 +217,11 @@ Places an alkyl group on the ring.
                     reactants: [
                         { smiles: 'c1ccccc1', name: 'Benzene' },
                         { smiles: 'CC(Cl)C', name: 'Isopropyl Chloride' },
-                        { smiles: '[Al](Cl)(Cl)Cl', name: 'AlCl3' }
                     ],
                     products: [
                         { smiles: 'CC(c1ccccc1)C', name: 'Isopropylbenzene', yield: 100 }
                     ],
-                    conditions: 'AlCl3'
+                    conditions: 'AlCl₃'
                 }
             ],
             examples: [],
@@ -241,6 +238,7 @@ Places an **acyl group** (R-C=O) on the ring to form a ketone.
 -   **Reagents**: Acyl Chloride (R-COCl) and AlCl₃.
 -   **Electrophile**: Acylium Ion (R-C≡O⁺). This resonance-stabilized cation does **NOT** rearrange.
 -   **Utility**: A great way to add straight carbon chains without rearrangement (use Acylation → Reduction).
+-   **Intramolecular**: If the acyl chloride chain is connected to the benzene ring (e.g. 3 or 4 carbons away), it cyclizes to form a fused ring (e.g. Indanone or Tetralone).
             `,
             reactionExamples: [
                 {
@@ -248,12 +246,21 @@ Places an **acyl group** (R-C=O) on the ring to form a ketone.
                     reactants: [
                         { smiles: 'c1ccccc1', name: 'Benzene' },
                         { smiles: 'CC(=O)Cl', name: 'Acetyl Chloride' },
-                        { smiles: '[Al](Cl)(Cl)Cl', name: 'AlCl3' }
                     ],
                     products: [
                         { smiles: 'CC(=O)c1ccccc1', name: 'Acetophenone', yield: 100 }
                     ],
-                    conditions: 'AlCl3'
+                    conditions: 'AlCl₃'
+                },
+                {
+                    id: 'intramolecular_friedel_crafts_acylation_5',
+                    reactants: [
+                        { smiles: 'ClC(=O)CCc1ccccc1', name: '3-Phenylpropanoyl chloride' }
+                    ],
+                    products: [
+                        { smiles: 'O=C1CCc2ccccc21', name: '1-Indanone', yield: 100 }
+                    ],
+                    conditions: 'AlCl₃'
                 }
             ],
             examples: [],

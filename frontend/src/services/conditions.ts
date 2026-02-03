@@ -14,5 +14,8 @@ export const QUICK_ADD_MOLECULES: Record<string, { smiles: string, label: string
     'h2o': { smiles: 'O', label: '💧 H₂O', isCondition: false },
     'kmno4': { smiles: '[O-][Mn](=O)(=O)=O', label: '🧪 KMnO₄', isCondition: true },
     'mcpba': { smiles: 'O=C(OO)c1cccc(Cl)c1', label: '🧪 mCPBA', isCondition: true },
-    'o3': { smiles: '[O-][O+]=O', label: '🔵 O₃', isCondition: true }
+    'o3': { smiles: '[O-][O+]=O', label: '🔵 O₃', isCondition: true },
+    'FeBr3': { smiles: '[Fe](Br)(Br)Br', label: '🧪 FeBr₃', isCondition: true },
+    'FeCl3': { smiles: '[Fe](Cl)(Cl)Cl', label: '🧪 FeCl₃', isCondition: true },
+    'AlCl3': { smiles: '[Al](Cl)(Cl)Cl', label: '🧪 AlCl₃', isCondition: true },
 };
