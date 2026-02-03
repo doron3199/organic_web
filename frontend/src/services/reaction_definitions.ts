@@ -376,5 +376,15 @@ export const reactionRules: ReactionRule[] = [
         matchExplanation: 'Elimination Substitution',
         description: 'Elimination Substitution',
         conditions: [new Set()],
+    },
+    {
+        id: 'intramolecular_substitution',
+        name: 'Intramolecular Substitution',
+        curriculum_subsubject_id: 'intramolecular-substitution',
+        reactionSmarts: '',
+        reactantsSmarts: ['[CX4][F,Cl,Br,I]'], // Alkyl Halide + Nucleophile
+        matchExplanation: 'Intramolecular Substitution',
+        description: 'Intramolecular Substitution',
+        conditions: [new Set()],
     }
 ]

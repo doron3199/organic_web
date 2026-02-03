@@ -38,6 +38,7 @@ export interface SubSubject {
     reactionExamples?: ReactionExample[];
     isCompleted?: boolean
     section?: string
+    widgetType?: string
 }
 
 export interface Subject {

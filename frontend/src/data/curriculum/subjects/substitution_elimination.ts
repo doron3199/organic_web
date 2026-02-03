@@ -172,6 +172,39 @@ export const substitutionElimination: Subject = {
             rules: []
         },
         {
+            id: 'intramolecular-substitution',
+            section: 'Substitution',
+            name: 'Intramolecular Substitution',
+            content: `
+### Intramolecular Substitution (Cyclization)
+
+**Mechanism and Characteristics:**
+*   **Definition**: An intramolecular reaction occurs when the nucleophile and the leaving group are in the same molecule.
+*   **Cyclization**: This results in the formation of a ring (cyclic compound).
+*   **Favorability**: This reaction is highly favored when a **5-membered** or **6-membered** ring can be formed. These ring sizes are stable due to low angle strain and favorable entropy (the two groups are tethered close together).
+*   **Mechanism**: It typically follows an Sɴ2 mechanism where the internal nucleophile attacks the carbon bearing the leaving group from the back side.
+
+**Requirements:**
+1.  **Nucleophile**: The molecule must have a nucleophilic atom (e.g., -O⁻, -NH₂, -S⁻).
+2.  **Leaving Group**: The molecule must have a good leaving group (e.g., -Cl, -Br, -I) at a suitable distance.
+3.  **Chain Length**: Ideally 4 or 5 carbons between the nucleophile and the leaving group carbon to form 5- or 6-membered rings.
+            `,
+            reactionExamples: [
+                {
+                    id: 'intramolecular_substitution',
+                    reactants: [
+                        { smiles: '[O-]CCCCCCl', name: '5-Chloropentan-1-olate' }
+                    ],
+                    products: [
+                        { smiles: 'C1CCOCC1', name: 'Tetrahydropyran', selectivity: 'major', yield: 100 }
+                    ],
+                    conditions: ''
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
             id: 'substitution-elimination-summary',
             section: 'Summary',
             name: 'Reaction Summary',
@@ -204,6 +237,19 @@ export const substitutionElimination: Subject = {
             `,
             examples: [],
             rules: []
+        },
+        {
+            id: 'interactive-prediction',
+            section: 'Interactive',
+            name: 'Reaction Predictor',
+            content: `
+### Interactive Reaction Prediction
+
+Use the tool below to predict whether an Sɴ1, Sɴ2, E1, or E2 reaction will occur based on the substrate and conditions.
+            `,
+            examples: [],
+            rules: [],
+            widgetType: 'sn_e_predictor'
         }
     ]
 };

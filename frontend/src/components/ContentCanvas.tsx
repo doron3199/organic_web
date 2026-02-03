@@ -6,6 +6,7 @@ import MoleculeViewer from './MoleculeViewer'
 import ReactionEquation from './ReactionEquation'
 import MoleculeEditor from './MoleculeEditor'
 import Cheatsheet from './Cheatsheet'
+import ReactionPredictor from './ReactionPredictor'
 import { AnalysisResult } from '../services/logicEngine'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
 import './ContentCanvas.css'
@@ -255,6 +256,10 @@ function ContentCanvas({
                                         )}
                                     </div>
                                     <hr className="section-divider" />
+
+                                    {subSubject.widgetType === 'sn_e_predictor' && (
+                                        <ReactionPredictor />
+                                    )}
                                 </div>
                             )
                         })}

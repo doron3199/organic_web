@@ -3,7 +3,135 @@ from reaction_logic import run_reaction
 
 
 # --- SMARTS PATTERNS ---
+
 METHYL_PATTERN = Chem.MolFromSmarts("[CX4;H3][F,Cl,Br,I]")
+
+
+def check_and_run_intramolecular(mol):
+    """
+    Checks for intramolecular substitution (cyclization) forming 5 or 6 membered rings.
+    Returns result dict if reaction occurs, else None.
+    """
+    # Define Nucleophiles
+    nuc_specs = [
+        (
+            Chem.MolFromSmarts("[NX3;H2,H1,H0;+0;!$(NC=O)]"),
+            "amine",
+        ),  # Amines (Neutral, not amide)
+        (Chem.MolFromSmarts("[OX1;-1]"), "alkoxide"),  # Alkoxides
+        (Chem.MolFromSmarts("[OX2;H1;+0]"), "alcohol"),  # Alcohols
+        (Chem.MolFromSmarts("[SX1;-1]"), "thiolate"),  # Thiolates
+        (Chem.MolFromSmarts("[SX2;H1;+0]"), "thiol"),  # Thiols
+    ]
+
+    # Leaving Group Carbon Pattern: [C][X]
+    lg_pattern = Chem.MolFromSmarts("[C][F,Cl,Br,I]")
+
+    lg_matches = mol.GetSubstructMatches(lg_pattern)
+    if not lg_matches:
+        return None
+
+    # Search for valid intramolecular path
+    best_candidate = None
+
+    for pat, ntype in nuc_specs:
+        if not pat:
+            continue
+        nuc_matches = mol.GetSubstructMatches(pat)
+        for nuc_match in nuc_matches:
+            nuc_idx = nuc_match[0]
+
+            for c_alpha_idx, lg_idx in lg_matches:
+                if nuc_idx == c_alpha_idx or nuc_idx == lg_idx:
+                    continue
+
+                try:
+                    # Check path length for ring size
+                    # Path includes start and end atoms.
+                    # N...C_alpha path length L -> Ring Size L
+                    path = Chem.rdmolops.GetShortestPath(mol, nuc_idx, c_alpha_idx)
+                    ring_size = len(path)
+
+                    if ring_size in [5, 6]:
+                        # Found a candidate. Prioritize 5/6.
+                        best_candidate = (
+                            nuc_idx,
+                            c_alpha_idx,
+                            lg_idx,
+                            ring_size,
+                            ntype,
+                        )
+                        break  # Found one, good enough for now?
+                except:
+                    continue
+            if best_candidate:
+                break
+        if best_candidate:
+            break
+
+    if not best_candidate:
+        return None
+
+    # Execute Reaction
+    nuc_idx, c_alpha_idx, lg_idx, ring_size, ntype = best_candidate
+    rwmol = Chem.RWMol(mol)
+
+    # 1. Form Bond
+    rwmol.AddBond(nuc_idx, c_alpha_idx, Chem.BondType.SINGLE)
+
+    # 2. Break LG Bond
+    rwmol.RemoveBond(c_alpha_idx, lg_idx)
+
+    # 3. Update Charges
+    atom_nuc = rwmol.GetAtomWithIdx(nuc_idx)
+    atom_nuc.SetFormalCharge(atom_nuc.GetFormalCharge() + 1)
+
+    atom_lg = rwmol.GetAtomWithIdx(lg_idx)
+    atom_lg.SetFormalCharge(atom_lg.GetFormalCharge() - 1)
+
+    # 4. Process Products
+    products_smi = Chem.MolToSmiles(rwmol)
+    fragments = products_smi.split(".")
+
+    # Assume the largest fragment is the ring product
+    organic_product = max(fragments, key=len)
+
+    # Create fake steps: Step 1 (Original) -> Step 2 (Product)
+
+    step_0 = {
+        "step_id": "intra_step_0",
+        "step_index": 0,
+        "step_type": "initial",
+        "name": "Start",
+        "input_smiles": [],
+        "products": [Chem.MolToSmiles(mol)],
+        "description": "Starting Molecule",
+        "parent_id": None,
+        "smarts_used": "",
+    }
+
+    step_1 = {
+        "step_id": "intra_step_1",
+        "step_index": 1,
+        "step_type": "reaction",
+        "group_id": "group_intramolecular",
+        "name": f"Intramolecular SN2",
+        "input_smiles": [Chem.MolToSmiles(mol)],
+        "products": [organic_product],  # Must be a list
+        "description": f"Intramolecular nucleophilic attack forming a {ring_size}-membered ring ({ntype} attack).",
+        "parent_id": "intra_step_0",
+        "smarts_used": "",
+        "is_major": True,
+    }
+
+    return {
+        "mechanisms": ["Intramolecular_SN2"],
+        "explanation": f"Intramolecular reaction favored due to formation of a {ring_size}-membered ring.",
+        "products": [organic_product],
+        "steps": [step_0, step_1],
+    }
+
+
 PRIMARY_PATTERN = Chem.MolFromSmarts("[CX4;H2][F,Cl,Br,I]")
 SECONDARY_PATTERN = Chem.MolFromSmarts("[CX4;H1]([C,c,N,O,S])[F,Cl,Br,I]")
 TERTIARY_PATTERN = Chem.MolFromSmarts("[CX4;H0]([C,c,N,O,S])([C,c,N,O,S])[F,Cl,Br,I]")
@@ -181,6 +309,13 @@ def run_substitution_elimination(reactants, conditions):
             substrate = (smi, mol)
         else:
             reagent = (smi, mol)
+
+    # CHECK FOR INTRAMOLECULAR REACTION (Single Reactant)
+    if not reagent and substrate and len(reactants) == 1:
+        # Check if substrate can be its own reagent
+        intra_res = check_and_run_intramolecular(substrate[1])
+        if intra_res:
+            return intra_res
 
     if not substrate:
         return {"error": "No alkyl halide substrate found."}
