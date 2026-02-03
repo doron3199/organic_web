@@ -289,6 +289,9 @@ export class GraphUtils {
             if (el === 'Cl') return "Chloro"
             if (el === 'Br') return "Bromo"
             if (el === 'I') return "Iodo"
+            if (el === 'O') return "Hydroxy"
+            if (el === 'N') return "Amino"
+            if (el === 'S') return "Sulfanyl"
             return "Methyl"
         }
 
@@ -331,7 +334,6 @@ export class GraphUtils {
             // Actually attachId passed to this function is the "head" of the branch (the atom in branch connected to main chain)
 
             if (attachInRing) {
-                const baseName = GraphUtils.getAlkaneName(ringSize)
                 // Fix: Use alkyl name (remove -ane add -yl)
                 // Simple hack: getAlkaneName returns "Propane".
                 // Better: Implement getAlkylName or map.

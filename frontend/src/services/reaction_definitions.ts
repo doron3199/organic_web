@@ -366,7 +366,243 @@ export const reactionRules: ReactionRule[] = [
             ]
         }
     },
-    // --- SUBSTITUTION & ELIMINATION ---
+    // --- CARBONYLS ---
+    {
+        id: 'acid_to_acyl_chloride',
+        name: 'Formation of Acyl Chloride',
+        curriculum_subsubject_id: 'carboxylic-acids',
+        reactionSmarts: '[C:1](=[O:2])[OH]>>[C:1](=[O:2])[Cl]',
+        reactantsSmarts: ['[C](=[O])[OH]', '[$([S](=O)(Cl)Cl)]'], // Acid + SOCl2
+        matchExplanation: 'Carboxylic Acid + SOCl2',
+        description: 'Conversion to Acyl Chloride using Thionyl Chloride.',
+        conditions: [new Set(['socl2'])]
+    },
+    {
+        id: 'acyl_chloride_hydrolysis',
+        name: 'Acyl Chloride Hydrolysis',
+        curriculum_subsubject_id: 'acyl-chlorides',
+        reactionSmarts: '[C:1](=[O:2])[Cl].[OH2:3]>>[C:1](=[O:2])[OH:3]',
+        reactantsSmarts: ['[C](=[O])[Cl]', '[OH2]'],
+        matchExplanation: 'Acyl Chloride + Water',
+        description: 'Vigorous hydrolysis to Carboxylic Acid.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'acyl_chloride_alcoholysis',
+        name: 'Acyl Chloride Alcoholysis',
+        curriculum_subsubject_id: 'acyl-chlorides',
+        reactionSmarts: '[C:1](=[O:2])[Cl].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3]',
+        reactantsSmarts: ['[C](=[O])[Cl]', '[C][OH]'],
+        matchExplanation: 'Acyl Chloride + Alcohol',
+        description: 'Formation of Ester.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'acyl_chloride_aminolysis',
+        name: 'Acyl Chloride Aminolysis',
+        curriculum_subsubject_id: 'acyl-chlorides',
+        reactionSmarts: '[C:1](=[O:2])[Cl].[N;H2,H1:3]>>[C:1](=[O:2])[N:3]',
+        reactantsSmarts: ['[C](=[O])[Cl]', '[N;H2,H1]'],
+        matchExplanation: 'Acyl Chloride + Amine',
+        description: 'Formation of Amide.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'fischer_esterification',
+        name: 'Fischer Esterification',
+        curriculum_subsubject_id: 'esters',
+        reactionSmarts: '[C:1](=[O:2])[OH].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3]',
+        reactantsSmarts: ['[C](=[O])[OH]', '[C][OH]'],
+        matchExplanation: 'Carboxylic Acid + Alcohol + Acid',
+        description: 'Reversible formation of Ester.',
+        conditions: [new Set(['acid', 'heat']), new Set(['h2so4'])]
+    },
+    {
+        id: 'saponification',
+        name: 'Saponification',
+        curriculum_subsubject_id: 'esters',
+        reactionSmarts: '[C:1](=[O:2])[O][C:3]>>[C:1](=[O:2])[O-].[C:3][OH]',
+        reactantsSmarts: ['[C](=[O])[O][C]', '[OH-]'],
+        matchExplanation: 'Ester + Base (Hydroxide)',
+        description: 'Basic hydrolysis to Carboxylate and Alcohol.',
+        conditions: [new Set(['base']), new Set(['oh-'])]
+    },
+
+    // --- AROMATIC COMPOUNDS ---
+    {
+        id: 'benzene_bromination',
+        name: 'Bromination (EAS)',
+        curriculum_subsubject_id: 'aromatics-halogenation',
+        // Step 1: Formation of sigma complex (simplified as direct substitution for now, or we can show intermediate)
+        // [cH:1] matches aromatic C-H
+        reactionSmarts: [
+            '[c;H1:1].[Br][Br]>>[c:1][Br].[Br]' // Simplified global transformation
+        ],
+        reactantsSmarts: ['[c;H1]', '[Br][Br]'],
+        matchExplanation: 'Benzene + Br2 (FeBr3)',
+        description: 'Electrophilic Aromatic Substitution: H replaced by Br.',
+        conditions: [new Set(['febr3']), new Set(['alcl3'])] // Lewis acid required
+    },
+    {
+        id: 'benzene_chlorination',
+        name: 'Chlorination (EAS)',
+        curriculum_subsubject_id: 'aromatics-halogenation',
+        reactionSmarts: '[c;H1:1].[Cl][Cl]>>[c:1][Cl].[Cl]',
+        reactantsSmarts: ['[c;H1]', '[Cl][Cl]'],
+        matchExplanation: 'Benzene + Cl2 (FeCl3)',
+        description: 'Electrophilic Aromatic Substitution: H replaced by Cl.',
+        conditions: [new Set(['fecl3']), new Set(['alcl3'])]
+    },
+    {
+        id: 'benzene_nitration',
+        name: 'Nitration',
+        curriculum_subsubject_id: 'aromatics-nitration',
+        reactionSmarts: [
+            // Generation of NO2+ is usually implied, we start with attack
+            '[c;H1:1].[N+:2](=[O:3])([O-:4])[O:5]>>[c:1][N+:2](=[O:3])[O-:4]' // Matches HNO3 structure roughly
+        ],
+        reactantsSmarts: ['[c;H1]', '[$([N+](=O)([O-])O)]'], // HNO3
+        matchExplanation: 'Benzene + HNO3 (H2SO4)',
+        description: 'Electrophilic Aromatic Substitution: H replaced by Nitro group.',
+        conditions: [new Set(['h2so4'])]
+    },
+    {
+        id: 'benzene_sulfonation',
+        name: 'Sulfonation',
+        curriculum_subsubject_id: 'aromatics-sulfonation',
+        reactionSmarts: '[c;H1:1].[S:2](=[O:3])(=[O:4])([O:5])>>[c:1][S:2](=[O:3])(=[O:4])[O]',
+        // Matches H2SO4 or SO3. Simplified transformation to SO3H
+        reactantsSmarts: ['[c;H1]', '[$([S](=O)(=O))]'], // Matches SO3 or H2SO4 source
+        matchExplanation: 'Benzene + H2SO4 (Fuming)',
+        description: 'Electrophilic Aromatic Substitution: H replaced by Sulfonic Acid.',
+        conditions: [new Set(['heat'])]
+    },
+    {
+        id: 'friedel_crafts_alkylation',
+        name: 'Friedel-Crafts Alkylation',
+        curriculum_subsubject_id: 'aromatics-fc-alkylation',
+        // R-Cl + AlCl3 -> R+ -> Attack
+        // Ideally we show the carbocation intermediate to allow rearrangement
+        reactionSmarts: [
+            // Step 1: Alkyl Halide becomes Carbocation (Lewis Acid abstraction)
+            '[CX4:1][F,Cl,Br,I]>>[C+:1]',
+            // Step 2: Attack on Ring
+            '[c;H1:2].[C+:1]>>[c:2][C:1]'
+        ],
+        reactantsSmarts: ['[c;H1]', '[CX4][F,Cl,Br,I]'],
+        matchExplanation: 'Benzene + Alkyl Halide (AlCl3)',
+        description: 'Alkylation of the aromatic ring. Rearrangements possible.',
+        conditions: [new Set(['alcl3']), new Set(['febr3'])]
+    },
+    {
+        id: 'friedel_crafts_acylation',
+        name: 'Friedel-Crafts Acylation',
+        curriculum_subsubject_id: 'aromatics-fc-acylation',
+        // R-COCl -> R-C=O+ -> Attack
+        reactionSmarts: [
+            '[C:1](=[O:2])[Cl]>>[C+:1]#[O:2]', // Acylium ion formation
+            '[c;H1:3].[C+:1]#[O:2]>>[c:3][C:1]=[O:2]'
+        ],
+        reactantsSmarts: ['[c;H1]', '[C](=[O])[Cl]'],
+        matchExplanation: 'Benzene + Acyl Chloride (AlCl3)',
+        description: 'Acylation of the aromatic ring (No rearrangement).',
+        conditions: [new Set(['alcl3'])]
+    },
+
+    // --- ALCOHOLS & ETHERS ---
+    {
+        id: 'alcohol_activation_hx_sn1',
+        name: 'Alcohol Activation (SN1)',
+        curriculum_subsubject_id: 'alcohols-activation',
+        // Step 1: Protonation
+        // Step 2: Loss of water (Carbocation)
+        // Step 3: Attack
+        reactionSmarts: [
+            '[C:1][OH:2].[Br,Cl,I:3]>>[C:1][OH2+:2].[Br-,Cl-,I-:3]', // Protonation usually implied but we can show it
+            '[C:1][OH2+:2]>>[C+:1].[OH2:2]', // Loss of LG
+            '[C+:1].[Br-,Cl-,I-:3]>>[C:1][Br+0,Cl+0,I+0:3]' // Attack
+        ],
+        reactantsSmarts: ['[C;D3][OH]', '[Br,Cl,I]'], // Tertiary Alcohols match this pathway better
+        matchExplanation: 'Tertiary Alcohol + HX (SN1)',
+        description: 'Conversion to Alkyl Halide via SN1 (Carbocation).',
+        conditions: [new Set()]
+    },
+    {
+        id: 'alcohol_activation_hx_sn2',
+        name: 'Alcohol Activation (SN2)',
+        curriculum_subsubject_id: 'alcohols-activation',
+        // Concerted displacement of protonated alcohol
+        reactionSmarts: [
+            '[C:1][OH:2].[Br,Cl,I:3]>>[C:1][OH2+:2].[Br-,Cl-,I-:3]', // Protonation
+            '[C:1][OH2+:2].[Br-,Cl-,I-:3]>>[C:1][Br+0,Cl+0,I+0:3].[OH2:2]' // Backside attack
+        ],
+        reactantsSmarts: ['[C;D1,D2][OH]', '[Br,Cl,I]'], // Primary/Methyl
+        matchExplanation: 'Primary Alcohol + HX (SN2)',
+        description: 'Conversion to Alkyl Halide via SN2.',
+        conditions: [new Set(['heat'])]
+    },
+    {
+        id: 'alcohol_dehydration',
+        name: 'Dehydration (E1)',
+        curriculum_subsubject_id: 'alcohols-activation', // Usually taught with activation or alkenes
+        reactionSmarts: [
+            '[C:1][C:2][OH:3].[H+]>>[C:1][C:2][OH2+:3]', // Protonation
+            '[C:1][C:2][OH2+:3]>>[C:1][C+:2].[OH2:3]', // Carbocation formation
+            '[C:1][C+:2]>>[C:1]=[C:2]' // Elimination (Zaitsev) - simplified here
+        ],
+        reactantsSmarts: ['[C][C][OH]', '[$([#1+]),$([S](=O)(=O))]'], // Alcohol + Acid
+        matchExplanation: 'Alcohol + Acid + Heat',
+        description: 'Elimination of water to form an alkene.',
+        conditions: [new Set(['heat'])]
+    },
+    {
+        id: 'alcohol_oxidation_pcc',
+        name: 'Oxidation (PCC)',
+        curriculum_subsubject_id: 'alcohols-oxidation',
+        // Primary Alcohol -> Aldehyde
+        // Secondary Alcohol -> Ketone
+        reactionSmarts: '[C:1][OH]>>[C:1]=[O]',
+        reactantsSmarts: ['[C;H1,H2][OH]', '[$([#7+1]1:[c]:[c]:[c]:[c]:[c]1)]'], // PCC pyridinium match roughly
+        matchExplanation: 'Alcohol + PCC',
+        description: 'Oxidation to Aldehyde (from Primary) or Ketone (from Secondary).',
+        conditions: [new Set(['pcc'])]
+    },
+    {
+        id: 'alcohol_oxidation_jones',
+        name: 'Oxidation (Jones)',
+        curriculum_subsubject_id: 'alcohols-oxidation',
+        // Primary Alcohol -> Carboxylic Acid
+        reactionSmarts: '[C;H2:1][OH]>>[C:1](=[O])[OH]',
+        reactantsSmarts: ['[C;H2][OH]', '[$([Cr](=O)(=O))]'], // Chromic source
+        matchExplanation: 'Primary Alcohol + Jones Reagent',
+        description: 'Strong oxidation to Carboxylic Acid.',
+        conditions: [new Set(['jones'])]
+    },
+    {
+        id: 'williamson_ether_synthesis',
+        name: 'Williamson Ether Synthesis',
+        curriculum_subsubject_id: 'ethers-epoxides',
+        reactionSmarts: '[C:1][O-].[C:2][F,Cl,Br,I]>>[C:1][O][C:2].[F-,Cl-,Br-,I-]',
+        reactantsSmarts: ['[C][O-]', '[C;D1][F,Cl,Br,I]'], // Alkoxide + Primary Alkyl Halide
+        matchExplanation: 'Alkoxide + Alkyl Halide',
+        description: 'SN2 formation of an ether.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'epoxide_opening_acid',
+        name: 'Epoxide Opening (Acid)',
+        curriculum_subsubject_id: 'ethers-epoxides',
+        // Ring opening at more substituted carbon
+        reactionSmarts: [
+            '[C:1]1[O:2][C:3]1.[H+]>>[C:1]1[O+:2][C:3]1', // Protonation
+            '[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][OH:2]' // Attack by nucleophile (water in this case) on C:1 (assume more sub) - Needs rank/selectivity
+        ],
+        reactantsSmarts: ['[C]1[O][C]1', '[H+]', '[O]'], // Epoxide, acid, nuc
+        matchExplanation: 'Epoxide + Acid + Nucleophile',
+        description: 'Ring opening at the more substituted carbon.',
+        conditions: [new Set()]
+    },
+
     {
         id: 'elimination_substitution',
         name: 'Elimination Substitution',

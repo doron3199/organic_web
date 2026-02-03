@@ -225,36 +225,38 @@ function ContentCanvas({
                                         {subSubject.content}
                                     </ReactMarkdown>
 
-                                    <div className="examples-section">
-                                        <h3>Examples</h3>
-                                        {subSubject.reactionExamples ? (
-                                            <div className="reactions-list">
-                                                {subSubject.reactionExamples.map((rxn, idx) => (
-                                                    <ReactionEquation
-                                                        key={idx}
-                                                        reaction={rxn}
-                                                        onExperiment={handleExperiment}
-                                                    />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="molecules-grid">
-                                                {subSubject.examples.map((ex, idx) => (
-                                                    <div key={idx} className="molecule-card">
-                                                        <MoleculeViewer
-                                                            smiles={ex.smiles}
-                                                            customSvg={ex.customSvg}
-                                                            customSvgUrl={ex.customSvgUrl}
-                                                            onEdit={() => handleEditClick(ex.smiles)}
-                                                            width={300}
-                                                            height={200}
+                                    {((subSubject.examples && subSubject.examples.length > 0) || (subSubject.reactionExamples && subSubject.reactionExamples.length > 0)) && (
+                                        <div className="examples-section">
+                                            <h3>Examples</h3>
+                                            {subSubject.reactionExamples && subSubject.reactionExamples.length > 0 ? (
+                                                <div className="reactions-list">
+                                                    {subSubject.reactionExamples.map((rxn, idx) => (
+                                                        <ReactionEquation
+                                                            key={idx}
+                                                            reaction={rxn}
+                                                            onExperiment={handleExperiment}
                                                         />
-                                                        <div className="molecule-label">{ex.name}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="molecules-grid">
+                                                    {subSubject.examples.map((ex, idx) => (
+                                                        <div key={idx} className="molecule-card">
+                                                            <MoleculeViewer
+                                                                smiles={ex.smiles}
+                                                                customSvg={ex.customSvg}
+                                                                customSvgUrl={ex.customSvgUrl}
+                                                                onEdit={() => handleEditClick(ex.smiles)}
+                                                                width={300}
+                                                                height={200}
+                                                            />
+                                                            <div className="molecule-label">{ex.name}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <hr className="section-divider" />
 
                                     {subSubject.widgetType === 'sn_e_predictor' && (

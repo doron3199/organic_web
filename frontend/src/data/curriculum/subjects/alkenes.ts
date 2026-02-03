@@ -268,13 +268,13 @@ Like hydrohalogenation, this reaction follows **Markovnikov's Rule** and involve
             name: 'Acid-Catalyzed Addition of Alcohols',
             content: `
 ### Addition of Alcohols (Ether Formation)
-Alcohols ($R-OH$) can add to alkenes in the presence of an acid catalyst to form **ethers**. This reaction is mechanistically identical to hydration, but using an alcohol instead of water.
+Alcohols (R-OH) can add to alkenes in the presence of an acid catalyst to form **ethers**. This reaction is mechanistically identical to hydration, but using an alcohol instead of water.
 
-- **Outcome**: The $OR$ group adds to the more substituted carbon (**Markovnikov**).
+- **Outcome**: The OR group adds to the more substituted carbon (**Markovnikov**).
 - **Product**: An ether (e.g., Methyl Propyl Ether).
 
 - **Reaction**: 
-  $Alkene + Alcohol \\xrightarrow{H^+} Ether$
+  Alkene + Alcohol → Ether
             `,
             reactionExamples: [
                 {

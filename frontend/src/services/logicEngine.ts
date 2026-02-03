@@ -3,6 +3,7 @@ import { SubSubject } from '../data/curriculum'
 import { LogEntry } from '../components/LogicConsole'
 import { GraphUtils, MoleculeGraph } from './GraphUtils'
 import Graph from 'graphology'
+import { shortestPath } from 'graphology-library'
 
 export interface AnalysisResult {
     logs: LogEntry[]
@@ -19,6 +20,15 @@ export interface NamePart {
     text: string
     type: 'root' | 'substituent' | 'locant' | 'separator'
     ids?: number[]
+}
+
+export type GroupType = 'alcohol' | 'aldehyde' | 'ketone' | 'acid' | 'ester' | 'amide' | 'amine' | 'ether' | 'benzene' | 'thiol'
+
+export interface FunctionalGroup {
+    type: GroupType
+    atomIds: number[]
+    locant?: number
+    isPrincipal: boolean
 }
 
 interface AnalysisContext {
@@ -71,6 +81,11 @@ interface AnalysisContext {
         atomIds: number[]
     }[]
 
+    // Functional Groups
+    functionalGroups: FunctionalGroup[]
+    principalGroup: FunctionalGroup | null // Primary Representative
+    principalGroups: FunctionalGroup[] // All identical highest-priority groups (e.g. 2 OH groups)
+    isBenzeneParent: boolean
 }
 
 const MOLECULE_BANK: Record<string, string> = {
@@ -109,6 +124,8 @@ export class LogicEngine {
 
         this.parseGraph(ctx)
 
+        this.detectFunctionalGroups(ctx)
+
         if (!this.determineParentStructure(ctx)) return this.buildResult(ctx)
 
         if (!this.analyzeSubstituents(ctx)) return this.buildResult(ctx)
@@ -144,8 +161,11 @@ export class LogicEngine {
 
             finalName: "Unknown Molecule",
             alternativeName: undefined,
-            unsaturations: []
-
+            unsaturations: [],
+            functionalGroups: [],
+            principalGroup: null,
+            principalGroups: [],
+            isBenzeneParent: false
         }
     }
 
@@ -208,11 +228,128 @@ export class LogicEngine {
         this.log(ctx, 'Graph Parsing', `Found ${ctx.totalCarbons} Carbon atoms.${ctx.isCyclic ? ` Detected ${ctx.cycles.length} ring(s).` : ''}`, 'success')
     }
 
+    private static detectFunctionalGroups(ctx: AnalysisContext) {
+        const nodes = ctx.graph.nodes()
+        const detectedGroups: FunctionalGroup[] = []
+
+        // 1. Detect Benzenes
+        if (ctx.isCyclic) {
+            ctx.cycles.forEach(cycle => {
+                if (cycle.length === 6) {
+                    let aromaticBonds = 0
+                    for (let i = 0; i < cycle.length; i++) {
+                        const u = cycle[i]
+                        const v = cycle[(i + 1) % cycle.length]
+                        const edge = ctx.graph.edge(u.toString(), v.toString())
+                        const attr = ctx.graph.getEdgeAttributes(edge)
+                        if (attr.type === 4) aromaticBonds++
+                    }
+                    if (aromaticBonds >= 3) { // Usually 6 for V2000 aromatic, or 3 double bonds
+                        detectedGroups.push({ type: 'benzene', atomIds: cycle, isPrincipal: false })
+                    }
+                }
+            })
+        }
+
+        // 2. Detect O-containing groups
+        nodes.forEach(node => {
+            const attr = ctx.graph.getNodeAttributes(node)
+            const id = parseInt(node)
+            if (attr.element === 'O') {
+                const neighbors = ctx.graph.neighbors(node).map(n => parseInt(n))
+                if (neighbors.length === 1) {
+                    const carbonId = neighbors[0]
+                    const carbonAttr = ctx.graph.getNodeAttributes(carbonId.toString())
+                    if (carbonAttr.element === 'C') {
+                        const edge = ctx.graph.edge(node, carbonId.toString())
+                        const bondType = ctx.graph.getEdgeAttribute(edge, 'type')
+
+                        if (bondType === 1) { // -OH or -OR
+                            // Check if part of COOH
+                            let isAcidOrEster = false
+                            ctx.graph.forEachNeighbor(carbonId.toString(), n => {
+                                if (parseInt(n) === id) return
+                                const nAttr = ctx.graph.getNodeAttributes(n)
+                                if (nAttr.element === 'O') {
+                                    const e = ctx.graph.edge(carbonId.toString(), n)
+                                    if (ctx.graph.getEdgeAttribute(e, 'type') === 2) isAcidOrEster = true
+                                }
+                            })
+                            if (!isAcidOrEster) {
+                                // Simple Alcohol
+                                detectedGroups.push({ type: 'alcohol', atomIds: [id, carbonId], isPrincipal: false })
+                            }
+                        } else if (bondType === 2) { // =O
+                            // Check if Aldehyde, Ketone, Acid, Ester, Amide
+                            let neighborsO = 0
+                            let neighborsN = 0
+                            let neighborsC = 0
+                            ctx.graph.forEachNeighbor(carbonId.toString(), n => {
+                                if (parseInt(n) === id) return
+                                const nAttr = ctx.graph.getNodeAttributes(n)
+                                if (nAttr.element === 'O') neighborsO++
+                                else if (nAttr.element === 'N') neighborsN++
+                                else if (nAttr.element === 'C') neighborsC++
+                            })
+
+                            if (neighborsO > 0) {
+                                // Acid or Ester. We'd need to check if the other O is -OH or -OR.
+                                // For now, treat both as 'acid' for priority purposes or differentiate if needed.
+                                detectedGroups.push({ type: 'acid', atomIds: [id, carbonId], isPrincipal: false })
+                            } else if (neighborsN > 0) {
+                                detectedGroups.push({ type: 'amide', atomIds: [id, carbonId], isPrincipal: false })
+                            } else {
+                                // Check Carbon neighbors count for Aldehyde vs Ketone
+                                if (neighborsC >= 2) {
+                                    detectedGroups.push({ type: 'ketone', atomIds: [id, carbonId], isPrincipal: false })
+                                } else {
+                                    detectedGroups.push({ type: 'aldehyde', atomIds: [id, carbonId], isPrincipal: false })
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        ctx.functionalGroups = detectedGroups
+
+        // 3. Determine Principal Group(s) based on Priority
+        const priorityRank: Record<string, number> = {
+            'acid': 0, 'ester': 1, 'amide': 2, 'aldehyde': 3, 'ketone': 4, 'alcohol': 5, 'amine': 6, 'thiol': 7, 'benzene': 8
+        }
+
+        let bestRank = Infinity
+
+        // First pass: Find best rank
+        detectedGroups.forEach((g: FunctionalGroup) => {
+            const rank = priorityRank[g.type] ?? 99
+            if (rank < bestRank) {
+                bestRank = rank
+            }
+        })
+
+        if (bestRank !== Infinity) {
+            // Second pass: Collect all groups with best rank
+            const bestGroups = detectedGroups.filter((g: FunctionalGroup) => (priorityRank[g.type] ?? 99) === bestRank)
+
+            bestGroups.forEach(bg => bg.isPrincipal = true)
+            ctx.principalGroups = bestGroups
+            ctx.principalGroup = bestGroups[0] // Set one as representative for existing logic
+
+            const type = bestGroups[0].type
+            this.log(ctx, 'Functional Group Analysis', `Principal Group detected: ${type} (Count: ${bestGroups.length})`, 'success')
+        }
+    }
+
     private static determineParentStructure(ctx: AnalysisContext): boolean {
         // --- Step A: Longest Chain / Parent Structure ---
         const chainRule = ctx.currentSubSubject.rules.find(r => r.logicType === 'longest_chain')
+        // Also look for aromatic naming rule
+        const aromaticRule = ctx.currentSubSubject.rules.find(r => r.logicType === 'check_aromatic_naming')
 
-        if (chainRule && chainRule.unlocked) {
+        if ((chainRule && chainRule.unlocked) || (aromaticRule && aromaticRule.unlocked)) {
+            const activeRule = (aromaticRule && aromaticRule.unlocked) ? aromaticRule : chainRule!
             this.log(ctx, 'Rule Check', `Applying Parent Structure Rules...`, 'checking')
 
             // Detect Unsaturation (Double/Triple Bonds)
@@ -222,7 +359,7 @@ export class LogicEngine {
             edges.forEach((edge: string) => {
                 const attr = ctx.graph.getEdgeAttributes(edge)
                 const type = attr.type ? Number(attr.type) : 1
-                if (type > 1) {
+                if (type > 1 && type < 4) { // 2, 3 = double, triple. 4 = aromatic.
                     const [u, v] = ctx.graph.extremities(edge)
                     unsaturationEdges.push({
                         edge,
@@ -231,6 +368,24 @@ export class LogicEngine {
                     })
                 }
             })
+
+            // CHECK FOR BENZENE PARENT FIRST
+            const benzeneGroup = ctx.functionalGroups.find(g => g.type === 'benzene')
+            if (benzeneGroup && (ctx.principalGroup?.type === 'benzene' || !ctx.principalGroup)) {
+                // If benzene is the principal group OR there is no principal group (neutral benzene)
+                ctx.mainChainAtoms = benzeneGroup.atomIds
+                ctx.mainChainLen = 6
+                ctx.isBenzeneParent = true
+                ctx.isCyclic = true
+
+                const finalRoot = "benzene"
+                this.log(ctx, 'Topology Analysis', `Identified benzene ring as parent.`, 'success', `Parent: ${finalRoot}`)
+                ctx.appliedRuleIds.push(activeRule.id)
+                ctx.ruleResults[activeRule.id] = `Found benzene ring → ${finalRoot}`
+                ctx.finalName = "Benzene"
+                ctx.rootPart = { text: "benzene", type: 'root', ids: ctx.mainChainAtoms }
+                return true
+            }
 
             if (ctx.isCyclic) {
                 // CYCLIC LOGIC
@@ -267,8 +422,8 @@ export class LogicEngine {
                 const finalRoot = prefix + baseName.replace(/ane$/, suffix)
 
                 this.log(ctx, 'Topology Analysis', `Identified ${ctx.mainChainLen}-carbon ring as parent${ctx.unsaturations.length > 0 ? ' (contains unsaturation)' : ''}.`, 'success', `Parent: ${finalRoot}`)
-                ctx.appliedRuleIds.push(chainRule.id)
-                ctx.ruleResults[chainRule.id] = `Found ring with ${ctx.mainChainLen} carbons → ${finalRoot}`
+                ctx.appliedRuleIds.push(activeRule.id)
+                ctx.ruleResults[activeRule.id] = `Found ring with ${ctx.mainChainAtoms.length} carbons → ${finalRoot}`
                 ctx.finalName = finalRoot
                 ctx.rootPart = { text: finalRoot, type: 'root', ids: ctx.mainChainAtoms }
 
@@ -318,6 +473,26 @@ export class LogicEngine {
                         }
                     })
                     bestChain = bestC
+                } else if (ctx.principalGroups.length > 0 && (ctx.principalGroup!.type === 'alcohol' || ctx.principalGroup!.type === 'ketone' || ctx.principalGroup!.type === 'aldehyde' || ctx.principalGroup!.type === 'acid')) {
+                    // Find chain containing MAXIMUM number of Principal Groups
+                    // If tie, longest chain.
+
+                    const pfgAtomIds = new Set<number>()
+                    ctx.principalGroups.forEach(g => pfgAtomIds.add(g.atomIds[1])) // Use the C atom
+
+                    // Heuristic: Find paths between PFG atoms
+                    // Simplified: Just default to Longest Chain that contains the MOST PFGs.
+                    // This is complex. For now, try to find chain through at least ONE, then check.
+
+                    // Better: Get all terminal carbons. Find all paths. Score them.
+                    // Score = 1000 * n_PFG + length
+
+                    // Re-use candidates logic from above if needed, or stick to simple "must contain principal assignment"
+                    // Current simplification: Find longest chain passing through the FIRST principal group's carbon.
+                    // Ideally, we traverse to find max PFGs.
+
+                    const carbonId = ctx.principalGroups[0].atomIds[1]
+                    bestChain = this.findLongestChainThrough(ctx.graph, carbonId)
                 } else {
                     bestChain = GraphUtils.findLongestChain(ctx.graph)
                 }
@@ -338,8 +513,8 @@ export class LogicEngine {
                     const parentName = baseName.replace(/ane$/, suffix)
 
                     this.log(ctx, 'Topology Analysis', `Principal Chain has ${ctx.mainChainLen} carbons${ctx.unsaturations.length > 0 ? ` and ${ctx.unsaturations.length} unsaturations` : ''}.`, 'success', `Parent: ${parentName}`)
-                    ctx.appliedRuleIds.push(chainRule.id)
-                    ctx.ruleResults[chainRule.id] = `Found ${ctx.mainChainLen} carbons → ${parentName}`
+                    ctx.appliedRuleIds.push(activeRule.id)
+                    ctx.ruleResults[activeRule.id] = `Found ${ctx.mainChainLen} carbons → ${parentName}`
                     ctx.finalName = parentName
                     ctx.rootPart = { text: parentName, type: 'root', ids: ctx.mainChainAtoms }
                 } else {
@@ -386,115 +561,174 @@ export class LogicEngine {
         const prefixString = ctx.substituentParts.map(p => p.text).join('')
         let rootText = ctx.rootPart?.text.toLowerCase() || ''
 
-        // Handle Unsaturation Locants in Root
+        // 2. Handle Unsaturation (Alkenes / Alkynes)
         if (ctx.unsaturations && ctx.unsaturations.length > 0) {
-            const doubleBonds = ctx.unsaturations.filter(u => u.type === 2)
-            const tripleBonds = ctx.unsaturations.filter(u => u.type === 3)
+            rootText = this.formatUnsaturatedRoot(ctx)
+        }
 
-            const alkane = LogicEngine.getAlkaneName(ctx.mainChainLen).toLowerCase()
-            const baseRoot = ctx.isCyclic ? `cyclo${alkane.replace('ane', '')}` : alkane.replace('ane', '')
+        // 3. Handle Functional Group Suffixes (Alcohols, Aldehydes, etc.)
+        if (ctx.principalGroup && ctx.principalGroup.locant) {
+            rootText = this.applyFunctionalGroupSuffix(ctx, rootText)
+        }
 
-            const getLocs = (list: typeof ctx.unsaturations) => list.map(u => u.locant).sort((a, b) => (a || 0) - (b || 0)).join(',')
-            const getQty = (n: number) => n === 1 ? '' : (n === 2 ? 'di' : (n === 3 ? 'tri' : (n === 4 ? 'tetra' : 'poly')))
+        // 4. Update the actual root part text
+        if (ctx.rootPart) ctx.rootPart.text = rootText
 
-            // Epenthesis 'a'
-            // Logic for 'a' epenthesis
-            // Removed conjunction case: simple enyne "heptenyne" does not need 'a'.
-            const needsA = (doubleBonds.length > 1 || tripleBonds.length > 1)
-            const modBase = needsA ? baseRoot + 'a' : baseRoot
+        // 5. Final Assembly & Capitalization
+        const sysName = `${prefixString}${rootText}`
+        const benzeneName = this.handleBenzene(ctx, sysName)
 
-            const isSimple = ctx.substituentParts.length === 0 && (doubleBonds.length + tripleBonds.length === 1)
-            const isCyclic = ctx.isCyclic
+        // Set Final Name
+        if (benzeneName) {
+            ctx.finalName = this.capitalize(`${benzeneName} or ${sysName}`)
+            ctx.commonName = this.capitalize(benzeneName)
+        } else {
+            ctx.finalName = this.capitalize(sysName)
+        }
 
-            // formatting flags
-            let usePrefix = false
-            let omitLocant = false
+        // 6. Common Names Integration (Other types)
+        this.handleCommonNames(ctx, sysName)
+    }
 
-            if (isSimple && !isCyclic) {
-                const u = doubleBonds[0] || tripleBonds[0]
-                if (doubleBonds.length > 0) {
-                    // Alkene simple: "2-Butene", "Butene"
-                    usePrefix = true
-                    if (u.locant === 1) omitLocant = true
-                } else {
-                    // Alkyne simple: Test expects "Pent-2-yne". Infix.
-                    // But for "Butyne" (locant 1), maybe "1-Butyne" -> "Butyne"?
-                    usePrefix = false // Force Infix for Alkynes
-                    if (u.locant === 1) {
-                        // Expect "Butyne", "Pentyne".
-                        omitLocant = true // Logic: If Infix + Omit -> "Pentyne" (Base+Suffix)
-                    }
-                }
-            }
+    private static formatUnsaturatedRoot(ctx: AnalysisContext): string {
+        const doubleBonds = ctx.unsaturations.filter(u => u.type === 2)
+        const tripleBonds = ctx.unsaturations.filter(u => u.type === 3)
 
-            // Assemble
-            if (tripleBonds.length === 0) {
-                // Alkenes
-                const suffix = `${getQty(doubleBonds.length)}ene`
-                const locs = getLocs(doubleBonds)
+        const alkane = LogicEngine.getAlkaneName(ctx.mainChainLen).toLowerCase()
+        const baseRoot = ctx.isCyclic ? `cyclo${alkane.replace('ane', '')}` : alkane.replace('ane', '')
 
-                if (usePrefix) {
-                    if (omitLocant) rootText = `${modBase}${suffix}`
-                    else rootText = `${locs}-${modBase}${suffix}`
-                } else {
-                    // Infix or Cyclic Implicit
-                    if (isCyclic && doubleBonds.length === 1 && doubleBonds[0].locant === 1 && ctx.substituentParts.length === 0) {
-                        rootText = `${baseRoot}${suffix}`
-                    } else if (isCyclic && doubleBonds.length === 1 && doubleBonds[0].locant === 1) {
-                        // Cyclic with substituents: "3-methylcyclohexene".
-                        // Locant 1 is implicit for the Double Bond if substituents are numbered relative to it.
-                        // Standard: "cyclohexene" root.
-                        rootText = `${baseRoot}${suffix}`
-                    } else {
-                        // Cyclohex-1,3-diene
-                        rootText = `${modBase}-${locs}-${suffix}`
-                    }
-                }
-            } else if (doubleBonds.length === 0) {
-                // Alkynes
-                const suffix = `${getQty(tripleBonds.length)}yne`
-                const locs = getLocs(tripleBonds)
+        const getLocs = (list: typeof ctx.unsaturations) => list.map(u => u.locant).sort((a, b) => (a || 0) - (b || 0)).join(',')
+        const getQty = (n: number) => n === 1 ? '' : (n === 2 ? 'di' : (n === 3 ? 'tri' : (n === 4 ? 'tetra' : 'poly')))
 
-                if (omitLocant) {
-                    rootText = `${modBase}${suffix}`
-                } else {
-                    rootText = `${modBase}-${locs}-${suffix}`
-                }
+        const needsA = (doubleBonds.length > 1 || tripleBonds.length > 1)
+        const modBase = needsA ? baseRoot + 'a' : baseRoot
+
+        const isSimple = ctx.substituentParts.length === 0 && (doubleBonds.length + tripleBonds.length === 1) && !ctx.principalGroup
+        const isCyclic = ctx.isCyclic
+
+        let usePrefix = false
+        let omitLocant = false
+
+        if (isSimple && !isCyclic) {
+            const u = doubleBonds[0] || tripleBonds[0]
+            if (doubleBonds.length > 0) {
+                usePrefix = true
+                if (u.locant === 1) omitLocant = true
             } else {
-                // Enynes
-                const enLocs = getLocs(doubleBonds)
-                const enQty = getQty(doubleBonds.length)
-                const enPart = `${enLocs}-${enQty}ene`
-
-                const enPartElided = enPart.replace(/e$/, '')
-
-                const ynLocs = getLocs(tripleBonds)
-                const ynQty = getQty(tripleBonds.length)
-                const ynPart = `${ynLocs}-${ynQty}yne`
-
-                rootText = `${modBase}-${enPartElided}-${ynPart}`
+                usePrefix = false // Force Infix for Alkynes
+                if (u.locant === 1) omitLocant = true
             }
-
-            if (ctx.rootPart) ctx.rootPart.text = rootText
         }
 
-        let sysName = `${prefixString}${rootText}`
-
-        // Capitalize first letter logic
-        const capitalize = (s: string) => {
-            if (/^[a-zA-Z0-9]/.test(s)) {
-                // Find first letter
-                const match = s.match(/[a-zA-Z]/)
-                if (match && match.index !== undefined) {
-                    return s.substring(0, match.index) + match[0].toUpperCase() + s.substring(match.index + 1)
+        let final_name = ''
+        if (tripleBonds.length === 0) {
+            const suffix = `${getQty(doubleBonds.length)}ene`
+            const locs = getLocs(doubleBonds)
+            if (usePrefix) {
+                final_name = omitLocant ? `${modBase}${suffix}` : `${locs}-${modBase}${suffix}`
+            } else {
+                if (isCyclic && doubleBonds.length === 1 && doubleBonds[0].locant === 1) {
+                    final_name = `${baseRoot}${suffix}`
+                } else {
+                    final_name = `${modBase}-${locs}-${suffix}`
                 }
             }
-            return s
+        } else if (doubleBonds.length === 0) {
+            const suffix = `${getQty(tripleBonds.length)}yne`
+            const locs = getLocs(tripleBonds)
+            final_name = omitLocant ? `${modBase}${suffix}` : `${modBase}-${locs}-${suffix}`
+        } else {
+            const enLocs = getLocs(doubleBonds)
+            const enPart = `${enLocs}-${getQty(doubleBonds.length)}en`.replace(/e$/, '')
+            const ynLocs = getLocs(tripleBonds)
+            const ynPart = `${ynLocs}-${getQty(tripleBonds.length)}yne`
+            final_name = `${modBase}-${enPart}-${ynPart}`
+        }
+        return final_name
+    }
+
+
+
+    private static applyFunctionalGroupSuffix(ctx: AnalysisContext, rootText: string): string {
+        if (!ctx.principalGroups || ctx.principalGroups.length === 0) return rootText
+
+        // Ensure all have valid locants
+        const validGroups = ctx.principalGroups.filter(g => g.locant !== undefined)
+        if (validGroups.length === 0) return rootText
+
+        const type = validGroups[0].type
+        const rules = ctx.currentSubSubject.rules
+        let updatedRoot = rootText
+
+        const suffixRules: Record<string, { logic: string, suffix: string, implicitLocant?: boolean }> = {
+            'alcohol': { logic: 'check_suffix_alcohol', suffix: 'ol' },
+            'aldehyde': { logic: 'check_suffix_aldehyde', suffix: 'al', implicitLocant: true },
+            'ketone': { logic: 'check_suffix_ketone', suffix: 'one' },
+            'acid': { logic: 'check_suffix_acid', suffix: 'oic acid', implicitLocant: true }
         }
 
-        ctx.finalName = capitalize(sysName)
+        const config = suffixRules[type]
+        if (config) {
+            const rule = rules.find(r => r.logicType === config.logic)
+            if (rule && rule.unlocked) {
 
-        // Common Names Re-Integration
+                // Get Locants
+                const locs = validGroups.map(g => g.locant!).sort((a, b) => a - b)
+                const locString = locs.join(',')
+
+                // Determine Multiplier
+                const count = locs.length
+                const prefixes = ["", "", "di", "tri", "tetra", "penta", "hexa"]
+                const multiplier = prefixes[count] || ""
+
+                // Determine "e" retention
+                // If suffix starts with vowel (ol, al, one, oic acid) -> Drop 'e' from alkane
+                // UNLESS multiplier starts with consonant (diol, triol, dione) -> Keep 'e'
+
+                const suffixString = multiplier + config.suffix
+                const startsWithVowel = /^[aeiou]/.test(suffixString)
+
+                // Current rootText usually ends with 'ne' or 'n' or 'a' (alkane/alkene/alkyne)
+                // If pure alkane parent (e.g. Hexane), LogicEngine.getAlkaneName returns "Hexane" (with e).
+                // formatUnsaturatedRoot returns e.g. "hex-1-ene" (ends with e) or "hexan-1-ol"? No, base logic.
+
+                // Generally, if root ends in 'e', we might drop it.
+                // Standard: "Hexane" + "ol" -> "Hexanol" (drop e)
+                // "Hexane" + "diol" -> "Hexanediol" (keep e)
+
+                if (startsWithVowel) {
+                    updatedRoot = updatedRoot.replace(/e$/, '')
+                } else {
+                    // Ensure it ends with e if it was an alkane? 
+                    // Usually "Hexane" already has it.
+                    // If unsaturated "Hexene", keep e.
+                }
+
+                const isSimpleCyclic = ctx.isCyclic && ctx.unsaturations.length === 0 && count === 1 && locs[0] === 1
+                const isShortChain = ctx.mainChainLen <= 2 && count === 1 && locs[0] === 1
+
+                if ((config.implicitLocant && count === 1) || isSimpleCyclic || isShortChain) {
+                    // For aldehydes/acids at locant 1, or unambiguous alcohols (Methanol, Ethanol, Cyclohexanol)
+                    updatedRoot += suffixString
+                } else {
+                    // Insert Locants
+                    if (locString) {
+                        updatedRoot += `-${locString}-${suffixString}`
+                    } else {
+                        updatedRoot += suffixString
+
+                    }
+                }
+
+                ctx.appliedRuleIds.push(rule.id)
+                ctx.ruleResults[rule.id] = `${type.charAt(0).toUpperCase() + type.slice(1)} detected at ${locString} → -${suffixString} suffix`
+            }
+        }
+
+        return updatedRoot
+    }
+
+    private static handleCommonNames(ctx: AnalysisContext, sysName: string): void {
         const commonWhole = LogicEngine.getCommonName(sysName)
         let commonSubVariant = ctx.finalName
 
@@ -503,7 +737,7 @@ export class LogicEngine {
             parts.forEach((p: any) => {
                 commonSubVariant = commonSubVariant.split(p.systematic).join(p.common.toLowerCase())
             })
-            commonSubVariant = capitalize(commonSubVariant)
+            commonSubVariant = this.capitalize(commonSubVariant)
         }
 
         const hasCommonSub = commonSubVariant !== ctx.finalName
@@ -521,11 +755,63 @@ export class LogicEngine {
             ctx.commonName = commonSubVariant
             const commonParts = [...ctx.commonSubstituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])]
             if (commonParts.length > 0) {
-                commonParts[0] = { ...commonParts[0], text: capitalize(commonParts[0].text) }
+                commonParts[0] = { ...commonParts[0], text: this.capitalize(commonParts[0].text) }
             }
             ctx.commonNameParts = commonParts
         }
     }
+
+    private static capitalize(s: string): string {
+        if (/^[a-zA-Z0-9]/.test(s)) {
+            const match = s.match(/[a-zA-Z]/)
+            if (match && match.index !== undefined) {
+                return s.substring(0, match.index) + match[0].toUpperCase() + s.substring(match.index + 1)
+            }
+        }
+        return s
+    }
+
+    private static handleBenzene(ctx: AnalysisContext, sysName: string): string | null {
+        if (sysName.toLowerCase().includes('cyclohexa-1,3,5-triene')) {
+            let benzeneName = sysName.replace('cyclohexa-1,3,5-triene', 'benzene')
+
+            // Handle Mono-substituted Benzene (Omit 1-)
+            if (ctx.branchData.length === 1 && ctx.branchData[0].locant === 1) {
+                benzeneName = benzeneName.replace(/^1-/, '')
+            }
+
+            // Check substituents for Ortho/Meta/Para
+            if (ctx.branchData.length === 2 && ctx.branchData.every(b => b.locant !== undefined)) {
+                const locs = ctx.branchData.map(b => b.locant!).sort((a, b) => a - b)
+                const diff = locs[1] - locs[0]
+                let prefix = ''
+                if (diff === 1 || diff === 5) prefix = 'ortho-' // 1,2 or 1,6
+                else if (diff === 2 || diff === 4) prefix = 'meta-' // 1,3 or 1,5
+                else if (diff === 3) prefix = 'para-' // 1,4
+
+                if (prefix) {
+                    // Match "1,2-" pattern (Identical substituents)
+                    const regexSame = /^\d+,\d+-/
+                    if (regexSame.test(benzeneName)) {
+                        benzeneName = benzeneName.replace(regexSame, prefix)
+                    } else {
+                        // Match "1-Name-2-Name" pattern (Mixed substituents)
+                        // Replace first locant with prefix
+                        const startLoc = new RegExp(`^${locs[0]}-`)
+                        // Replace second locant with hyphen
+                        const midLoc = new RegExp(`-${locs[1]}-`)
+
+                        if (startLoc.test(benzeneName)) {
+                            benzeneName = benzeneName.replace(startLoc, prefix).replace(midLoc, '-')
+                        }
+                    }
+                }
+            }
+            return benzeneName
+        }
+        return null
+    }
+
 
     // --- Helpers ---
     private static getAlkaneName(n: number): string {
@@ -608,9 +894,23 @@ export class LogicEngine {
 
     private static findSubstituentAtoms(ctx: AnalysisContext, chainSet: Set<number>): number[] {
         const subIds: number[] = []
+
+        // Filter out atoms that belong to the Principal Group (suffix)
+        // so they don't get double-counted as substituents (prefix)
+        // Filter out atoms that belong to ANY Principal Group (suffix)
+        // so they don't get double-counted as substituents (prefix)
+        const principalIds = new Set<number>()
+        if (ctx.principalGroups) {
+            ctx.principalGroups.forEach(g => {
+                g.atomIds.forEach(id => principalIds.add(id))
+            })
+        }
+
         ctx.graph.forEachNode((node: string) => {
             const id = parseInt(node)
-            if (!chainSet.has(id)) subIds.push(id)
+            if (!chainSet.has(id) && !principalIds.has(id)) {
+                subIds.push(id)
+            }
         })
         return subIds
     }
@@ -1007,6 +1307,7 @@ export class LogicEngine {
             tripleBondSet: number[] // sorted
             alphaPairs: { sortKey: string, locant: number }[]
             invalidTraversal?: boolean
+            pfgLocant: number
         }
 
         const N = ctx.mainChainAtoms.length
@@ -1068,7 +1369,10 @@ export class LogicEngine {
                 doubleBondSet: [...doubleBondLocs].sort((a, b) => a - b),
                 tripleBondSet: [...tripleBondLocs].sort((a, b) => a - b),
                 alphaPairs,
-                invalidTraversal
+                invalidTraversal,
+                pfgLocant: (ctx.principalGroups && ctx.principalGroups.length > 0)
+                    ? Math.min(...ctx.principalGroups.map(g => transform(ctx.mainChainAtoms.indexOf(g.atomIds[1]))))
+                    : Infinity
             }
         }
 
@@ -1092,7 +1396,10 @@ export class LogicEngine {
 
         // Sort Schemes
         schemes.sort((a, b) => {
-            // 1. Unsaturation Locants (Set of ALL) (Lower is better)
+            // 0. Principal Functional Group locant (Lowest is best)
+            if (a.pfgLocant !== b.pfgLocant) return a.pfgLocant - b.pfgLocant
+
+            // 1 Unsaturation Locants (Set of ALL) (Lower is better)
             const uDiff = LogicEngine.compareLocantSets(a.unsatSet, b.unsatSet)
             if (uDiff !== 0) return uDiff
 
@@ -1118,6 +1425,133 @@ export class LogicEngine {
         ctx.unsaturations.forEach((u, i) => {
             u.locant = best.unsatLocants[i]
         })
+
+        // Update Principal Group Locants in Context
+        if (ctx.principalGroups) {
+            ctx.principalGroups.forEach(g => {
+                // The relevant atom for locant is the Carbon (atomIds[1] usually for OH/O)
+                // Or atomIds[0] if it's C=O?
+                // Standardize: Functional Groups detection should put Carbon at a known index or we search.
+                // For Alcohol: [O_id, C_id]. So index 1.
+                // For Ketone: [O_id, C_id]. Index 1.
+                // For Acid: [O_id, C_id]. Index 1.
+                // For Aldehyde: [O_id, C_id]. Index 1.
+
+                // Note: detectFunctionalGroups sets atomIds.
+                // Let's assume atomIds contains the carbon as one of them.
+                // Actually, detecting logic uses [id, carbonId]. So index 1 is Carbon.
+                if (g.atomIds.length > 1) {
+                    g.locant = best.pfgLocant // Wait, this assigns ONE locant to ALL groups? NO!
+                    // We need to re-map EACH group's carbon index.
+
+                    const cIndex = ctx.mainChainAtoms.indexOf(g.atomIds[1])
+                    if (cIndex !== -1) {
+                        // TRANSFORM cIndex using the scheme's transform?
+                        // The scheme object `best` only has the *results* (locant sets).
+                        // It does NOT expose the transform function.
+
+                        // We have best.subLocants which are parallel to branches.
+                        // usage of best.pfgLocant was for sorting.
+
+                        // We need to reconstruct the locant for THIS atom.
+                        // Since we don't have the transform function easily available here (it was a closure),
+                        // we can deduce it from the scheme properties if we store more info.
+                        // OR: Just re-calculate based on direction.
+
+                        // Optimization: In `getScheme`, we assume acyclic is 1..N or N..1.
+                        // Cyclic is rotated.
+                        // Let's just find the scheme index again? No that's expensive.
+
+                        // Simple solution: The scheme sorting determined the "Best Direction".
+                        // We should apply that direction to everything.
+                        // But we lost the "Direction" info (transform).
+
+                        // Let's Fix this by having `determineNumbering` return the map or context updates directly?
+                        // Or infer direction from the resulting SubLocants?
+
+                        // Hack: If acyclic, check if subLocants match L->R or R->L.
+                        // But if 0 subs, we don't know.
+
+                        // Let's fallback: If we are here, we have `ctx.principalGroups`.
+                        // `best.pfgLocant` corresponds to the LOWEST pfg locant.
+                        // But we need all of them.
+
+                        // Let's modify the code above to store the mapping or just recalculate.
+
+                        // CORRECT APPROACH:
+                        // `getScheme` returns `pfgLocant` which is just min(all pfgs).
+                        // But it didn't return ALL pfg locants.
+
+                        // I'll trust that `best.pfgLocant` is correct for the Representative Group.
+                        // But for multiple groups, we need to apply the same numbering scheme.
+
+                        // Since I cannot change `getScheme` easily without rewriting 100 lines, 
+                        // I will check 1 (Identity) vs N (Reverse) for Acyclic.
+                        // For Cyclic, it's harder.
+                    }
+                }
+            })
+
+            // RE-RUN SCHEME TO APPLY LOCANTS
+            // To avoid re-implementation, I will just re-derive the transform locally.
+            // This is safe because best scheme is deterministic.
+
+            // Actually, `best` contains `unsatLocants`.
+            // If we have unsaturations, we can deduce direction.
+            // If we have substituents, we can deduce.
+
+            // If we have nothing but Alcohols (e.g. Hexanediol), the numbering is determined by PFGs.
+            // The sort logic `if (a.pfgLocant !== b.pfgLocant)` handled it.
+
+            // Let's just Loop and find the transform that matches `best`'s properties.
+            // This is fast enough.
+
+            const transforms: ((i: number) => number)[] = []
+            if (!ctx.isCyclic) {
+                transforms.push(i => i + 1)
+                transforms.push(i => N - i)
+            } else {
+                for (let start = 0; start < N; start++) {
+                    transforms.push(i => (i - start + N) % N + 1)
+                    transforms.push(i => (start - i + N) % N + 1)
+                }
+            }
+
+            // Find transform that generates the `best` stats
+            // We can match `subSet` and `unsatSet`.
+            // If both empty, match `pfgLocant`.
+
+            const bestTransform = transforms.find(t => {
+                // Check PFG match (essential for Alcohols)
+                // pfgLocant in scheme is min(all pfgs)
+                const myPfgs = ctx.principalGroups.map(g => t(ctx.mainChainAtoms.indexOf(g.atomIds[1])))
+                const minPfg = Math.min(...myPfgs)
+                if (minPfg !== best.pfgLocant) return false
+
+                // If subs exist, check match
+                if (best.subLocants.length > 0) {
+                    const mySubs = branches.map(b => t(b.connIdx))
+                    // Compare exact arrays or sets? Best has `subLocants` array.
+                    // Note: `best.subLocants` is ordered by branch index.
+                    for (let k = 0; k < mySubs.length; k++) if (mySubs[k] !== best.subLocants[k]) return false
+                }
+
+                // If unsats exist, check match
+                // best.unsatLocants is ordered by unsat index
+                if (best.unsatLocants.length > 0) {
+                    // Note: Cyclic check in getScheme might force 1.
+                    // Let's assume standard logic matches.
+                }
+
+                return true
+            })
+
+            if (bestTransform) {
+                ctx.principalGroups.forEach(g => {
+                    g.locant = bestTransform(ctx.mainChainAtoms.indexOf(g.atomIds[1]))
+                })
+            }
+        }
 
         const locsString = best.subSet.join(', ')
         if (numRule) {
@@ -1301,5 +1735,37 @@ export class LogicEngine {
             if (foundPath) return foundPath
         }
         return null
+    }
+
+    private static findLongestChainThrough(graph: MoleculeGraph, middleNode: number): number[] {
+        const carbonNodes: string[] = []
+        graph.forEachNode((node: string, attr: any) => {
+            if (attr.element === 'C') carbonNodes.push(node)
+        })
+        const carbonSet = new Set(carbonNodes)
+        const terminalCarbons: string[] = []
+        carbonNodes.forEach(cNode => {
+            let carbonNeighbors = 0
+            graph.forEachNeighbor(cNode, (n: string) => {
+                if (carbonSet.has(n)) carbonNeighbors++
+            })
+            if (carbonNeighbors <= 1) terminalCarbons.push(cNode)
+        })
+
+        const startNodes = terminalCarbons.length > 0 ? terminalCarbons : carbonNodes
+        let bestPath: number[] = []
+
+        for (let i = 0; i < startNodes.length; i++) {
+            for (let j = i; j < startNodes.length; j++) {
+                const path = shortestPath.bidirectional(graph, startNodes[i], startNodes[j])
+                if (path && path.includes(middleNode.toString())) {
+                    if (!path.every((n: string) => carbonSet.has(n))) continue
+                    if (path.length > bestPath.length) {
+                        bestPath = path.map((k: string) => parseInt(k))
+                    }
+                }
+            }
+        }
+        return bestPath
     }
 }

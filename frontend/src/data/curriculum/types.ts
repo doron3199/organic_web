@@ -1,4 +1,4 @@
-export type RuleLogicType = 'longest_chain' | 'identify_substituents' | 'lowest_numbering' | 'alphabetical_order' | 'check_longest_chain' | 'check_lowest_locants' | 'check_alphabetical' | 'check_cyclo_naming' | 'check_halogens'
+export type RuleLogicType = 'longest_chain' | 'identify_substituents' | 'lowest_numbering' | 'alphabetical_order' | 'check_longest_chain' | 'check_lowest_locants' | 'check_alphabetical' | 'check_cyclo_naming' | 'check_halogens' | 'check_aromaticity' | 'check_aromatic_naming' | 'check_functional_priority' | 'check_suffix_alcohol' | 'check_suffix_aldehyde' | 'check_suffix_ketone' | 'check_suffix_acid' | 'check_suffix_ester' | 'check_suffix_amide'
 
 export interface Rule {
     id: string

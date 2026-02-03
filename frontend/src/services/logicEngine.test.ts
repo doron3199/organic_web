@@ -155,4 +155,39 @@ describe('LogicEngine IUPAC Rules', () => {
         });
     });
 
+    const alcohols = {
+        "CO": "Methanol",
+        "CCO": "Ethanol",
+        "CCC(O)C": "Butan-2-ol",
+        "CC(O)C": "Propan-2-ol",
+        "CC(O)CC(O)CC": "hexane-2,4-diol",
+        "CC(O)C(O)CC": "pentane-2,3-diol",
+        "CC(C)C(O)C(O)C": "4-methylpentane-2,3-diol",
+    };
+
+    Object.entries(alcohols).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
+
+    const benzenes = {
+        "c1ccccc1": "Benzene or Cyclohexa-1,3,5-triene",
+        "Clc1ccccc1": "Chlorobenzene or 1-Chlorocyclohexa-1,3,5-triene",
+        "Clc1c(Cl)cccc1": "ortho-Dichlorobenzene or 1,2-Dichlorocyclohexa-1,3,5-triene",
+        "Clc1cc(Cl)ccc1": "meta-Dichlorobenzene or 1,3-Dichlorocyclohexa-1,3,5-triene",
+        "Clc1ccc(Cl)cc1": "para-Dichlorobenzene or 1,4-Dichlorocyclohexa-1,3,5-triene",
+        "Cc1c(Cl)cccc1": "ortho-Chloro-methylbenzene or 1-Chloro-2-methylcyclohexa-1,3,5-triene",
+    };
+
+    Object.entries(benzenes).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
+
 });
