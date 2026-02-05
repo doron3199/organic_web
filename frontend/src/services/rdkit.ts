@@ -223,7 +223,8 @@ class RDKitService {
         autoAdd?: (string | Record<string, never>)[]
     ): Promise<ReactionOutcome | DebugReactionOutcome | null> {
         try {
-            const response = await fetch('http://localhost:8000/reaction', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/reaction`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -268,7 +269,8 @@ class RDKitService {
         conditions: string[]
     ): Promise<any | null> {
         try {
-            const response = await fetch('http://localhost:8000/reaction/substitution_elimination', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/reaction/substitution_elimination`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
