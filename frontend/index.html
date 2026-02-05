@@ -6,13 +6,24 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Organic Logic Workbench</title>
-  <!-- Kekule.js via CDN -->
+  <!-- RDKit via CDN -->
   <script src="https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
   <script>
     window.global = window;
+    window.process = { env: {} };
+    // Shim for libraries that might try to use require in browser
+    if (typeof window.require === 'undefined') {
+      window.require = function (name) {
+        console.warn('Dynamic require for ' + name + ' attempted');
+        return {};
+      };
+    }
   </script>
+</head>
+
+<body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
-  </body>
+</body>
 
 </html>

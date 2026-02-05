@@ -57,16 +57,20 @@ export default defineConfig({
     sourcemapIgnoreList: false,
   },
 
+  define: {
+    'process.env': {},
+    global: 'window',
+  },
+
   build: {
     // 3. FORCE SOURCEMAPS TO BE SEPARATE FILES
     // This prevents the huge strings from being appended to your JS
     // Set to false in production if memory is an issue
     sourcemap: process.env.NODE_ENV !== 'production',
-  },
-
-  define: {
-    'process.env': {},
-    global: 'window',
+    commonjsOptions: {
+      transformMixedEsModules: true,
+      include: [/node_modules/],
+    },
   },
 
   test: {
