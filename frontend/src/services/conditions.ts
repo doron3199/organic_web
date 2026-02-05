@@ -18,4 +18,13 @@ export const QUICK_ADD_MOLECULES: Record<string, { smiles: string, label: string
     'FeBr3': { smiles: '[Fe](Br)(Br)Br', label: '🧪 FeBr₃', isCondition: true },
     'FeCl3': { smiles: '[Fe](Cl)(Cl)Cl', label: '🧪 FeCl₃', isCondition: true },
     'AlCl3': { smiles: '[Al](Cl)(Cl)Cl', label: '🧪 AlCl₃', isCondition: true },
+    'NaBH4': { smiles: '[Na+].[BH4-]', label: '🧪 NaBH₄', isCondition: true },
+    'h3o': { smiles: '[OH3+]', label: '🧪 H₃O⁺', isCondition: true },
+    'LiAlH4': { smiles: '[Li+].[AlH4-]', label: '🧪 LiAlH₄', isCondition: true },
+    'Ether': { smiles: 'O(CC)CC', label: '🧪 Ether', isCondition: true },
+    'socl2': { smiles: 'ClS(=O)Cl', label: '🧪 SOCl₂', isCondition: true },
+    'pbr3': { smiles: 'BrP(Br)Br', label: '🧪 PBr₃', isCondition: true },
+    'pbcl': { smiles: 'ClP(Cl)Cl', label: '🧪 PCl₃', isCondition: true },
+    'pcc': { smiles: '[nH+]1ccccc1.[O-][Cr](=O)(=O)Cl', label: '🧪 PCC', isCondition: true },
+    'H2CrO4': { smiles: 'O[Cr](=O)(=O)O', label: '🧪 H₂CrO₄', isCondition: true },
 };

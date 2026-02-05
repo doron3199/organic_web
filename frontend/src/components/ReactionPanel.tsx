@@ -457,6 +457,60 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         onMoleculeUpdate(reactants.join('.'))
     }
 
+    const handleCurriculumExperiment = (smiles: string, conditionsStr: string) => {
+        // Close the modal
+        setSelectedReactionInfo(null)
+
+        // Update molecule
+        onMoleculeUpdate(smiles)
+
+        // Parse conditions
+        // Format can be "H2SO4", "Acid, Heat", "NaBH4, H3O+"
+        // We need to map these strings to IDs in AVAILABLE_CONDITIONS or QUICK_ADD_MOLECULES
+        const conditionIds: string[] = []
+
+        const parts = conditionsStr.split(',').map(s => s.trim())
+
+        for (const part of parts) {
+            // 1. Try exact ID match (case insensitive)
+            const idMatch = AVAILABLE_CONDITIONS.find(c => c.id.toLowerCase() === part.toLowerCase())
+            if (idMatch) {
+                conditionIds.push(idMatch.id)
+                continue
+            }
+
+            // 2. Try Label match (contains) in AVAILABLE_CONDITIONS
+            const labelMatch = AVAILABLE_CONDITIONS.find(c => c.label.toLowerCase().includes(part.toLowerCase()))
+            if (labelMatch) {
+                conditionIds.push(labelMatch.id)
+                continue
+            }
+
+            // 3. Try QUICK_ADD_MOLECULES (ID or Label)
+            const quickAddKey = Object.keys(QUICK_ADD_MOLECULES).find(k => k.toLowerCase() === part.toLowerCase())
+            if (quickAddKey) {
+                conditionIds.push(quickAddKey)
+                continue
+            }
+
+            const quickAddLabel = Object.entries(QUICK_ADD_MOLECULES).find(([, v]) => v.label.toLowerCase().includes(part.toLowerCase()))
+            if (quickAddLabel) {
+                conditionIds.push(quickAddLabel[0])
+                continue
+            }
+
+            // Fallback for known mappings if labels are tricky
+            if (part.toLowerCase() === 'acid' || part === 'H+') conditionIds.push('h2so4') // Map generic acid to H2SO4? Or maybe we need a generic acid condition?
+            // Assuming H2SO4 for now if not found, or maybe just ignore.
+        }
+
+        if (onConditionsChange) {
+            onConditionsChange(conditionIds)
+        } else {
+            setInternalConditions(conditionIds)
+        }
+    }
+
     return (
         <div className="reaction-panel">
             <div className="panel-header">
@@ -633,6 +687,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             <CurriculumModal
                 topic={selectedReactionInfo}
                 onClose={() => setSelectedReactionInfo(null)}
+                onExperiment={handleCurriculumExperiment}
             />
 
             {/* Reaction Mechanism Modal */}

@@ -1,4 +1,4 @@
-export type RuleLogicType = 'longest_chain' | 'identify_substituents' | 'lowest_numbering' | 'alphabetical_order' | 'check_longest_chain' | 'check_lowest_locants' | 'check_alphabetical' | 'check_cyclo_naming' | 'check_halogens' | 'check_aromaticity' | 'check_aromatic_naming' | 'check_functional_priority' | 'check_suffix_alcohol' | 'check_suffix_aldehyde' | 'check_suffix_ketone' | 'check_suffix_acid' | 'check_suffix_ester' | 'check_suffix_amide'
+export type RuleLogicType = 'longest_chain' | 'identify_substituents' | 'lowest_numbering' | 'alphabetical_order' | 'check_longest_chain' | 'check_lowest_locants' | 'check_alphabetical' | 'check_cyclo_naming' | 'check_halogens' | 'check_aromaticity' | 'check_aromatic_naming' | 'check_functional_priority' | 'check_suffix_alcohol' | 'check_suffix_aldehyde' | 'check_suffix_ketone' | 'check_suffix_acid' | 'check_suffix_ester' | 'check_suffix_amide' | 'check_suffix_thiol'
 
 export interface Rule {
     id: string
@@ -23,10 +23,12 @@ export interface ReactionProduct {
 
 export interface ReactionExample {
     id?: string; // Links to global reaction rule ID (e.g. 'alkane_halogenation_br')
+    name?: string;
     reactants: { smiles: string; name?: string }[];
     products: ReactionProduct[];
     conditions: string;
     autoAddMolecules?: { smiles: string; name: string }[];  // Molecules auto-added during reaction (e.g., oxidation reagents)
+    isEquilibrium?: boolean;
 }
 
 export interface SubSubject {

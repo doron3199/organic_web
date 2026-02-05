@@ -562,35 +562,95 @@ export const reactionRules: ReactionRule[] = [
 
     // --- ALCOHOLS & ETHERS ---
     {
-        id: 'alcohol_activation_hx_sn1',
-        name: 'Alcohol Activation (SN1)',
-        curriculum_subsubject_id: 'alcohols-activation',
-        // Step 1: Protonation
-        // Step 2: Loss of water (Carbocation)
-        // Step 3: Attack
+        id: 'reduction_of_aldehyde_and_ketone_with_hydride_ion',
+        name: 'Reduction of Aldehyde and Ketone with hydride ion',
+        curriculum_subsubject_id: 'alcohols-preparation-reduction-carbonyls',
         reactionSmarts: [
-            '[C:1][OH:2].[Br,Cl,I:3]>>[C:1][OH2+:2].[Br-,Cl-,I-:3]', // Protonation usually implied but we can show it
-            '[C:1][OH2+:2]>>[C+:1].[OH2:2]', // Loss of LG
-            '[C+:1].[Br-,Cl-,I-:3]>>[C:1][Br+0,Cl+0,I+0:3]' // Attack
+            '[C:1](=[O:2]).[Na+].[BH4-].[OH3+]>>[C:1]([O:2])[H]',
         ],
-        reactantsSmarts: ['[C;D3][OH]', '[Br,Cl,I]'], // Tertiary Alcohols match this pathway better
-        matchExplanation: 'Tertiary Alcohol + HX (SN1)',
-        description: 'Conversion to Alkyl Halide via SN1 (Carbocation).',
+        reactantsSmarts: ['[C](=[O])', '[Na+]', '[BH4-]', '[OH3+]'],
+        matchExplanation: 'Reduction of Aldehyde or Ketone with hydride ion',
+        description: 'Reduction of Aldehyde or Ketone to Alcohol.',
         conditions: [new Set()]
     },
     {
-        id: 'alcohol_activation_hx_sn2',
-        name: 'Alcohol Activation (SN2)',
-        curriculum_subsubject_id: 'alcohols-activation',
-        // Concerted displacement of protonated alcohol
+        id: 'ester_reduction_lialh4',
+        name: 'Reduction of Ester with LiAlH4',
+        curriculum_subsubject_id: 'alcohols-preparation-reduction-acids',
         reactionSmarts: [
-            '[C:1][OH:2].[Br,Cl,I:3]>>[C:1][OH2+:2].[Br-,Cl-,I-:3]', // Protonation
-            '[C:1][OH2+:2].[Br-,Cl-,I-:3]>>[C:1][Br+0,Cl+0,I+0:3].[OH2:2]' // Backside attack
+            '[CX3:1](=[OX1:2])[OX2:3][#6:4].[Li+].[AlH4-].[OH3+]>>[C:1][OH:2].[#6:4][OH:3]',
         ],
-        reactantsSmarts: ['[C;D1,D2][OH]', '[Br,Cl,I]'], // Primary/Methyl
-        matchExplanation: 'Primary Alcohol + HX (SN2)',
-        description: 'Conversion to Alkyl Halide via SN2.',
-        conditions: [new Set(['heat'])]
+        reactantsSmarts: ['[CX3](=[OX1])[OX2][#6]', '[Li+]', '[AlH4-]', '[OH3+]'],
+        matchExplanation: 'Reduction of Ester with LiAlH4',
+        description: 'Reduction of Ester to Primary Alcohol and Alcohol.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'carboxylic_acids_with_hydride_ion',
+        name: 'Reduction of Carboxylic Acid with Hydride Ion',
+        curriculum_subsubject_id: 'alcohols-preparation-reduction-acids',
+        reactionSmarts: [
+            '[CX3:1](=[OX1:2])[OX2:3].[Li+].[AlH4-].[OH3+]>>[C:1][OH:2]',
+        ],
+        reactantsSmarts: ['[CX3](=[OX1])[OX2]', '[Li+]', '[AlH4-]', '[OH3+]'],
+        matchExplanation: 'Reduction of Carboxylic Acid with Hydride Ion',
+        description: 'Reduction of Carboxylic Acid to Primary Alcohol.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'grignard_formation',
+        name: 'Formation of Grignard Reagent',
+        curriculum_subsubject_id: 'alcohols-grignard',
+        reactionSmarts: '[C:1][Cl,Br,I:2].[Mg].[C][C][O][C][C] >> [C:1][Mg][Cl,Br,I:2]',
+        reactantsSmarts: ['[C][Cl,Br,I]', '[Mg]', '[C][C][O][C][C]'],
+        matchExplanation: 'Alkyl Halide + Mg',
+        description: 'Formation of Grignard reagent from alkyl halide and magnesium metal.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'grignard_reaction_with_aldehyde',
+        name: 'Aldehyde Grignard',
+        curriculum_subsubject_id: 'alcohols-preparation-grignard',
+        reactionSmarts: [
+            '[C:1](=[O:2]).[C:3][Mg][Cl,Br,I] >> [C:1](-[C:3])(-[O:2]-[Mg]-[Cl,Br,I])',
+            '[O:2]-[Mg]-[Cl,Br,I].[OH3+:4] >> [O:2]'
+        ],
+        autoAdd: ['', '[OH3+]'],
+        reactantsSmarts: ['[C](=[O])', '[C][Mg][Cl,Br,I]'],
+        matchExplanation: 'Aldehyde Grignard',
+        description: 'Aldehyde Grignard.',
+        conditions: [new Set()]
+    },
+
+    {
+        id: 'alcohol_activation_socl2',
+        name: 'Activation with Thionyl Chloride',
+        curriculum_subsubject_id: 'alcohols-activation-socl2',
+        reactionSmarts: '[C:1][OH].[S](=O)([Cl])[Cl] >> [C:1][Cl]',
+        reactantsSmarts: ['[C;D1,D2][OH]', '[$([S](=O)(Cl)Cl)]'], // Primary/Secondary only
+        matchExplanation: 'Alcohol + SOCl2',
+        description: 'Conversion to Alkyl Chloride (SN2).',
+        conditions: [new Set()]
+    },
+    {
+        id: 'alcohol_activation_pbr3',
+        name: 'Activation with PBr3',
+        curriculum_subsubject_id: 'alcohols-activation-pbr3',
+        reactionSmarts: '[C:1][OH].[P](Br)(Br)Br >> [C:1][Br]',
+        reactantsSmarts: ['[C;D1,D2][OH]', '[$([P](Br)(Br)Br)]'], // Primary/Secondary only
+        matchExplanation: 'Alcohol + PBr3',
+        description: 'Conversion to Alkyl Bromide (SN2).',
+        conditions: [new Set()]
+    },
+    {
+        id: 'alcohol_activation_pbcl',
+        name: 'Activation with PCl3',
+        curriculum_subsubject_id: 'alcohols-activation-pbcl',
+        reactionSmarts: '[C:1][OH].[P](Cl)(Cl)Cl >> [C:1][Cl]',
+        reactantsSmarts: ['[C;D1,D2][OH]', '[$([P](Cl)(Cl)Cl)]'], // Primary/Secondary only
+        matchExplanation: 'Alcohol + PCl3',
+        description: 'Conversion to Alkyl Chloride (SN2).',
+        conditions: [new Set()]
     },
     {
         id: 'alcohol_dehydration',
@@ -630,11 +690,59 @@ export const reactionRules: ReactionRule[] = [
         conditions: [new Set(['jones'])]
     },
     {
+        id: 'alcohol_oxidation_pcc',
+        name: 'Oxidation (PCC)',
+        curriculum_subsubject_id: 'alcohols-oxidation',
+        reactionSmarts: '[C;H2:1][OH].[nH+]1ccccc1.[O-][Cr](Cl)(=O)=O>>[C:1]=[O]',
+        reactantsSmarts: ['[C;H2][OH]', '[nH+]1ccccc1', '[O-][Cr](Cl)(=O)=O'], // Chromic source
+        matchExplanation: 'Alcohol + PCC',
+        description: 'Oxidation to Ketone.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'alcohol_oxidation_h2cro4',
+        name: 'Oxidation',
+        curriculum_subsubject_id: 'alcohols-oxidation',
+        // Secondary Alcohol -> Ketone
+        reactionSmarts: [
+            '[C;H2:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O',
+            '[C:1]=[O]>>[C:1](=[O])[OH]',
+        ],
+        reactantsSmarts: ['[C;H2][OH]', 'O[Cr](O)(=O)=O'], // Chromic source
+        matchExplanation: 'Alcohol + H2CRO4',
+        description: 'Oxidation to carboxylic acid.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'alcohol_oxidation_h2cro4_2',
+        name: 'Oxidation',
+        curriculum_subsubject_id: 'alcohols-oxidation',
+        // Secondary Alcohol -> Ketone
+        reactionSmarts: '[C;H1:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O',
+        reactantsSmarts: ['[C;H1][OH]', 'O[Cr](O)(=O)=O'], // Chromic source
+        matchExplanation: 'Alcohol + H2CRO4',
+        description: 'Oxidation to carboxylic acid.',
+        conditions: [new Set()]
+    },
+    {
         id: 'williamson_ether_synthesis',
         name: 'Williamson Ether Synthesis',
         curriculum_subsubject_id: 'ethers-epoxides',
         reactionSmarts: '[C:1][O-].[C:2][F,Cl,Br,I]>>[C:1][O][C:2].[F-,Cl-,Br-,I-]',
         reactantsSmarts: ['[C][O-]', '[C;D1][F,Cl,Br,I]'], // Alkoxide + Primary Alkyl Halide
+        matchExplanation: 'Alkoxide + Alkyl Halide',
+        description: 'SN2 formation of an ether.',
+        conditions: [new Set()]
+    },
+    {
+        id: 'epoxide_creation',
+        name: 'Epoxide Creation',
+        curriculum_subsubject_id: 'ethers-epoxides',
+        reactionSmarts: [
+            '[O:1][C:2][C:3][Cl,Br,I:4].[Na]>>[O-:1][C:2][C:3][Cl,Br,I:4]',
+            '[O-:1][C:2][C:3][Cl,Br,I:4]>>[O+0:1]1[C:2][C:3]1'
+        ],
+        reactantsSmarts: ['OCC[Cl,Br,I]', '[NaH]'], // Alkoxide + Primary Alkyl Halide
         matchExplanation: 'Alkoxide + Alkyl Halide',
         description: 'SN2 formation of an ether.',
         conditions: [new Set()]
@@ -646,23 +754,73 @@ export const reactionRules: ReactionRule[] = [
         // Ring opening at more substituted carbon
         reactionSmarts: [
             '[C:1]1[O:2][C:3]1.[H+]>>[C:1]1[O+:2][C:3]1', // Protonation
-            '[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][OH:2]' // Attack by nucleophile (water in this case) on C:1 (assume more sub) - Needs rank/selectivity
+            '[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][O+0:2]' // Attack by nucleophile (water in this case) on C:1
         ],
         reactantsSmarts: ['[C]1[O][C]1', '[H+]', '[O]'], // Epoxide, acid, nuc
         matchExplanation: 'Epoxide + Acid + Nucleophile',
         description: 'Ring opening at the more substituted carbon.',
+        conditions: [new Set()],
+        selectivity: {
+            type: 'rank',
+            rules: [
+                { smarts: '[C;D4][O;D2]', label: 'major' }, // Tertiary Ether
+                { smarts: '[C;D3][O;D2]', label: 'major' }, // Secondary Ether
+                { smarts: '[C;D2][O;D2]', label: 'minor' }  // Primary Ether
+            ]
+        }
+    },
+    {
+        id: 'epoxide_opening_basic',
+        name: 'Epoxide Opening (Basic)',
+        curriculum_subsubject_id: 'ethers-epoxides',
+        // Ring opening at less substituted carbon
+        reactionSmarts: [
+            '[O-,N:4].[C;H2:1]1[O:2][C:3]1>>[O+0,N+:4][C:1][C:3][O-:2]', // Attack by nucleophile on C:1
+            '[O-,N+:2].[H+]>>[O+0,N+0:2]' // Protonation
+        ],
+        reactantsSmarts: ['[C]1[O][C]1', '[O-,N]'], // Epoxide, Base (Alkoxide)
+        matchExplanation: 'Epoxide + Strong Nucleophile (Basic)',
+        description: 'Attack at the less substituted carbon (Sterics).',
+        autoAdd: ['', '[H+]'],
+        conditions: [new Set()],
+        selectivity: {
+            type: 'rank',
+            rules: [
+                { smarts: '[C;D4][O:4]', label: 'minor' }, // Tertiary
+                { smarts: '[C;D3][O:4]', label: 'minor' }, // Secondary
+                { smarts: '[C;D2][O:4]', label: 'major' }  // Primary
+            ]
+        }
+    },
+    {
+        id: 'thiol_oxidation_disulfide',
+        name: 'Oxidation to Disulfide',
+        curriculum_subsubject_id: 'thiols-sulfides',
+        reactionSmarts: '[S;H1:1].[S;H1:2]>>[S:1][S:2]',
+        reactantsSmarts: ['[S;H1]', '[S;H1]'],
+        matchExplanation: 'Thiol + Thiol (Oxidation)',
+        description: 'Mild oxidation of thiols to form a disulfide.',
+        conditions: [new Set([])]
+    },
+    {
+        id: 'amine_protonation',
+        name: 'Amine Protonation (Base)',
+        curriculum_subsubject_id: 'amines-intro',
+        reactionSmarts: '[N;H3,H2,H1:1].[F,Cl,Br,I:2]>>[N+:1].[F,Cl,Br,I-:2]',
+        reactantsSmarts: ['[N;H3,H2,H1]', '[F,Cl,Br,I]'],
+        matchExplanation: 'Amine + HX',
+        description: 'Amine acts as a base, accepting a proton from an acid to form an ammonium salt.',
         conditions: [new Set()]
     },
-
     {
         id: 'elimination_substitution',
         name: 'Elimination Substitution',
         curriculum_subsubject_id: 'elimination-substitution',
         reactionSmarts: '',
-        reactantsSmarts: ['[CX4][F,Cl,Br,I]', '[*]'], // Alkyl Halide + Nucleophile
+        reactantsSmarts: ['[CX4][F,Cl,Br,I,O]', '[*]'], // Alkyl Halide + Nucleophile
         matchExplanation: 'Elimination Substitution',
         description: 'Elimination Substitution',
-        conditions: [new Set()],
+        conditions: [new Set(), new Set(['heat'])],
     },
     {
         id: 'intramolecular_substitution',

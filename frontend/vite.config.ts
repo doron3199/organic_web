@@ -1,13 +1,14 @@
-import { defineConfig } from 'vitest/config'
+/// <reference types="vitest" />
+import { defineConfig, type UserConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { webdriverio } from '@vitest/browser-webdriverio'
 
-// Auto-copy Ketcher WASM files to public folder
+// --- Ketcher WASM Copy Logic ---
 try {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  // Copy ALL files from the binaryWasm directory (wasm, js, maps)
   const sourceDir = path.resolve(__dirname, 'node_modules/ketcher-standalone/dist/binaryWasm')
   const destDir = path.resolve(__dirname, 'public')
 
@@ -15,7 +16,6 @@ try {
     fs.mkdirSync(destDir, { recursive: true })
   }
 
-  // Get all files in source directory
   if (fs.existsSync(sourceDir)) {
     const files = fs.readdirSync(sourceDir)
     files.forEach(file => {
@@ -24,9 +24,7 @@ try {
       if (stats.isFile()) {
         const dest = path.join(destDir, file)
         fs.copyFileSync(src, dest)
-        console.log(`[Vite Config] Copied ${file} to public/`)
 
-        // Create standard aliases for versioned files to ensure Ketcher can find them
         let alias = null;
         if (file.match(/indigo-ketcher-\d+\.\d+\.\d+\.wasm$/)) {
           alias = 'indigo-ketcher.wasm';
@@ -38,30 +36,41 @@ try {
 
         if (alias) {
           fs.copyFileSync(src, path.join(destDir, alias));
-          console.log(`[Vite Config] Created alias: ${alias} -> ${file}`);
         }
       }
     })
-  } else {
-    console.warn(`[Vite Config] Warning: Source dir ${sourceDir} not found`)
   }
 } catch (e) {
   console.error('[Vite Config] Error copying Ketcher files:', e)
 }
 
-// https://vitejs.dev/config/
-import { webdriverio } from '@vitest/browser-webdriverio'
-
+// --- Main Config ---
 export default defineConfig({
+  // 1. ADD THE PLUGINS (Crucial for React)
+  plugins: [react()],
+
   server: {
-    host: '0.0.0.0', // Listen on all network interfaces (IPv4 + IPv6)
+    host: '0.0.0.0',
     port: 5173,
+    // 2. DISABLE INLINE SOURCEMAPS IN DEV
+    // This stops the "jumping" to that giant base64 line
+    sourcemapIgnoreList: false,
   },
+
+  build: {
+    // 3. FORCE SOURCEMAPS TO BE SEPARATE FILES
+    // This prevents the huge strings from being appended to your JS
+    sourcemap: true,
+  },
+
   define: {
     'process.env': {},
     global: 'window',
   },
+
   test: {
+    globals: true, // Recommended for Vitest
+    environment: 'jsdom', // Standard for React testing
     browser: {
       enabled: true,
       provider: webdriverio({}),
@@ -71,4 +80,4 @@ export default defineConfig({
     },
     setupFiles: ['./vitest.setup.ts'],
   },
-})
+} as UserConfig & { test: any })

@@ -18,6 +18,7 @@ function ReactionEquation({ reaction, onExperiment }: ReactionEquationProps) {
 
     return (
         <div className="reaction-equation-wrapper">
+            {reaction.name && <h3 className="reaction-title">{reaction.name}</h3>}
             {onExperiment && (
                 <div className="experiment-controls">
                     <button className="btn-experiment" onClick={handleExperimentClick}>
@@ -47,7 +48,7 @@ function ReactionEquation({ reaction, onExperiment }: ReactionEquationProps) {
                 {/* Arrow & Conditions */}
                 <div className="reaction-arrow-container">
                     <div className="reaction-condition">{reaction.conditions}</div>
-                    <div className="reaction-arrow">→</div>
+                    <div className="reaction-arrow">{reaction.isEquilibrium ? '⇌' : '→'}</div>
                 </div>
 
                 {/* Auto-Add Molecules (display only, not included in experiment) */}

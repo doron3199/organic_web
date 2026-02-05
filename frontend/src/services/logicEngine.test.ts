@@ -190,4 +190,39 @@ describe('LogicEngine IUPAC Rules', () => {
         });
     });
 
+
+    const ethers = {
+        "COC": "Dimethyl ether",
+        "COCC": "Ethyl methyl ether",
+        "CCOCC": "Diethyl ether",
+        "CC(C)OC": "Isopropyl methyl ether",
+        "CC(C)OCC": "Ethyl isopropyl ether",
+        "COC(C)(C)C": "Tert-Butyl methyl ether",
+    };
+
+    Object.entries(ethers).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
+
+
+
+    const thiols = {
+        "CCS": "Ethanethiol",
+        "CCCS": "Propane-1-thiol",
+        "CC(C)CCS": "3-Methylbutane-1-thiol",
+        "OCCS": "2-Mercaptoethanol"
+    };
+
+    Object.entries(thiols).forEach(([smile, expectedName]) => {
+        it(`correctly names ${smile}`, () => {
+            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
+            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
+            expect(res.isValid).toBe(true);
+        });
+    });
+
 });

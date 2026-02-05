@@ -97,6 +97,7 @@ const MOLECULE_BANK: Record<string, string> = {
     'F': 'HF',
     '[H][H]': 'H<sub>2</sub>',
     'O': 'H<sub>2</sub>O',
+    'COC': 'Dimethyl ether',
 }
 
 export class LogicEngine {
@@ -255,6 +256,24 @@ export class LogicEngine {
         nodes.forEach(node => {
             const attr = ctx.graph.getNodeAttributes(node)
             const id = parseInt(node)
+
+            // Detect Thiols (S-H)
+            if (attr.element === 'S') {
+                const neighbors = ctx.graph.neighbors(node).map(n => parseInt(n))
+                if (neighbors.length === 1) {
+                    const carbonId = neighbors[0]
+                    const carbonAttr = ctx.graph.getNodeAttributes(carbonId.toString())
+                    if (carbonAttr.element === 'C') {
+                        const edge = ctx.graph.edge(node, carbonId.toString())
+                        const bondType = ctx.graph.getEdgeAttribute(edge, 'type')
+                        // Single bond S-C
+                        if (bondType === 1) {
+                            detectedGroups.push({ type: 'thiol', atomIds: [id, carbonId], isPrincipal: false })
+                        }
+                    }
+                }
+            }
+
             if (attr.element === 'O') {
                 const neighbors = ctx.graph.neighbors(node).map(n => parseInt(n))
                 if (neighbors.length === 1) {
@@ -308,6 +327,49 @@ export class LogicEngine {
                             }
                         }
                     }
+                } else if (neighbors.length === 2) {
+                    // Check for Ether: C-O-C
+                    const n1 = neighbors[0]
+                    const n2 = neighbors[1]
+                    const attr1 = ctx.graph.getNodeAttributes(n1.toString())
+                    const attr2 = ctx.graph.getNodeAttributes(n2.toString())
+
+                    if (attr1.element === 'C' && attr2.element === 'C') {
+                        const e1 = ctx.graph.edge(node, n1.toString())
+                        const e2 = ctx.graph.edge(node, n2.toString())
+
+                        if (e1 && e2) {
+                            const t1 = ctx.graph.getEdgeAttribute(e1, 'type')
+                            const t2 = ctx.graph.getEdgeAttribute(e2, 'type')
+
+                            if (t1 === 1 && t2 === 1) {
+                                // Start by assuming Ether
+                                let isFunctionalDerivative = false
+
+                                // Check for Ester/Anhydride signatures on neighbors (C=O or C=N etc)
+                                const checkCarbonyl = (cId: number) => {
+                                    let found = false
+                                    ctx.graph.forEachNeighbor(cId.toString(), n => {
+                                        if (parseInt(n) === id) return
+                                        const nbAttr = ctx.graph.getNodeAttributes(n)
+                                        if (nbAttr.element === 'O') {
+                                            const edge = ctx.graph.edge(cId.toString(), n)
+                                            if (ctx.graph.getEdgeAttribute(edge, 'type') === 2) found = true
+                                        }
+                                    })
+                                    return found
+                                }
+
+                                if (checkCarbonyl(n1) || checkCarbonyl(n2)) {
+                                    isFunctionalDerivative = true
+                                }
+
+                                if (!isFunctionalDerivative) {
+                                    detectedGroups.push({ type: 'ether', atomIds: [id, n1, n2], isPrincipal: false })
+                                }
+                            }
+                        }
+                    }
                 }
             }
         })
@@ -329,10 +391,12 @@ export class LogicEngine {
             }
         })
 
-        if (bestRank !== Infinity) {
-            // Second pass: Collect all groups with best rank
-            const bestGroups = detectedGroups.filter((g: FunctionalGroup) => (priorityRank[g.type] ?? 99) === bestRank)
+        // Second pass: Collect all groups with best rank, EXCLUDING ethers (they are always substituents)
+        const bestGroups = detectedGroups.filter((g: FunctionalGroup) =>
+            g.type !== 'ether' && (priorityRank[g.type] ?? 99) === bestRank
+        )
 
+        if (bestGroups.length > 0) {
             bestGroups.forEach(bg => bg.isPrincipal = true)
             ctx.principalGroups = bestGroups
             ctx.principalGroup = bestGroups[0] // Set one as representative for existing logic
@@ -664,7 +728,8 @@ export class LogicEngine {
             'alcohol': { logic: 'check_suffix_alcohol', suffix: 'ol' },
             'aldehyde': { logic: 'check_suffix_aldehyde', suffix: 'al', implicitLocant: true },
             'ketone': { logic: 'check_suffix_ketone', suffix: 'one' },
-            'acid': { logic: 'check_suffix_acid', suffix: 'oic acid', implicitLocant: true }
+            'acid': { logic: 'check_suffix_acid', suffix: 'oic acid', implicitLocant: true },
+            'thiol': { logic: 'check_suffix_thiol', suffix: 'thiol' }
         }
 
         const config = suffixRules[type]
@@ -729,6 +794,11 @@ export class LogicEngine {
     }
 
     private static handleCommonNames(ctx: AnalysisContext, sysName: string): void {
+        // Ether Common Naming
+        if (ctx.functionalGroups.some(g => g.type === 'ether')) {
+            this.handleEtherCommonNames(ctx)
+        }
+
         const commonWhole = LogicEngine.getCommonName(sysName)
         let commonSubVariant = ctx.finalName
 
@@ -973,6 +1043,57 @@ export class LogicEngine {
     }
 
     private static resolveSubstituentName(fullGraph: MoleculeGraph, branchIds: number[], attachId: number): string {
+        const attachAttr = fullGraph.getNodeAttributes(attachId.toString())
+
+        if (attachAttr.element === 'S') {
+            // Mercapto / Alkylthio Detection
+            const rBranchIds = branchIds.filter(id => id !== attachId)
+            let rId = -1
+            const branchSet = new Set(branchIds)
+            fullGraph.forEachNeighbor(attachId.toString(), (n) => {
+                const nid = parseInt(n)
+                if (branchSet.has(nid) && nid !== attachId) rId = nid
+            })
+
+            if (rId !== -1 && rBranchIds.length > 0) {
+                const alkylName = this.resolveSubstituentName(fullGraph, rBranchIds, rId)
+                // Systematically: (alkylsulfanyl)? Or alkylthio.
+                // IUPAC prefers alkylsulfanyl but alkylthio is common.
+                // Let's stick effectively to "Alkylthio" or "Alkylthio"
+                return alkylName + 'thio'
+            } else {
+                return 'Mercapto'
+            }
+        }
+
+        if (attachAttr.element === 'O') {
+            // ALKOXY Detection
+            const rBranchIds = branchIds.filter(id => id !== attachId)
+            let rId = -1
+            const branchSet = new Set(branchIds)
+            fullGraph.forEachNeighbor(attachId.toString(), (n) => {
+                const nid = parseInt(n)
+                if (branchSet.has(nid) && nid !== attachId) rId = nid
+            })
+
+            if (rId !== -1 && rBranchIds.length > 0) {
+                const alkylName = this.resolveSubstituentName(fullGraph, rBranchIds, rId)
+
+                // Contractions for Common/Preferred Names
+                const lower = alkylName.toLowerCase()
+                if (lower === 'methyl') return 'Methoxy'
+                if (lower === 'ethyl') return 'Ethoxy'
+                if (lower === 'propyl') return 'Propoxy'
+                if (lower === 'butyl') return 'Butoxy'
+                if (lower === 'isopropyl') return 'Isopropoxy'
+                if (lower === 'isobutyl') return 'Isobutoxy'
+                if (lower === 'tert-butyl') return 'tert-Butoxy'
+                if (lower === 'sec-butyl') return 'sec-Butoxy'
+
+                // Systematic handling
+                return alkylName + 'oxy'
+            }
+        }
         // 1. Simple Case Check (Optimization)
         // If small size and no rings/branches likely, use GraphUtils for speed?
         // Actually, let's just stick to reliable logic. Logic checks won't hurt.
@@ -1767,5 +1888,95 @@ export class LogicEngine {
             }
         }
         return bestPath
+    }
+
+    private static handleEtherCommonNames(ctx: AnalysisContext): void {
+        // Only applicable if the molecule is MAINLY an ether
+        // If it has higher priority groups (like acid), strict common naming applies there.
+        // But the prompt implies "Naming of Ethers", so we should try to provide it if Ether is the dominant feature.
+
+        // Find the 'best' ether group (if multiple). 
+        const etherGroup = ctx.functionalGroups.find(g => g.type === 'ether')
+        if (!etherGroup) return
+
+        // Check if there are higher priority groups
+        const priorityGroups = ctx.functionalGroups.filter(g => ['acid', 'ester', 'aldehyde', 'ketone', 'alcohol'].includes(g.type))
+        if (priorityGroups.length > 0) return // Defer to other common styles
+
+        // Check for multiple ethers (Polyethers -> usually systematic)
+        const etherGroups = ctx.functionalGroups.filter(g => g.type === 'ether')
+        if (etherGroups.length > 1) return
+
+        // Identify the TWO alkyl groups attached to the Oxygen
+        // The Ether Group has atomIds: [O, C1, C2]
+        const [oId, c1, c2] = etherGroup.atomIds
+
+        // We need to split the molecule into 3 parts: O, Group1, Group2
+        // Perform BFS/DFS from c1 blocking O, and c2 blocking O.
+
+        const getGroupIds = (startNode: number, blockNode: number) => {
+            const component: number[] = []
+            const q = [startNode]
+            const visited = new Set([startNode, blockNode])
+            while (q.length) {
+                const curr = q.shift()!
+                component.push(curr)
+                ctx.graph.forEachNeighbor(curr.toString(), n => {
+                    const nid = parseInt(n)
+                    if (!visited.has(nid)) {
+                        visited.add(nid)
+                        q.push(nid)
+                    }
+                })
+            }
+            return component
+        }
+
+        const group1Ids = getGroupIds(c1, oId)
+        const group2Ids = getGroupIds(c2, oId)
+
+        // Resolve names for these groups
+        // We can treat them as substituents attached to Oxygen
+        const name1 = this.resolveSubstituentName(ctx.graph, group1Ids, c1)
+        const name2 = this.resolveSubstituentName(ctx.graph, group2Ids, c2)
+
+        // Check for common names of substituents (e.g. Isopropyl)
+        const common1 = LogicEngine.getCommonSubstituentName(name1.toLowerCase()) || name1
+        const common2 = LogicEngine.getCommonSubstituentName(name2.toLowerCase()) || name2
+
+        // Alphabetize
+        // Alphabetize
+        const names = [common1, common2].sort((a, b) => LogicEngine.getSortKey(a).localeCompare(LogicEngine.getSortKey(b)))
+
+        let commonName = ""
+        if (names[0].toLowerCase() === names[1].toLowerCase()) {
+            commonName = `Di${names[0].toLowerCase()} ether`
+        } else {
+            commonName = `${names[0]} ${names[1]} ether` // user requested "ethyl methyl ether" (lowercase usually, but we Capitalize)
+        }
+
+        ctx.commonName = this.capitalize(commonName)
+        // We override final name if it was just "Ether"? No, usually it's "Methoxyethane"
+        // User Request: Use Strict Common Name if available
+        ctx.finalName = this.capitalize(commonName)
+
+        // Parts for highlighting
+        // We need to map the parts back to atoms
+        // Root: The Oxygen? Or specific handling.
+        // Let's just provide the full string for now in parts? 
+        ctx.commonNameParts = [
+            { text: names[0], type: 'substituent', ids: group1Ids }, // Not quite right mapping, but okay
+            { text: names[1], type: 'substituent', ids: group2Ids },
+            { text: 'ether', type: 'root', ids: [oId] }
+        ]
+
+        // Sort parts by text appearance?
+        if (names[0] === common1) {
+            ctx.commonNameParts = [
+                { text: common1, type: 'substituent', ids: (names[0] === name1 ? group1Ids : group2Ids) }, // ambiguous if same name
+                { text: common2, type: 'substituent', ids: (names[0] === name1 ? group2Ids : group1Ids) },
+                { text: 'ether', type: 'root', ids: [oId] }
+            ]
+        }
     }
 }

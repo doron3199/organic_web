@@ -12,6 +12,7 @@ export const ALL_RULES: SubSubject = {
         { id: 'rule-alphabetical-order', name: 'Alphabetical Order', logicType: 'alphabetical_order', unlocked: true, smarts: '', description: 'List substituents in alphabetical order.' },
         { id: 'rule-cyclo-naming', name: 'Cyclo Naming', logicType: 'check_cyclo_naming', unlocked: true, smarts: '', description: 'Apply rules for cyclic compounds.' },
         { id: 'rule-suffix-alcohol', name: 'Alcohol Suffix', logicType: 'check_suffix_alcohol', unlocked: true, smarts: '[OX2H]', description: 'Change the parent suffix to -ol.' },
+        { id: 'rule-suffix-thiol', name: 'Thiol Suffix', logicType: 'check_suffix_thiol', unlocked: true, smarts: '[SX2H]', description: 'Change the parent suffix to -thiol.' },
         { id: 'rule-func-priority', name: 'Functional Group Priority', logicType: 'check_functional_priority', unlocked: true, smarts: '', description: 'Prioritize functional groups in numbering.' }
     ]
 };
