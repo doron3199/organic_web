@@ -60,7 +60,8 @@ export default defineConfig({
   build: {
     // 3. FORCE SOURCEMAPS TO BE SEPARATE FILES
     // This prevents the huge strings from being appended to your JS
-    sourcemap: true,
+    // Set to false in production if memory is an issue
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
 
   define: {
