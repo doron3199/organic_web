@@ -111,6 +111,7 @@ function App() {
     }
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
 
     const handleNameMolecule = (smiles: string) => {
         // Handle multiple molecules (dot-separated)
@@ -149,21 +150,28 @@ function App() {
         ))
     }
 
+    const showRightSidebar = mode !== 'cheatsheet' && mode !== 'study'
+
     return (
-        <div className={`app-container ${!isSidebarOpen ? 'sidebar-collapsed' : ''} ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''} ${mode === 'study' ? 'study-mode' : ''}`}>
+        <div className={`app-container 
+            ${!isSidebarOpen ? 'sidebar-collapsed' : ''} 
+            ${!isRightSidebarOpen ? 'right-sidebar-collapsed' : ''} 
+            ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''} 
+            ${mode === 'study' ? 'study-mode' : ''}`}
+        >
             {/* Left Sidebar: Curriculum */}
-            {isSidebarOpen && (
-                <div className="sidebar-left">
-                    <CurriculumTree
-                        curriculum={initialCurriculum}
-                        currentSubSubjectId={currentSubSubject.id}
-                        onSelectSubSubject={handleSelectSubSubject}
-                    />
-                </div>
-            )}
+            <div className={`sidebar-left ${!isSidebarOpen ? 'collapsed' : ''}`}>
+                <CurriculumTree
+                    curriculum={initialCurriculum}
+                    currentSubSubjectId={currentSubSubject.id}
+                    onSelectSubSubject={handleSelectSubSubject}
+                    isOpen={isSidebarOpen}
+                    onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                />
+            </div>
 
             {/* Center: Main Canvas */}
-            <div className={`center-canvas ${!isSidebarOpen ? 'expanded' : ''}`}>
+            <div className="center-canvas">
                 <ContentCanvas
                     subject={currentSubject} // Pass full subject for continuous scroll
                     mode={mode}
@@ -173,16 +181,14 @@ function App() {
                     onWorkbenchChange={handleWorkbenchChange}
                     onLoadExample={handleLoadExample}
                     onNameMolecule={handleNameMolecule}
-                    isSidebarOpen={isSidebarOpen}
-                    onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                     scrollTargetId={scrollTargetId}
                     onSectionVisible={handleSectionVisible}
                 />
             </div>
 
             {/* Right Sidebar: Logic Console */}
-            {mode !== 'cheatsheet' && mode !== 'study' && (
-                <div className="sidebar-right">
+            {showRightSidebar && (
+                <div className={`sidebar-right ${!isRightSidebarOpen ? 'collapsed' : ''}`}>
                     <LogicConsole
                         mode={mode}
                         activeRules={activeRules}
@@ -190,6 +196,8 @@ function App() {
                         appliedRuleIds={appliedRuleIds}
                         ruleResults={ruleResults} // Pass detailed results
                         onToggleRule={handleToggleRule}
+                        isOpen={isRightSidebarOpen}
+                        onToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
                     />
                 </div>
             )}

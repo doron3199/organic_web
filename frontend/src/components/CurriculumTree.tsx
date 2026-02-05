@@ -6,9 +6,11 @@ interface CurriculumTreeProps {
     curriculum: Subject[]
     currentSubSubjectId: string | null
     onSelectSubSubject: (subject: Subject, subSubject: SubSubject) => void
+    isOpen: boolean
+    onToggle: () => void
 }
 
-function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject }: CurriculumTreeProps) {
+function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject, isOpen, onToggle }: CurriculumTreeProps) {
     const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({
         'alkanes': true // Expand first one by default
     })
@@ -28,10 +30,25 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject }:
         return { total: totalRules, unlocked: unlockedRules }
     }
 
+    if (!isOpen) {
+        return (
+            <div className="curriculum-tree collapsed">
+                <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Expand Sidebar">
+                    ▶
+                </button>
+            </div>
+        )
+    }
+
     return (
         <div className="curriculum-tree">
             <div className="curriculum-header">
-                <h3>📚 Curriculum</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Collapse Sidebar">
+                        ◀
+                    </button>
+                    <h3>📚 Curriculum</h3>
+                </div>
             </div>
             <div className="curriculum-content">
                 {curriculum.map(subject => {

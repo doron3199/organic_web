@@ -19,9 +19,11 @@ interface LogicConsoleProps {
     appliedRuleIds: string[] // Rules that matched in workbench
     ruleResults: Record<string, string> // Detailed results per rule
     onToggleRule?: (ruleId: string) => void
+    isOpen: boolean
+    onToggle: () => void
 }
 
-function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleResults, onToggleRule }: LogicConsoleProps) {
+function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleResults, onToggleRule, isOpen, onToggle }: LogicConsoleProps) {
 
     const [selectedSubSubject, setSelectedSubSubject] = useState<SubSubject | null>(null)
 
@@ -60,10 +62,25 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
         }
     }
 
+    if (!isOpen) {
+        return (
+            <div className="logic-console collapsed">
+                <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Expand Logic Console">
+                    ◀
+                </button>
+            </div>
+        )
+    }
+
     return (
         <div className="logic-console">
             <div className="console-header">
-                <h3>{mode === 'study' ? '🧠 Unlocked Rules' : mode === 'testing' ? '🛠️ Testing Rules' : '🧪 Applied Logic'}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3>{mode === 'study' ? '🧠 Unlocked Rules' : mode === 'testing' ? '🛠️ Testing Rules' : '🧪 Applied Logic'}</h3>
+                    <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Collapse Logic Console" style={{ marginLeft: 'auto' }}>
+                        ▶
+                    </button>
+                </div>
             </div>
 
             <div className="console-content">

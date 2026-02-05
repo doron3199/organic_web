@@ -7,6 +7,12 @@
     border-left: 1px solid #333;
     font-family: 'Consolas', 'Monaco', monospace;
     overflow: hidden;
+    transition: all 0.3s ease-in-out;
+}
+
+.logic-console.collapsed {
+    align-items: center;
+    padding-top: 15px;
 }
 
 .console-header {

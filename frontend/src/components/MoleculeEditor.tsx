@@ -161,18 +161,40 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             </div>
 
             {/* Quick Add Buttons */}
-            <div className="quick-add-bar" style={{ display: 'flex', gap: '8px', padding: '8px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', justifyContent: 'center' }}>
-                <span style={{ alignSelf: 'center', fontSize: '0.9em', opacity: 0.8, marginRight: '8px' }}>Quick Add:</span>
-                {Object.entries(QUICK_ADD_MOLECULES).map(([key, item]) => (
-                    <button
-                        key={key}
-                        className="btn-small"
-                        onClick={() => handleQuickAdd(item.smiles, item.label)}
-                        disabled={!isReady}
-                    >
-                        {item.label}
-                    </button>
-                ))}
+            <div className="quick-add-bar" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '12px 16px',
+                background: 'var(--bg-secondary)',
+                borderBottom: '1px solid var(--border-color)',
+                alignItems: 'center'
+            }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.9em', opacity: 0.8, marginRight: '8px' }}>Quick Add:</span>
+                    {Object.entries(QUICK_ADD_MOLECULES).slice(0, Math.ceil(Object.entries(QUICK_ADD_MOLECULES).length / 2)).map(([key, item]) => (
+                        <button
+                            key={key}
+                            className="btn-small"
+                            onClick={() => handleQuickAdd(item.smiles, item.label)}
+                            disabled={!isReady}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {Object.entries(QUICK_ADD_MOLECULES).slice(Math.ceil(Object.entries(QUICK_ADD_MOLECULES).length / 2)).map(([key, item]) => (
+                        <button
+                            key={key}
+                            className="btn-small"
+                            onClick={() => handleQuickAdd(item.smiles, item.label)}
+                            disabled={!isReady}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Ketcher Editor */}

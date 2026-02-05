@@ -7,6 +7,12 @@
     border-right: 1px solid #333;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     user-select: none;
+    transition: all 0.3s ease-in-out;
+}
+
+.curriculum-tree.collapsed {
+    align-items: center;
+    padding-top: 15px;
 }
 
 .curriculum-header {

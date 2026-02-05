@@ -20,8 +20,6 @@ interface ContentCanvasProps {
     onWorkbenchChange: (smiles: string) => void
     onLoadExample: (smiles: string) => void
     onNameMolecule: (smiles: string) => AnalysisResult
-    isSidebarOpen: boolean
-    onToggleSidebar: () => void
     scrollTargetId: string | null
     onSectionVisible: (subId: string) => void
 }
@@ -35,8 +33,6 @@ function ContentCanvas({
     onWorkbenchChange,
     onLoadExample,
     onNameMolecule,
-    isSidebarOpen,
-    onToggleSidebar,
     scrollTargetId,
     onSectionVisible
 }: ContentCanvasProps) {
@@ -145,14 +141,6 @@ function ContentCanvas({
         <div className="content-canvas">
             {/* Mode Switcher */}
             <div className="mode-switcher">
-                <button
-                    className="sidebar-toggle-btn"
-                    onClick={onToggleSidebar}
-                    title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                    style={{ marginRight: '1rem', padding: '0.4rem 0.8rem', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-primary)' }}
-                >
-                    {isSidebarOpen ? '◀' : '▶'}
-                </button>
 
                 <button
                     className={`mode-btn ${mode === 'study' ? 'active' : ''}`}
