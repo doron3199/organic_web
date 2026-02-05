@@ -1,13 +1,7 @@
 
 // Static data definitions for reactions
 // No dependencies on RDKit service or browser globals
-const BENZENE_SMARTS = 'c1ccccc1'
 
-const BENZENE_STEPS = [
-    '[CH]1({XXX})[C+][CH]=[CH][CH]=[CH]1>>[C]1({XXX})[C]=[CH][C+][CH]=[CH]1',
-    '[C]1({XXX})[C]=[CH][C+][CH]=[CH]1>>[C]1({XXX})[CH]=[CH][CH]=[CH][C+]1',
-    '[C]1({XXX})[CH]=[CH][CH]=[CH][C+]1>>[c]1({XXX})[cH][cH][cH][cH][cH]1'
-]
 
 export interface ReactionRule {
     id: string

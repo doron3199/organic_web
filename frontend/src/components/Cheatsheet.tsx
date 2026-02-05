@@ -1,4 +1,4 @@
-import React from 'react'
+
 import MoleculeViewer from './MoleculeViewer'
 import './Cheatsheet.css'
 
