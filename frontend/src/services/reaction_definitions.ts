@@ -807,7 +807,7 @@ export const reactionRules: ReactionRule[] = [
         name: 'Amine Protonation (Base)',
         curriculum_subsubject_id: 'amines-intro',
         reactionSmarts: '[N;H3,H2,H1:1].[F,Cl,Br,I:2]>>[N+:1].[F,Cl,Br,I-:2]',
-        reactantsSmarts: ['[N;H3,H2,H1]', '[F,Cl,Br,I]'],
+        reactantsSmarts: ['[N;H3,H2,H1]', '[F,Cl,Br,I][H]'],
         matchExplanation: 'Amine + HX',
         description: 'Amine acts as a base, accepting a proton from an acid to form an ammonium salt.',
         conditions: [new Set()]

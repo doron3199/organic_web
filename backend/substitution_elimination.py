@@ -202,7 +202,7 @@ REAGENT_PROPERTIES = {
 # --- TRANSFORMATION SMARTS ---
 TRANSFORMS = {
     "SN2_anionic": "[C:1][F,Cl,Br,I,O:2].[O,N,S,C;-1:3]>>[C:1][O,N,S,C;+0:3].[F,Cl,Br,I,O;-1:2]",  # Explicitly set product charge
-    "SN2_neutral": "[C:1][F,Cl,Br,I,O:2].[O,N,S,C;+0:3]>>[C:1][O,N,S,C;+1:3].[F,Cl,Br,I,O;-1:2]",  # Explicitly set product charge
+    "SN2_neutral": "[C:1][F,Cl,Br,I,O:2].[O,N,S,P;+0:3]>>[C:1][O,N,S,P;+1:3].[F,Cl,Br,I,O;-1:2]",  # Explicitly set product charge
     "SN1": [
         "[C:1][F,Cl,Br,I,O:2]>>[C+:1].[F-,Cl-,Br-,I-,O-:2]",  # Step 1: Loss of LG
         "[C+:1].[O,N,S:3]>>[C+0:1][O,N,S;+1:3]",  # Step 2: Nucleophilic Attack (Generic for O/N/S nuc) - explicit charge fix
@@ -212,7 +212,7 @@ TRANSFORMS = {
     "E2": "[C:1]-[C:2][F,Cl,Br,I,O:3].[O,N,S,C;-1:4]>>[C:1]=[C:2].[F-,Cl-,Br-,I-,O-:3].[O,N,S,C;+0:4][H]",
     "E1": [
         "[C:1][F,Cl,Br,I,O:2]>>[C+:1].[F-,Cl-,Br-,I-,O-:2]",  # Step 1: Loss of LG
-        "[C+:1]-[C:2].[O,N,S,C;+0:3]>>[C+0:1]=[C:2].[O,N,S,C;+1:3]",  # Step 2: Deprotonation (Base optional in simplified view)
+        "[C+:1]-[C:2].[O,N,S,P;+0:3]>>[C+0:1]=[C:2].[O,N,S,P;+1:3]",  # Step 2: Deprotonation (Base optional in simplified view)
     ],
     # Alcohol specific (Protonated pathways if needed explicitly, but generalized above handles basic OH leaving)
     "Alcohol SN1": [
