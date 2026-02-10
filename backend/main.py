@@ -1,15 +1,32 @@
-from fastapi import FastAPI, HTTPException
+import os
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Union
 import uvicorn
 from reaction_logic import run_reaction
 
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS Security: Restrict allowed origins
+# In production, set ALLOWED_ORIGINS env var to "https://yourdomain.com"
+raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173",
+)
+origins = [o.strip() for o in raw_origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for dev
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -17,10 +34,11 @@ app.add_middleware(
 
 
 class ReactionRequest(BaseModel):
-    reactants: List[str]
-    smarts: Union[str, List[str]]
-    debug: bool = False  # Optional, defaults to False
-    autoAdd: List[Union[str, dict]] = []  # Optional: molecules to auto-add at each step
+    # Added Field constraints to prevent ReDoS/OOM attacks with giant strings
+    reactants: List[str] = Field(..., max_items=10)
+    smarts: Union[str, List[str]] = Field(..., max_length=5000)
+    debug: bool = False
+    autoAdd: List[Union[str, dict]] = []
 
 
 class ReactionResponse(BaseModel):
@@ -29,24 +47,27 @@ class ReactionResponse(BaseModel):
 
 
 @app.post("/reaction")
-async def execute_reaction(request: ReactionRequest):
+@limiter.limit("10/minute")
+async def execute_reaction(request: Request, data: ReactionRequest):
     """
     Execute a reaction. Returns simple products if debug=False,
     or detailed step-by-step info if debug=True.
     """
     try:
+        # Sanitize reactant strings
+        if any(len(r) > 1000 for r in data.reactants):
+            raise HTTPException(status_code=400, detail="Reactant SMILES too long")
+
         result = run_reaction(
-            request.reactants,
-            request.smarts,
-            debug=request.debug,
-            auto_add=request.autoAdd,
+            data.reactants,
+            data.smarts,
+            debug=data.debug,
+            auto_add=data.autoAdd,
         )
 
-        if request.debug:
-            # Return debug format
+        if data.debug:
             return result
         else:
-            # Return simple format
             return {"products": result["organic"], "byproducts": result["inorganic"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -70,11 +91,12 @@ class DebugReactionResponse(BaseModel):
 
 
 @app.post("/reaction/debug", response_model=DebugReactionResponse)
-async def execute_reaction_debug(request: ReactionRequest):
+@limiter.limit("10/minute")
+async def execute_reaction_debug(request: Request, data: ReactionRequest):
     """Run a reaction and return all intermediate steps for debugging."""
     try:
         result = run_reaction(
-            request.reactants, request.smarts, debug=True, auto_add=request.autoAdd
+            data.reactants, data.smarts, debug=True, auto_add=data.autoAdd
         )
         return result
     except Exception as e:
@@ -82,31 +104,33 @@ async def execute_reaction_debug(request: ReactionRequest):
 
 
 class SubstitutionRequest(BaseModel):
-    reactants: List[str]
-    conditions: List[str]
+    reactants: List[str] = Field(..., max_items=5)
+    conditions: List[str] = Field(..., max_items=10)
 
 
 @app.post("/reaction/substitution_elimination")
-async def execute_substitution_elimination(request: SubstitutionRequest):
+@limiter.limit("10/minute")
+async def execute_substitution_elimination(request: Request, data: SubstitutionRequest):
     try:
         from substitution_elimination import run_substitution_elimination
 
-        result = run_substitution_elimination(request.reactants, request.conditions)
+        result = run_substitution_elimination(data.reactants, data.conditions)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 class ParseRequest(BaseModel):
-    smiles: str
+    smiles: str = Field(..., max_length=1000)
 
 
 @app.post("/parse")
-async def parse_smiles(request: ParseRequest):
+@limiter.limit("10/minute")
+async def parse_smiles(request: Request, data: ParseRequest):
     try:
         from rdkit import Chem
 
-        mol = Chem.MolFromSmiles(request.smiles)
+        mol = Chem.MolFromSmiles(data.smiles)
         if not mol:
             raise HTTPException(status_code=400, detail="Invalid SMILES")
         # Generate MolBlock

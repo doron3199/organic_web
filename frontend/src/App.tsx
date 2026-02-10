@@ -12,7 +12,7 @@ function App() {
     // Layout State
     const [currentSubject, setCurrentSubject] = useState<Subject>(initialCurriculum[0])
     const [currentSubSubject, setCurrentSubSubject] = useState<SubSubject>(initialCurriculum[0].subSubjects[0])
-    const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet' | 'testing'>('study')
+    const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'>('study')
 
     // Scroll Control
     const [scrollTargetId, setScrollTargetId] = useState<string | null>(null)
@@ -150,14 +150,15 @@ function App() {
         ))
     }
 
-    const showRightSidebar = mode !== 'cheatsheet' && mode !== 'study'
+    const showRightSidebar = mode !== 'cheatsheet' && mode !== 'study' && mode !== 'about'
 
     return (
         <div className={`app-container 
             ${!isSidebarOpen ? 'sidebar-collapsed' : ''} 
             ${!isRightSidebarOpen ? 'right-sidebar-collapsed' : ''} 
             ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''} 
-            ${mode === 'study' ? 'study-mode' : ''}`}
+            ${mode === 'study' ? 'study-mode' : ''}
+            ${mode === 'about' ? 'about-mode' : ''}`}
         >
             {/* Left Sidebar: Curriculum */}
             <div className={`sidebar-left ${!isSidebarOpen ? 'collapsed' : ''}`}>

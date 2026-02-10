@@ -13,7 +13,7 @@ export interface LogEntry {
 }
 
 interface LogicConsoleProps {
-    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing'
+    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'
     activeRules: Rule[] // Unlocked/Learned rules
     allRules?: Rule[] // All system rules (needed for workbench to show unlearned logic)
     appliedRuleIds: string[] // Rules that matched in workbench

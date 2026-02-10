@@ -4,3 +4,4 @@ rdkit
 pydantic
 pytest
 httpx
+slowapi

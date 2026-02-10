@@ -25,3 +25,20 @@ dist-ssr
 backend/uv.lock
 backend/__pycache__
 backend/tests/__pycache__
+
+# Python environment
+.venv/
+venv/
+env/
+.env
+.env.local
+.env.*
+
+# Caches
+.pytest_cache/
+.ruff_cache/
+**/__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -59,12 +59,14 @@ body {
 
 /* Mode specific overrides */
 .app-container.cheatsheet-mode,
-.app-container.study-mode {
+.app-container.study-mode,
+.app-container.about-mode {
     grid-template-columns: 350px 1fr 0px;
 }
 
 .app-container.cheatsheet-mode.sidebar-collapsed,
-.app-container.study-mode.sidebar-collapsed {
+.app-container.study-mode.sidebar-collapsed,
+.app-container.about-mode.sidebar-collapsed {
     grid-template-columns: 50px 1fr 0px;
 }
 

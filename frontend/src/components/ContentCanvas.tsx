@@ -7,14 +7,15 @@ import ReactionEquation from './ReactionEquation'
 import MoleculeEditor from './MoleculeEditor'
 import Cheatsheet from './Cheatsheet'
 import ReactionPredictor from './ReactionPredictor'
+import About from './About'
 import { AnalysisResult } from '../services/logicEngine'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
 import './ContentCanvas.css'
 
 interface ContentCanvasProps {
     subject: Subject
-    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing'
-    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet' | 'testing') => void
+    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'
+    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about') => void
     workbenchMolecule: string
     originalMolecule?: string
     onWorkbenchChange: (smiles: string) => void
@@ -166,6 +167,12 @@ function ContentCanvas({
                 >
                     🧪 Cheatsheet
                 </button>
+                <button
+                    className={`mode-btn ${mode === 'about' ? 'active' : ''}`}
+                    onClick={() => onSwitchMode('about')}
+                >
+                    ℹ️ About
+                </button>
             </div>
 
             {/* Content Area */}
@@ -259,6 +266,8 @@ function ContentCanvas({
                     </div>
                 ) : mode === 'cheatsheet' ? (
                     <Cheatsheet />
+                ) : mode === 'about' ? (
+                    <About />
                 ) : mode === 'testing' ? (
                     <div className="workbench-container fade-in">
                         {/* SMILES Input Row */}
