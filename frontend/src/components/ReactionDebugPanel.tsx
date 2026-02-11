@@ -4,11 +4,18 @@ import {
     ReactionStep,
     DebugReactionOutcome
 } from '../services/rdkit'
-import { findMatchingReactions } from '../services/reactions'
-import { ReactionRule } from '../services/reaction_definitions'
+
 import MoleculeViewer from './MoleculeViewer'
 import './ReactionDebugPanel.css'
 import { ReactionMechanismGraph } from './ReactionMechanismGraph'
+
+interface ProposedReaction {
+    reactionId: string
+    reactionName: string
+    smarts: string | string[]
+    autoAdd?: (string | Record<string, never>)[]
+    matchExplanation?: string
+}
 
 interface ReactionDebugPanelProps {
     currentMolecule: string
@@ -25,46 +32,54 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
     const [error, setError] = useState<string | null>(null)
     const [selectedStep, setSelectedStep] = useState<ReactionStep | null>(null)
 
-    // Matching reactions from current molecule
-    const [matchingReactions, setMatchingReactions] = useState<ReactionRule[]>([])
+    // Matching reactions from backend
+    const [matchingReactions, setMatchingReactions] = useState<ProposedReaction[]>([])
+    const [isLoadingMatches, setIsLoadingMatches] = useState(false)
     const [selectedReactionIdx, setSelectedReactionIdx] = useState<number>(-1)
 
-    // Find matching reactions whenever the molecule changes
+    // Clear matches whenever molecule changes to avoid stale options
     useEffect(() => {
-        if (!currentMolecule) {
-            setMatchingReactions([])
-            return
-        }
-
-        const reactantsParts = currentMolecule.split('.')
-        // Use selected conditions for filtering (default to empty if not provided)
-        const conditions = new Set(selectedConditions || [])
-        const matches = findMatchingReactions(conditions, reactantsParts)
-        setMatchingReactions(matches)
+        setMatchingReactions([])
         setSelectedReactionIdx(-1)
-    }, [currentMolecule, selectedConditions])
+    }, [currentMolecule])
+
+    const handleFetchMatches = async () => {
+        if (!currentMolecule) return
+
+        setIsLoadingMatches(true)
+        try {
+            const parts = currentMolecule.split('.')
+            const conditions = selectedConditions || []
+            const matches = await rdkitService.proposeReactions(parts, conditions)
+            setMatchingReactions(matches as ProposedReaction[])
+            setSelectedReactionIdx(-1)
+        } catch (e) {
+            console.error("Failed to fetch matches", e)
+        } finally {
+            setIsLoadingMatches(false)
+        }
+    }
 
     // Auto-select and run debug if a reaction was triggered from the workbench
     useEffect(() => {
+        if (triggeredReaction) {
+            // Set the smarts input field as well
+            const smarts = Array.isArray(triggeredReaction.smarts)
+                ? triggeredReaction.smarts.join('\n')
+                : triggeredReaction.smarts
+            setSmartsInput(smarts)
+
+            // Note: autoAdd logic removed as it relied on deleted matchingReactions
+            handleRunDebug(triggeredReaction.smarts)
+        }
+    }, [triggeredReaction])
+
+    // Sync dropdown selection with triggered reaction
+    useEffect(() => {
         if (triggeredReaction && matchingReactions.length > 0) {
-            const matchIdx = matchingReactions.findIndex(r => r.id === triggeredReaction.id)
-            if (matchIdx !== -1) {
-                setSelectedReactionIdx(matchIdx)
-                // Set the smarts input field as well
-                const smarts = Array.isArray(triggeredReaction.smarts)
-                    ? triggeredReaction.smarts.join('\n')
-                    : triggeredReaction.smarts
-                setSmartsInput(smarts)
-                // Pass autoAdd directly from the matched reaction to avoid race condition
-                const matchedRule = matchingReactions[matchIdx]
-                // Also set the autoAddInput field for visibility
-                if (matchedRule.autoAdd) {
-                    const autoAddStr = matchedRule.autoAdd
-                        .map(entry => typeof entry === 'string' ? entry : '')
-                        .join('\n')
-                    setAutoAddInput(autoAddStr)
-                }
-                handleRunDebug(triggeredReaction.smarts, matchedRule.autoAdd)
+            const idx = matchingReactions.findIndex(r => r.reactionId === triggeredReaction.id)
+            if (idx !== -1) {
+                setSelectedReactionIdx(idx)
             }
         }
     }, [triggeredReaction, matchingReactions])
@@ -74,18 +89,17 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
         // No local graph logic needed anymore, state passed to child component
     }, [debugResult])
 
+
+
     const handleReactionSelect = (idx: number) => {
         setSelectedReactionIdx(idx)
         if (idx >= 0 && idx < matchingReactions.length) {
-            const rule = matchingReactions[idx]
-            const smarts = Array.isArray(rule.reactionSmarts)
-                ? rule.reactionSmarts.join('\n')
-                : rule.reactionSmarts
+            const rxn = matchingReactions[idx]
+            const smarts = Array.isArray(rxn.smarts) ? rxn.smarts.join('\n') : rxn.smarts
             setSmartsInput(smarts)
 
-            // Auto-fill autoAdd field
-            if (rule.autoAdd) {
-                const autoAddStr = rule.autoAdd
+            if (rxn.autoAdd) {
+                const autoAddStr = rxn.autoAdd
                     .map(entry => typeof entry === 'string' ? entry : '')
                     .join('\n')
                 setAutoAddInput(autoAddStr)
@@ -99,13 +113,14 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
 
     const handleRunDebug = async (overrideSMARTS?: string | string[], overrideAutoAdd?: (string | Record<string, never>)[]) => {
         const smartsToUse = overrideSMARTS || smartsInput
-        // Check if the currently selected reaction is the special Substitution/Elimination one
-        const selectedRule = selectedReactionIdx >= 0 ? matchingReactions[selectedReactionIdx] : null
-        const isSubstitutionElimination = selectedRule?.id === 'elimination_substitution' || (triggeredReaction?.id === 'elimination_substitution')
+
+        // Substitution/Elimination special handling
+        const selectedRxn = selectedReactionIdx >= 0 ? matchingReactions[selectedReactionIdx] : null
+        const isSubstitutionElimination = triggeredReaction?.id === 'elimination_substitution' || selectedRxn?.reactionId === 'elimination_substitution'
 
         // Validation: Require SMARTS unless it's the special reaction
         if (!isSubstitutionElimination && (!smartsToUse || (typeof smartsToUse === 'string' && !smartsToUse.trim()))) {
-            setError('Please enter a SMARTS string or select a reaction from the dropdown')
+            setError('Please enter a SMARTS string.')
             return
         }
         if (!currentMolecule.trim()) {
@@ -187,23 +202,36 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
 
             <div className="smarts-input-section">
                 <div className="reaction-selector">
-                    <label>Select Matching Reaction:</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={{ marginBottom: 0 }}>Select Matching Reaction (Backend):</label>
+                        <button
+                            className="btn-small"
+                            onClick={handleFetchMatches}
+                            disabled={isLoadingMatches || !currentMolecule}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                            {isLoadingMatches ? 'Finding...' : '🔍 Find Matches'}
+                        </button>
+                    </div>
                     <select
                         value={selectedReactionIdx}
                         onChange={(e) => handleReactionSelect(parseInt(e.target.value))}
                         className="reaction-dropdown"
+                        disabled={isLoadingMatches}
                     >
                         <option value={-1}>-- Choose a reaction or enter SMARTS manually --</option>
                         {matchingReactions.map((rule, idx) => (
-                            <option key={rule.id} value={idx}>
-                                {rule.name} {rule.matchExplanation ? `(${rule.matchExplanation})` : ''}
+                            <option key={rule.reactionId} value={idx}>
+                                {rule.reactionName} {rule.matchExplanation ? `(${rule.matchExplanation})` : ''}
                             </option>
                         ))}
                     </select>
-                    {matchingReactions.length === 0 && currentMolecule && (
-                        <span className="no-matches-hint">No matching reactions for current molecule</span>
+                    {isLoadingMatches && <span className="loading-hint">Searching backend...</span>}
+                    {!isLoadingMatches && matchingReactions.length === 0 && currentMolecule && (
+                        <span className="no-matches-hint">No matching reactions found</span>
                     )}
                 </div>
+
 
                 <label>SMARTS String(s):</label>
                 <textarea

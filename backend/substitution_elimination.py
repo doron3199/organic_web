@@ -289,6 +289,15 @@ def classify_reagent(mol_smiles):
 
     if not props:
         # Fallback heuristics
+        # TODO: implement more sophisticated reagent classification
+        _metals = {"Cr", "Mn", "Fe", "Cu", "Os", "Ru", "Pd", "Pt", "Zn"}
+        has_metal = any(a.GetSymbol() in _metals for a in mol.GetAtoms())
+        is_aromatic = any(a.GetIsAromatic() for a in mol.GetAtoms())
+        if has_metal or is_aromatic:
+            # Transition-metal reagents (PCC, KMnO4 …) and aromatic
+            # species (pyridinium …) should NOT be treated as strong
+            # bases / nucleophiles for SN/E purposes.
+            return {"base": "weak", "nuc": "weak", "bulky": False}
         if "-" in base_smi:
             return {
                 "base": "strong",

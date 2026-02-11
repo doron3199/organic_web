@@ -145,5 +145,158 @@ async def health_check():
     return {"status": "ok"}
 
 
+# --- New Reaction Propose Endpoint ---
+from reactions.registry import ReactionRegistry
+from reactions.rules import register_rules
+from reactions.matcher import find_matching_reactions
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize registry with rules
+    register_rules()
+    print("Reaction rules registered.")
+
+
+class ProposeRequest(BaseModel):
+    reactants: List[str]
+    conditions: List[str]
+
+
+@app.post("/reactions/propose")
+async def propose_reactions(request: Request, data: ProposeRequest):
+    """
+    Propose reactions for a given set of reactants and conditions.
+    """
+    try:
+        # 1. Match Rules
+        matches = find_matching_reactions(data.reactants, set(data.conditions))
+
+        results = []
+        for rule in matches:
+            # 2. Execute Reaction (for each match)
+            # We use the existing run_reaction logic, but we need to supply the SMARTS.
+            # If the rule has multiple steps (list of SMARTS), run_reaction handles it?
+            # run_reaction expects `smarts` as str or list[str].
+
+            # Prepare debug mode to get mechanism?
+            # Let's say we always want mechanism info if available?
+            # For "Propose", we just want the products and the match info.
+
+            # Resolve auto_add from rule if present
+            auto_add = rule.auto_add if rule.auto_add else []
+
+            # Execute
+            try:
+                # Special handling for Substitution/Elimination
+                if rule.id == "elimination_substitution":
+                    from substitution_elimination import run_substitution_elimination
+
+                    sub_result = run_substitution_elimination(
+                        data.reactants, data.conditions
+                    )
+
+                elif rule.id == "intramolecular_substitution":
+                    if len(data.reactants) > 1:
+                        continue
+                    from substitution_elimination import run_substitution_elimination
+
+                    sub_result = run_substitution_elimination(
+                        data.reactants, data.conditions
+                    )
+
+                else:
+                    execution_result = run_reaction(
+                        data.reactants,
+                        rule.reaction_smarts,
+                        debug=False,
+                        auto_add=auto_add,
+                    )
+                    # Continue to standard result formatting
+                    results.append(
+                        {
+                            "reactionId": rule.id,
+                            "reactionName": rule.name,
+                            "curriculum_subsubject_id": rule.curriculum_subsubject_id,
+                            "matchExplanation": rule.match_explanation,
+                            "products": [
+                                {"smiles": p, "selectivity": "major"}
+                                for p in execution_result["organic"]
+                            ],
+                            "byproducts": execution_result["inorganic"],
+                            "smarts": rule.reaction_smarts,
+                            "autoAdd": rule.auto_add,
+                            "rank": rule.rank,
+                        }
+                    )
+                    continue
+
+                # Handle sub_result from special cases
+                mech_label = None
+                if sub_result.get("mechanisms"):
+                    mech_label = "/".join(sub_result["mechanisms"])
+
+                # Skip if no products (e.g. "No Reaction" or error)
+                if not sub_result.get("products"):
+                    continue
+
+                results.append(
+                    {
+                        "reactionId": rule.id,
+                        "reactionName": rule.name,
+                        "curriculum_subsubject_id": rule.curriculum_subsubject_id,
+                        "matchExplanation": sub_result.get(
+                            "explanation", rule.match_explanation
+                        ),
+                        "products": [
+                            {"smiles": p, "selectivity": "mixture"}
+                            for p in sub_result.get("products", [])
+                        ],
+                        "byproducts": [],
+                        "smarts": rule.reaction_smarts,
+                        "autoAdd": rule.auto_add,
+                        "rank": rule.rank,
+                        "mechanism": mech_label,
+                    }
+                )
+                continue
+
+                execution_result = run_reaction(
+                    data.reactants, rule.reaction_smarts, debug=False, auto_add=auto_add
+                )
+
+                # Format Result
+                # We need to return structure compatible with frontend expectation
+                results.append(
+                    {
+                        "reactionId": rule.id,
+                        "reactionName": rule.name,
+                        "curriculum_subsubject_id": rule.curriculum_subsubject_id,
+                        "matchExplanation": rule.match_explanation,
+                        "products": [
+                            {"smiles": p, "selectivity": "major"}
+                            for p in execution_result["organic"]
+                        ],  # Todo: Implement selectivity logic in execution
+                        "byproducts": execution_result["inorganic"],
+                        "smarts": rule.reaction_smarts,
+                        "autoAdd": rule.auto_add,
+                        "rank": rule.rank,
+                        # "mechanism": ...
+                    }
+                )
+            except Exception as e:
+                print(f"Error executing rule {rule.id}: {e}")
+                # Skip this rule if execution fails, or report error?
+                continue
+
+        return results
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

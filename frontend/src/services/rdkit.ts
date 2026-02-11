@@ -318,7 +318,35 @@ class RDKitService {
             this.initialized = false
         }
     }
+
+    async proposeReactions(reactants: string[], conditions: string[]): Promise<any[]> {
+        console.log("rdkitService.proposeReactions called:", reactants, conditions)
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // Default if env not set
+            const url = `${apiUrl}/reactions/propose`;
+            console.log("Fetching from:", url)
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reactants, conditions })
+            })
+
+            console.log("Response status:", response.status)
+
+            if (!response.ok) {
+                console.error(`Propose reactions failed: ${response.statusText}`, await response.text())
+                return []
+            }
+
+            const json = await response.json()
+            console.log("Propose reactions data:", json)
+            return json
+        } catch (e) {
+            console.error('Propose reactions error:', e)
+            return []
+        }
+    }
 }
 
-// Singleton instance
 export const rdkitService = new RDKitService()

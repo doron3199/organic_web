@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { findMatchingReactions, findNextReactionStep } from '../services/reactions'
+
+
+
 import { rdkitService, DebugReactionOutcome } from '../services/rdkit'
 import { SubSubject, initialCurriculum } from '../data/curriculum'
 import { AVAILABLE_CONDITIONS, QUICK_ADD_MOLECULES } from '../services/conditions'
@@ -93,24 +95,13 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         }
     }
 
+
     // Sync internal state if prop changes (just in case mixed usage) - likely not needed if controlled perfectly but safe
     useEffect(() => {
         if (initialConditions && initialConditions.length > 0 && propConditions === undefined) {
             setInternalConditions(initialConditions)
         }
     }, [initialConditions, propConditions])
-
-    // Helper: Determine valid rules for a given molecule and set of conditions
-    const getMatchingRules = (smiles: string | null, conditions: string[]) => {
-        if (!smiles) return []
-        const reactantsParts = smiles.split('.')
-        const condSet = new Set(conditions)
-
-        return findMatchingReactions(condSet, reactantsParts)
-    }
-
-
-
 
     const handleConditionToggle = (id: string) => {
         const updateConditions = (prev: string[]) => {
@@ -147,9 +138,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         }
     }
 
+
     const handleRunReaction = async () => {
         setShowConditionError(false)
-
         setSearchPerformed(false)
         setResults([])
 
@@ -161,291 +152,61 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             }
         }
 
-        if (!moleculeToReact) return
-
-        // 2. Re-calculate matched reactions using the FRESH molecule
-        // This fixes the "click twice" bug by ensuring we use rules matching the *current* editor state
-        // not the *previous* react state.
-        const rulesToRun = getMatchingRules(moleculeToReact, selectedConditions)
-
-        if (rulesToRun.length === 0) {
-            // Fallback: Check if any selected condition acts as a reagent (e.g. KMnO4)
-            // If we find a Quick Add molecule that, when added to reactants, triggers a match
-            // then we auto-add it to the editor.
-            const conditionsWithMolecules = selectedConditions.filter(c => QUICK_ADD_MOLECULES[c]);
-
-            for (const condId of conditionsWithMolecules) {
-                const moleculeDefinition = QUICK_ADD_MOLECULES[condId];
-                const moleculeToAdd = moleculeDefinition.smiles;
-                // Add with dot separator
-                const testInternalSmiles = `${moleculeToReact}.${moleculeToAdd}`;
-                // Remove the condition from the check since it's now a reactant
-                const testConditions = selectedConditions.filter(c => c !== condId);
-
-                const testRules = getMatchingRules(testInternalSmiles, testConditions);
-
-                if (testRules.length > 0) {
-                    // Found a match! Add the reagent to the editor.
-                    onMoleculeUpdate(testInternalSmiles);
-
-                    // Also clear this condition to prevent re-triggering mismatch loop
-                    // since we've converted the condition into a reactant.
-                    if (onConditionsChange) {
-                        onConditionsChange(testConditions);
-                    } else {
-                        setInternalConditions(testConditions);
-                    }
-
-                    return;
-                }
-            }
-
-            setSearchPerformed(true)
+        if (!moleculeToReact) {
+            console.log("No molecule to react")
             return
         }
 
         setIsRunning(true)
-        const allResults: {
-            reactionId: string,
-            reactionName: string,
-            curriculum_subsubject_id: string,
-            matchExplanation?: string,
-            products: { smiles: string, selectivity: string, nextStep?: { ruleName: string, requiredReactants: string[] } }[],
-            byproducts: string[],
-            smarts: string,
-            autoAdd?: (string | Record<string, never>)[],
-            rank?: number,
-            mechanism?: string
-        }[] = []
+        console.log("Running matching reactions for:", moleculeToReact, "Conditions:", selectedConditions)
 
-        // Determine the highest rank among the matching reactions
-        // Default rank is 1 if not specified.
-        const maxRank = Math.max(...rulesToRun.map(r => r.rank || 1));
-
-        // Split molecule into independent reactants
-        const reactantsSmiles = moleculeToReact.split('.');
+        const reactants = moleculeToReact.split('.')
+        const conditions = selectedConditions
 
         try {
-            // Try every matched rule
-            for (const rule of rulesToRun) {
-                // STEP 1: Identify candidates for each reactant slot
-                const reactantIndices = reactantsSmiles.map((s, i) => ({ s, i }))
-                const slotsCandidatesIndices = rule.reactantsSmarts.map(pattern => {
-                    return reactantIndices.filter(item => rdkitService.getSubstructureMatch(item.s, pattern))
+            // Call Backend API
+            console.log("Calling proposeReactions backend API...")
+            const backendResults = await rdkitService.proposeReactions(reactants, conditions)
+            console.log("Backend results:", backendResults)
+
+            // Map backend results to Component state format
+            // Backend returns: { reactionId, reactionName, curriculum_subsubject_id, matchExplanation, products: [...], byproducts, smarts, autoAdd, rank }
+            // Component expects similar structure.
+
+            const mappedResults = backendResults.map((res: any) => ({
+                reactionId: res.reactionId,
+                reactionName: res.reactionName,
+                curriculum_subsubject_id: res.curriculum_subsubject_id,
+                matchExplanation: res.matchExplanation,
+                products: res.products.map((p: any) => ({
+                    smiles: p.smiles,
+                    selectivity: p.selectivity,
+                    nextStep: undefined // TODO: Backend could return this? Or we re-calc?
+                })),
+                byproducts: res.byproducts,
+                smarts: Array.isArray(res.smarts) ? res.smarts.join('\n') : res.smarts,
+                autoAdd: res.autoAdd,
+                rank: res.rank,
+                mechanism: res.mechanism // if any
+            }))
+
+            setResults(mappedResults)
+            setSearchPerformed(true)
+
+            // If exactly one reaction matches, auto-trigger the debugger
+            if (mappedResults.length === 1 && onReactionRun) {
+                const res = mappedResults[0]
+                onReactionRun({
+                    id: res.reactionId,
+                    name: res.reactionName,
+                    smarts: res.smarts
                 })
-
-                // If any required slot has no candidates, skip this rule
-                if (slotsCandidatesIndices.some(c => c.length === 0)) continue
-
-                // STEP 2: Generate valid combinations (distinct molecules for distinct slots)
-                const combinations: number[][] = []
-
-                const generate = (slotIdx: number, currentIndices: number[]) => {
-                    if (slotIdx === rule.reactantsSmarts.length) {
-                        combinations.push([...currentIndices])
-                        return
-                    }
-
-                    for (const candidate of slotsCandidatesIndices[slotIdx]) {
-                        if (!currentIndices.includes(candidate.i)) {
-                            currentIndices.push(candidate.i)
-                            generate(slotIdx + 1, currentIndices)
-                            currentIndices.pop()
-                        }
-                    }
-                }
-
-                // If rule has 0 reactants (not typical), run once with empty?
-                if (rule.reactantsSmarts.length === 0) {
-                    combinations.push([])
-                } else {
-                    generate(0, [])
-                }
-
-                if (combinations.length === 0) continue
-
-                const ruleProducts = new Map<string, { smiles: string, selectivity: string, rankIndex: number }>()
-                const ruleByproducts = new Set<string>()
-
-                // STEP 3: Iterate and Run combinations
-                for (const comboIndices of combinations) {
-                    const reactantsForRun = comboIndices.map(i => reactantsSmiles[i])
-
-                    let outcome;
-
-                    if (rule.id === 'elimination_substitution' || rule.id === 'intramolecular_substitution') {
-                        // Special handling for Substitution/Elimination logic
-                        // Check type of selectedConditions. It is string[] based on lines 28 & 16.
-                        outcome = await rdkitService.runSubstitutionElimination(reactantsForRun, selectedConditions)
-
-                        // The result has "explanation" and "mechanisms" in it. We might want to use them.
-                        // But here we are mapping to `matchExplanation` of the result object.
-                        // The standard valid outcome structure is expected.
-                        // See line 259 cast.
-                        // We need to make sure 'outcome' matches the shape expected or we modify how we process.
-                        // The runSubstitutionElimination returns an object with steps, finalProducts.
-                        // Let's adapt it to look like ReactionOutcome/DebugReactionOutcome.
-                        if (outcome) {
-                            // Attach explanation to rule or handle it.
-                            // For now, let's piggyback interpretation here if feasible or just return standard structure.
-                            // But we want the "White Box" explanation.
-                            if (outcome.explanation) {
-                                rule.matchExplanation = outcome.explanation
-                            }
-                            // Also map finalProducts to products, ensuring it's an array
-                            outcome.products = Array.isArray(outcome.finalProducts) ? outcome.finalProducts : []
-                            outcome.byproducts = Array.isArray(outcome.finalByproducts) ? outcome.finalByproducts : []
-
-                            // Store mechanism for display
-                            if (outcome.mechanisms && outcome.mechanisms.length > 0) {
-                                // Temporarily attach to rule to pass to result construction below
-                                (rule as any)._detectedMechanism = outcome.mechanisms.join(' + ');
-                            }
-                        }
-                    } else {
-                        outcome = await rdkitService.runReaction(reactantsForRun, rule.reactionSmarts, false, rule.autoAdd)
-                    }
-
-                    if (outcome && Array.isArray(outcome.products)) {
-                        const reactionOutcome = outcome as import('../services/rdkit').ReactionOutcome
-                        reactionOutcome.products.forEach((pSmiles: string) => {
-                            let matchIndex = 999;
-                            if (rule.selectivity) {
-                                rule.selectivity.rules.forEach((selRule, idx) => {
-                                    if (matchIndex === 999 && rdkitService.getSubstructureMatch(pSmiles, selRule.smarts)) {
-                                        matchIndex = idx;
-                                    }
-                                })
-                            }
-                            ruleProducts.set(pSmiles, { smiles: pSmiles, selectivity: 'equal', rankIndex: matchIndex })
-                        })
-                        reactionOutcome.byproducts.forEach((bSmi: string) => ruleByproducts.add(bSmi));
-
-                        // Add unused inorganic reactants (Spectators) to byproducts
-                        // This ensures excess reagents (like HBr) are visible in the results
-                        const unusedIndices = reactantIndices.filter(ri => !comboIndices.includes(ri.i));
-                        unusedIndices.forEach(ri => {
-                            // Heuristic for inorganic: No 'C' or simple check. 
-                            // Using a simple check: if it doesn't contain 'C' (except common inorganic C like CO2? Not handling that complexity for now)
-                            // Actually, let's just check if it has Carbon.
-                            if (!ri.s.includes('C') && !ri.s.includes('c')) {
-                                ruleByproducts.add(ri.s);
-                            }
-                        });
-                    }
-                }
-
-                // Check for chained reactions for each unique product
-                // This needs to be done AFTER we have all unique products for this rule
-                // But we are constructing the result object per rule.
-
-                const processedProducts: { smiles: string, selectivity: string, nextStep?: { ruleName: string, requiredReactants: string[] }, rankIndex: number }[] = []
-
-                for (const prod of ruleProducts.values()) {
-                    // Check if this product can react further
-                    // We use the original reactant pool (reactantsSmiles) + the product
-                    const nextStep = findNextReactionStep(prod.smiles, reactantsSmiles, new Set(selectedConditions))
-
-                    processedProducts.push({
-                        ...prod,
-                        nextStep: nextStep ? { ruleName: nextStep.rule.name, requiredReactants: nextStep.requiredReactants } : undefined
-                    })
-                }
-
-                // STEP 3: Determine Relative Selectivity
-                // If there's only one unique product, it's the major product
-                if (processedProducts.length === 1) {
-                    const singleProd = processedProducts[0]
-                    if (singleProd) singleProd.selectivity = 'major'
-                }
-                // Otherwise, find the best rank (lowest index) if rules exist
-                else if (processedProducts.length > 0 && rule.selectivity) {
-                    let bestRankFound = 999;
-                    for (const prod of processedProducts) {
-                        if (prod.rankIndex < bestRankFound) bestRankFound = prod.rankIndex
-                    }
-
-                    // If we found any hierarchy matches
-                    if (bestRankFound !== 999) {
-                        for (const prod of processedProducts) {
-                            if (prod.rankIndex === bestRankFound) {
-                                prod.selectivity = 'major'
-                            } else if (prod.rankIndex < 999) {
-                                // Matches a rule but not the best one -> minor
-                                prod.selectivity = 'minor'
-                            } else {
-                                // Matches no rules?
-                                prod.selectivity = 'minor'
-                            }
-                        }
-                    }
-                }
-
-
-
-                // STEP 4: Adjust based on Reaction Rank
-                const ruleRank = rule.rank || 1;
-                if (ruleRank < maxRank) {
-                    // Downgrade all products to minor if reaction itself is minor
-                    for (const prod of processedProducts) {
-                        prod.selectivity = 'minor';
-                    }
-                }
-
-                if (processedProducts.length > 0) {
-                    // Enhance match explanation with conditions
-                    let explanation = rule.matchExplanation || '';
-
-                    // Find the biggest condition set to display (assuming it covers the alternatives)
-                    if (rule.conditions && rule.conditions.length > 0) {
-                        // Sort sets by size descending
-                        const sets = [...rule.conditions].sort((a, b) => b.size - a.size);
-                        const biggestSet = sets[0];
-                        if (biggestSet.size > 0) {
-                            const condStr = Array.from(biggestSet).join(' or ');
-                            explanation += ` + ${condStr}`;
-                        }
-                    }
-
-                    // Handle string[] smarts by joining
-                    const smartsStr = Array.isArray(rule.reactionSmarts)
-                        ? rule.reactionSmarts.join('\n')
-                        : rule.reactionSmarts;
-
-                    allResults.push({
-                        reactionId: rule.id,
-                        reactionName: rule.name,
-                        curriculum_subsubject_id: rule.curriculum_subsubject_id,
-                        matchExplanation: explanation,
-                        products: processedProducts.map(p => ({ smiles: p.smiles, selectivity: p.selectivity, nextStep: p.nextStep })),
-                        byproducts: Array.from(ruleByproducts),
-                        smarts: smartsStr,
-                        autoAdd: rule.autoAdd,
-                        rank: rule.rank || 1,
-                        mechanism: (rule as any)._detectedMechanism
-                    })
-                }
             }
+
         } catch (e) {
-            console.error("Reaction processing error:", e)
-        }
-
-        // Sort by rank descending
-        allResults.sort((a, b) => (b.rank || 1) - (a.rank || 1));
-
-        setResults(allResults)
-        setSearchPerformed(true)
-        setIsRunning(false)
-
-        // If exactly one reaction matches, auto-trigger the debugger
-        if (allResults.length === 1 && onReactionRun) {
-            const res = allResults[0]
-            const rule = rulesToRun[0] // Since allResults.length === 1 and it corresponds to rulesToRun matches
-            onReactionRun({
-                id: res.reactionId,
-                name: res.reactionName,
-                smarts: rule.reactionSmarts
-            })
+            console.error("Reaction run failed", e)
+        } finally {
+            setIsRunning(false)
         }
     }
 
