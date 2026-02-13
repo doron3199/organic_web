@@ -1,6 +1,6 @@
-from reaction_logic import run_reaction
+from engine import run_reaction
 from reactions.matcher import find_matching_reactions
-from substitution_elimination import run_substitution_elimination
+from engine.substitution_elimination import run_substitution_elimination
 
 
 def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dict]:

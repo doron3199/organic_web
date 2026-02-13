@@ -1,5 +1,5 @@
 from rdkit import Chem
-from reaction_logic import run_reaction
+from engine.reaction_logic import run_reaction
 
 
 # --- SMARTS PATTERNS ---
