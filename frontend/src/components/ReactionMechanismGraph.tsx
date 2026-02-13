@@ -83,23 +83,12 @@ function StepNode({ data }: { data: StepNodeData }) {
                     ? 'auto-add'
                     : 'reaction'
 
-    // Determine label from group ID
-    let mechanismLabel = '';
-    if (step.group_id) {
-        const lowerId = step.group_id.toLowerCase();
-
-        if (lowerId.includes('sn2')) {
-            mechanismLabel = 'SN2';
-        } else if (lowerId.includes('sn1')) {
-            mechanismLabel = 'SN1';
-        } else if (lowerId.includes('e2')) {
-            mechanismLabel = 'E2';
-        } else if (lowerId.includes('e1')) {
-            mechanismLabel = 'E1';
-        } else {
-            mechanismLabel = '';
-        }
-    }
+    // Determine the display label for this step
+    const displayLabel = (() => {
+        if (step.reaction_name) return step.reaction_name
+        // Fallback to prettified step_type
+        return safeType.replace(/_/g, ' ')
+    })()
     const groupColor = getGroupColor(step.group_id)
 
     return (
@@ -120,30 +109,9 @@ function StepNode({ data }: { data: StepNodeData }) {
         >
             <Handle type="target" position={Position.Top} />
 
-            {/* Mechanism Label Badge */}
-            {mechanismLabel && (
-                <div style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: groupColor,
-                    color: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    zIndex: 10,
-                    whiteSpace: 'nowrap'
-                }}>
-                    {mechanismLabel}
-                </div>
-            )}
-
             <div className="flow-node-header">
 
-                <span className="step-type-badge">{safeType.replace(/_/g, ' ')}</span>
+                <span className="step-type-badge">{displayLabel}</span>
             </div>
 
             <div className="flow-node-products">

@@ -177,8 +177,11 @@ function ReactionDebugPanel({ currentMolecule, onMoleculeUpdate, selectedConditi
                         .map(line => line.trim())
                 }
 
+                // Determine the reaction name for debug labels
+                const reactionName = triggeredReaction?.name || selectedRxn?.reactionName || undefined
+
                 const reactants = currentMolecule.split('.')
-                result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true, autoAdd) as DebugReactionOutcome | null
+                result = await rdkitService.runReaction(reactants, smartsSteps.length > 1 ? smartsSteps : smartsSteps[0], true, autoAdd, reactionName) as DebugReactionOutcome | null
             }
 
             if (result) {

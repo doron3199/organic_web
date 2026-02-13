@@ -66,44 +66,6 @@ def find_matching_reactions(
         # 1. Check conditions (Explicit set matching from rule definition)
         condition_match = False
 
-        # If rule has NO conditions (empty list), it matches always?
-        # NO, in the converted rules, we have `conditions=[set()]` for "no specific condition required".
-        # If user has "heat", does it match `set()`?
-        # The rule says: reaction valid if conditions are exactly `set()`.
-        # Taking strict interpretation: user conditions must match one of the rule's condition sets.
-
-        # BUT, standard practice:
-        # If rule says "needs Heat", user MUST have Heat.
-        # If rule says "nothing", user can have Heat?
-        # Usually yes, extra conditions don't hurt UNLESS they trigger a different reaction.
-        # However, checking `rule.conditions` (List[Set]) implies strict requirement sets.
-
-        # Let's stick to: "Does user conditions SUPERSET the rule requirement?"
-        # i.e. verify that `rule_condition_set` is subset of `user_conditions`.
-
-        # Original TS Logic check:
-        # `const isMatch = rule.conditions.some(conditionSet => { ... check if equal size and contains all ... })`
-        # It was strict equality in frontend!
-
-        # However, we're changing this because now we treat some conditions as reactants (H2SO4).
-        # If "H2SO4" is consumed as a reactant, it shouldn't fail the "Exact Match" check?
-        # Or should we treat it as both?
-
-        # Let's try Strict Equality on the *remaining* conditions?
-        # Or just Strict Equality on the augmented processing?
-
-        # For now, let's keep strict equality logic for compatibility,
-        # BUT: The condition "H2SO4" should be ignored if it was used as a reagent?
-        # That's complex.
-
-        # Alternative: The rule for hydration has `conditions=[set()]`.
-        # If I pass `conditions={'h2so4', 'h2o'}`, it fails strict match `set() != {'h2so4', 'h2o'}`.
-
-        # FIX: We should relax the condition matching.
-        # We check if `req_cond_set.issubset(conditions)`.
-        # If rule requires 'heat', and we have 'heat', it works.
-        # If rule requires nothing (set()), and we have 'heat', it works.
-
         # Iterate over rule's allowed condition sets (OR logic)
         for req_cond_set in rule.conditions:
             if req_cond_set.issubset(conditions):
@@ -153,5 +115,9 @@ def find_matching_reactions(
                     matches.append(rule)
             else:
                 matches.append(rule)
+
+    # If any matching rule has block=True, filter out non-blocking rules
+    if any(rule.block for rule in matches):
+        matches = [rule for rule in matches if rule.block]
 
     return matches

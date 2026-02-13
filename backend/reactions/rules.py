@@ -66,7 +66,7 @@ def register_rules():
                 "[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]",
                 "[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]",
             ],
-            reactants_smarts=["[C]=[C]", "[F,Cl,Br,I]"],
+            reactants_smarts=["[C]=[C]", "[F,Cl,Br,I;H1]"],
             match_explanation="Alkene + HX (X=F, Cl, Br, I)",
             description="Addition of H-X across a double bond (Markovnikov).",
             conditions=[set()],
@@ -143,7 +143,7 @@ def register_rules():
             name="Hydroboration-Oxidation",
             curriculum_subsubject_id="alkenes-hydroboration",
             reaction_smarts=[
-                "([C;H2,H1:1]=[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
+                "[C;H2,H1:1]=[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
                 "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
             ],
             reactants_smarts=["[C]=[C]", "[B]"],
@@ -259,59 +259,19 @@ def register_rules():
         )
     )
 
-    # --- ALKYNES ---
-    registry.register(
-        ReactionRule(
-            id="alkyne_hydrohalogenation_1eq",
-            name="Hydrohalogenation (1 eq.)",
-            curriculum_subsubject_id="alkynes-addition",
-            reaction_smarts=[
-                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F,Cl,Br,I:3]",
-                "[C+:1]=[C:2].[F,Cl,Br,I:3]>>[C+0:1]=[C:2]([F,Cl,Br,I:3])",
-            ],
-            reactants_smarts=["[C]#[C]", "[F,Cl,Br,I;H1]"],
-            match_explanation="Alkyne + HX (1 eq., X=F, Cl, Br, I)",
-            description="Addition of 1 equivalent of HX to form Vinyl Halide.",
-            conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D3][F,Cl,Br,I]", label="major"),
-                    SelectivityRule(smarts="[C;D2][F,Cl,Br,I]", label="minor"),
-                ],
-            ),
-        )
-    )
-
     registry.register(
         ReactionRule(
             id="alkyne_hydrohalogenation_2eq",
-            name="Hydrohalogenation (Excess)",
+            name="Hydrohalogenation",
             curriculum_subsubject_id="alkynes-addition",
             reaction_smarts=[
                 "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]",
                 "[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]>>[C+0:1]=[C:2]([F+0,Cl+0,Br+0,I+0:3])",
             ],
-            append_reaction="alkene_hydrohalogenation",
-            reactants_smarts=["[C]#[C]", "[F,Cl,Br,I;H1]", "[F,Cl,Br,I;H1]"],
-            match_explanation="Alkyne + HX (Excess, X=F, Cl, Br, I)",
-            description="Addition of excess HX to form Geminal Dihalide.",
-            conditions=[set()],
-        )
-    )
-
-    registry.register(
-        ReactionRule(
-            id="alkyne_halogenation_1eq",
-            name="Halogenation (1 eq.)",
-            curriculum_subsubject_id="alkynes-addition",
-            reaction_smarts=[
-                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])",
-            ],
-            reactants_smarts=["[C]#[C]", "[Br,Cl][Br,Cl]"],
-            match_explanation="Alkyne + Br2 (1 eq.)",
-            description="Addition of 1 eq. Br2 to form Dihaloalkene.",
+            # append_reaction="alkene_hydrohalogenation",
+            reactants_smarts=["[C]#[C]", "[F,Cl,Br,I;H1]"],
+            match_explanation="Alkyne + HX (X=F, Cl, Br, I)",
+            description="Addition of HX to form Geminal Dihalide.",
             conditions=[set()],
         )
     )
@@ -319,16 +279,16 @@ def register_rules():
     registry.register(
         ReactionRule(
             id="alkyne_halogenation_2eq",
-            name="Halogenation (Excess)",
+            name="Halogenation",
             curriculum_subsubject_id="alkynes-addition",
             reaction_smarts=[
                 "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
                 "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])",
             ],
-            reactants_smarts=["[C]#[C]", "[Br,Cl][Br,Cl]", "[Br,Cl][Br,Cl]"],
-            append_reaction="alkene_halogenation",
-            match_explanation="Alkyne + Br2 (Excess)",
-            description="Addition of excess Br2 to form Tetrahaloalkane.",
+            reactants_smarts=["[C]#[C]", "[Br,Cl][Br,Cl]"],
+            # append_reaction="alkene_halogenation",
+            match_explanation="Alkyne + Br2",
+            description="Addition of Br2 to form Tetrahaloalkane.",
             conditions=[set()],
         )
     )
@@ -364,7 +324,7 @@ def register_rules():
             name="Hydroboration-Oxidation",
             curriculum_subsubject_id="alkynes-hydration",
             reaction_smarts=[
-                "([C;H2,H1:1]#[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
+                "[C;H2,H1:1]#[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
                 "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
                 "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]",
             ],
@@ -785,18 +745,18 @@ def register_rules():
         )
     )
 
-    registry.register(
-        ReactionRule(
-            id="alcohol_oxidation_jones",
-            name="Oxidation (Jones)",
-            curriculum_subsubject_id="alcohols-oxidation",
-            reaction_smarts="[C;H2:1][OH]>>[C:1](=[O])[OH]",
-            reactants_smarts=["[C;H2][OH]", "[S](=O)(=O)(O)O"],
-            match_explanation="Primary Alcohol + Jones Reagent",
-            description="Strong oxidation to Carboxylic Acid.",
-            conditions=[set()],
-        )
-    )
+    # registry.register(
+    #     ReactionRule(
+    #         id="alcohol_oxidation_jones",
+    #         name="Oxidation (Jones)",
+    #         curriculum_subsubject_id="alcohols-oxidation",
+    #         reaction_smarts="[C;H2:1][OH]>>[C:1](=[O])[OH]",
+    #         reactants_smarts=["[C;H2][OH]", "[S](=O)(=O)(O)O"],
+    #         match_explanation="Primary Alcohol + Jones Reagent",
+    #         description="Strong oxidation to Carboxylic Acid.",
+    #         conditions=[set()],
+    #     )
+    # )
 
     registry.register(
         ReactionRule(
@@ -813,6 +773,7 @@ def register_rules():
             match_explanation="Alcohol + PCC",
             description="Oxidation of primary alcohols to aldehydes and secondary alcohols to ketones.",
             conditions=[set()],
+            block=True,
         )
     )
 

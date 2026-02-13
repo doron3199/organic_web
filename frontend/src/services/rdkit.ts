@@ -45,6 +45,8 @@ export interface ReactionStep {
     parent_ids?: string[]  // For multiple parents (e.g., auto-add + previous step)
     step_type: 'initial' | 'reaction' | 'carbocation_intermediate' | 'carbocation_rearrangement' | 'auto_add'
     group_id?: string
+    reaction_context?: string  // Rule ID (e.g. 'alkene_halogenation')
+    reaction_name?: string     // Human-readable name (e.g. 'Alkene Halogenation')
 }
 
 export interface DebugReactionOutcome {
@@ -220,7 +222,8 @@ class RDKitService {
         reactantsSMILES: string[],
         reactionSmarts: string | string[],
         debug: boolean = false,
-        autoAdd?: (string | Record<string, never>)[]
+        autoAdd?: (string | Record<string, never>)[],
+        reactionName?: string
     ): Promise<ReactionOutcome | DebugReactionOutcome | null> {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -231,7 +234,8 @@ class RDKitService {
                     reactants: reactantsSMILES,
                     smarts: reactionSmarts,
                     debug: debug,
-                    autoAdd: autoAdd || []
+                    autoAdd: autoAdd || [],
+                    reactionName: reactionName || null
                 })
             });
 

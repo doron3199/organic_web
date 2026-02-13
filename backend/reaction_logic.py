@@ -1,9 +1,34 @@
-from rdkit import Chem
-from rdkit.Chem import AllChem
 import itertools
 import uuid
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
+
+from rdkit import Chem
+from rdkit.Chem import AllChem
+
+from reactions.matcher import find_matching_reactions
+
+# ============================================================================
+# Configuration & Constants
+# ============================================================================
+
+logger = logging.getLogger(__name__)
+
+# Engine-based reactions that don't use simple SMARTS
+ENGINE_RULES = {
+    "elimination_substitution",
+    "intramolecular_substitution",
+}
+
+# Maximum iterations for chain reactions to prevent infinite loops
+MAX_CHAIN_STEPS = 15
+MAX_INITIAL_STEPS = 50
+
+
+# ============================================================================
+# Data Structures
+# ============================================================================
 
 
 @dataclass
@@ -16,13 +41,18 @@ class ReactionStepInfo:
     input_smiles: list[str]
     products: list[str]
     parent_id: Optional[str]
-    step_type: str  # 'initial' | 'reaction' | 'carbocation_intermediate' | 'carbocation_rearrangement' | 'auto_add'
-    group_id: Optional[str] = None  # To visually group related products
-    parent_ids: list[str] = field(
-        default_factory=list
-    )  # For multiple parents (e.g., auto-add + previous step)
+    step_type: str  # 'initial' | 'reaction' | 'carbocation_intermediate' | 'auto_add'
+    group_id: Optional[str] = None
+    reaction_context: Optional[str] = None
+    reaction_name: Optional[str] = None
+    parent_ids: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
+        parents = (
+            self.parent_ids
+            if self.parent_ids
+            else ([self.parent_id] if self.parent_id else [])
+        )
         return {
             "step_id": self.step_id,
             "step_index": self.step_index,
@@ -30,13 +60,11 @@ class ReactionStepInfo:
             "input_smiles": self.input_smiles,
             "products": self.products,
             "parent_id": self.parent_id,
-            "parent_ids": self.parent_ids
-            if self.parent_ids
-            else [self.parent_id]
-            if self.parent_id
-            else [],
+            "parent_ids": parents,
             "step_type": self.step_type,
             "group_id": self.group_id,
+            "reaction_context": self.reaction_context,
+            "reaction_name": self.reaction_name,
         }
 
 
@@ -44,38 +72,33 @@ class ReactionStepInfo:
 class ReactionBranch:
     """Represents a single pathway/branch in the reaction tree."""
 
-    molecules: list[Chem.Mol]  # Current molecules in this branch
-    parent_step_id: Optional[str]  # ID of the step that created this branch
+    molecules: list[Chem.Mol]
+    parent_step_id: Optional[str]
     branch_id: str = field(default_factory=lambda: f"branch_{str(uuid.uuid4())[:8]}")
-    auto_add_step_id: Optional[str] = (
-        None  # ID of the auto-add step if molecules were added
-    )
+    auto_add_step_id: Optional[str] = None
+    rule_history: list[str] = field(default_factory=list)
 
     def get_smiles(self) -> list[str]:
         return [Chem.MolToSmiles(m, isomericSmiles=True) for m in self.molecules]
 
-
-def mol_list_to_smiles_list(mol_list: list[Chem.Mol]) -> list[str]:
-    return [Chem.MolToSmiles(m) for m in mol_list]
-
-
-def is_organic(smiles: str) -> bool:
-    """Heuristic to check if a molecule is organic (contains Carbon)."""
-    mol = Chem.MolFromSmiles(smiles)
-    if not mol:
-        return "C" in smiles.replace("Cl", "").replace("Ca", "").replace("Cs", "")
-    return any(a.GetSymbol() == "C" for a in mol.GetAtoms())
+    def copy(
+        self, new_molecules: list[Chem.Mol], new_parent_id: str
+    ) -> "ReactionBranch":
+        """Helper to create a new branch from this one."""
+        return ReactionBranch(
+            molecules=new_molecules,
+            parent_step_id=new_parent_id,
+            rule_history=list(self.rule_history),
+        )
 
 
 # ============================================================================
-# Helper Functions for Carbocation Chemistry
+# Carbocation Chemistry
 # ============================================================================
 
 
 def get_carbocation_stability(mol: Chem.Mol) -> int:
-    """
-    Detect if a molecule is a carbocation and return the degree (stability) of the C+ center.
-    """
+    """Returns the degree (stability) of a carbocation center, or -1 if none."""
     for atom in mol.GetAtoms():
         if atom.GetFormalCharge() == 1 and atom.GetSymbol() == "C":
             return atom.GetDegree()
@@ -83,10 +106,10 @@ def get_carbocation_stability(mol: Chem.Mol) -> int:
 
 
 def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
-    """
-    Get all possible carbocation rearrangements (1,2-hydride and 1,2-methyl shifts).
-    """
+    """Get all possible carbocation rearrangements (1,2-hydride/methyl shifts)."""
     rearrangements = []
+
+    # Pre-compiled reactions for performance
     rxn_hydride = AllChem.ReactionFromSmarts("[C;!H0:1]-[C+1:2]>>[C+1:1]-[C+0:2]")
     rxn_methyl = AllChem.ReactionFromSmarts(
         "[C:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C+0:2](-[CH3:3])"
@@ -94,27 +117,18 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
 
     current_stability = get_carbocation_stability(mol)
 
-    # Check for vinyl carbocation (C+ on a double bond)
-    # If the carbocation center has a double bond, it's a vinyl cation.
-    # Vinyl cations are sp-hybridized (linear) and generally do not rearrange via 1,2-shifts.
+    # Check for vinyl carbocation (C+ on double bond) - these don't typically rearrange
     is_vinyl = False
     for atom in mol.GetAtoms():
         if atom.GetFormalCharge() == 1 and atom.GetSymbol() == "C":
-            # Check 1: Double Bond to C
-            for bond in atom.GetBonds():
-                if bond.GetBondType() == Chem.BondType.DOUBLE:
-                    is_vinyl = True
-                    break
-
-            # Check 2: Hybridization (Vinyl Cations are sp hybridized)
-            if not is_vinyl:
-                if atom.GetHybridization() == Chem.HybridizationType.SP:
-                    is_vinyl = True
-
-            # Check 3: Geometry heuristic (optional, but sp check should cover it)
-
-        if is_vinyl:
-            break
+            if atom.GetHybridization() == Chem.HybridizationType.SP:
+                is_vinyl = True
+            else:
+                for bond in atom.GetBonds():
+                    if bond.GetBondType() == Chem.BondType.DOUBLE:
+                        is_vinyl = True
+            if is_vinyl:
+                break
 
     if is_vinyl:
         return []
@@ -129,8 +143,7 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
                 p = prod_tuple[0]
                 try:
                     Chem.SanitizeMol(p)
-                    new_stability = get_carbocation_stability(p)
-                    if new_stability > current_stability:
+                    if get_carbocation_stability(p) > current_stability:
                         rearrangements.append((p, shift_type))
                 except Exception:
                     continue
@@ -141,171 +154,106 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
 
 
 # ============================================================================
-# Product Processing Functions
-# ============================================================================
-
-
-# ============================================================================
-# Ring Ozonolysis Handling
+# Special Reaction Handling (Ozonolysis)
 # ============================================================================
 
 
 def is_ozonolysis_smarts(smarts: str) -> bool:
-    """Check if this is an ozonolysis reaction SMARTS."""
     return "[O-][O+]=O" in smarts or "O=[O+][O-]" in smarts
 
 
 def find_ring_double_bond(mol: Chem.Mol) -> tuple[int, int, int] | None:
-    """
-    Find a C=C double bond in a ring.
-    Returns (bond_idx, begin_atom_idx, end_atom_idx) or None if not found.
-    """
+    """Returns (bond_idx, begin_atom_idx, end_atom_idx) of a ring double bond."""
     if mol is None:
         return None
     for bond in mol.GetBonds():
-        if bond.GetBondType() == Chem.BondType.DOUBLE:
-            begin_atom = bond.GetBeginAtom()
-            end_atom = bond.GetEndAtom()
-            # Check if it's a C=C double bond in a ring
-            if (
-                begin_atom.GetSymbol() == "C"
-                and end_atom.GetSymbol() == "C"
-                and bond.IsInRing()
-            ):
-                return (bond.GetIdx(), begin_atom.GetIdx(), end_atom.GetIdx())
+        if bond.GetBondType() == Chem.BondType.DOUBLE and bond.IsInRing():
+            begin = bond.GetBeginAtom()
+            end = bond.GetEndAtom()
+            if begin.GetSymbol() == "C" and end.GetSymbol() == "C":
+                return (bond.GetIdx(), begin.GetIdx(), end.GetIdx())
     return None
 
 
 def perform_ring_ozonolysis(mol: Chem.Mol) -> Chem.Mol | None:
-    """
-    Perform ozonolysis on a cyclic alkene by fragmenting the ring at the
-    double bond and capping the ends with aldehyde groups (C=O).
-
-    This produces a single dicarbonyl chain instead of two separate aldehydes.
-
-    Args:
-        mol: The cyclic alkene molecule
-
-    Returns:
-        The dicarbonyl product molecule, or None if failed
-    """
+    """Fragments a cyclic alkene at the double bond and caps with carbonyls."""
     ring_db = find_ring_double_bond(mol)
-    if ring_db is None:
+    if not ring_db:
         return None
 
-    bond_idx, c1_idx, c2_idx = ring_db
-
+    bond_idx, _, _ = ring_db
     try:
-        # Fragment the molecule at the double bond
-        # dummyLabels assigns different labels to the dummy atoms created
+        # Fragment and get editable mol
         fragmented = Chem.FragmentOnBonds(mol, [bond_idx], dummyLabels=[(1, 2)])
-
-        if fragmented is None:
-            print("  Warning: FragmentOnBonds returned None")
+        if not fragmented:
             return None
 
-        # Convert to editable molecule
         editable = Chem.RWMol(fragmented)
-
-        # Find the dummy atoms (they have atomic number 0 with isotope labels)
-        dummy_atoms = []
-        for atom in editable.GetAtoms():
-            if atom.GetAtomicNum() == 0:  # Dummy atom
-                dummy_atoms.append(atom.GetIdx())
+        dummy_atoms = [a.GetIdx() for a in editable.GetAtoms() if a.GetAtomicNum() == 0]
 
         if len(dummy_atoms) != 2:
-            print(f"  Warning: Expected 2 dummy atoms, found {len(dummy_atoms)}")
             return None
 
-        # For each dummy atom, find its neighbor (the carbon it's attached to)
-        # and replace the connection with a C=O (aldehyde)
+        # Replace dummies with Oxygen double bonds
         for dummy_idx in dummy_atoms:
             dummy_atom = editable.GetAtomWithIdx(dummy_idx)
             neighbors = list(dummy_atom.GetNeighbors())
-
             if len(neighbors) != 1:
-                print(
-                    f"  Warning: Dummy atom has {len(neighbors)} neighbors, expected 1"
-                )
                 continue
 
             carbon_idx = neighbors[0].GetIdx()
-
-            # Add an oxygen atom
-            oxygen_idx = editable.AddAtom(Chem.Atom(8))  # Oxygen
-
-            # Add a double bond between carbon and oxygen
+            oxygen_idx = editable.AddAtom(Chem.Atom(8))
             editable.AddBond(carbon_idx, oxygen_idx, Chem.BondType.DOUBLE)
 
-        # Remove the dummy atoms (in reverse order to keep indices valid)
+        # Remove dummies (reverse order to preserve indices)
         for dummy_idx in sorted(dummy_atoms, reverse=True):
             editable.RemoveAtom(dummy_idx)
 
-        # Sanitize the result
         Chem.SanitizeMol(editable)
-        result_smiles = Chem.MolToSmiles(editable, isomericSmiles=True)
-        print(f"  Ring ozonolysis: Fragmented ring into {result_smiles}")
-
         return editable.GetMol()
-
     except Exception as e:
-        print(f"  Warning: Ring ozonolysis failed: {e}")
+        logger.warning(f"Ring ozonolysis failed: {e}")
         return None
 
 
 def handle_ring_ozonolysis_for_branch(
-    branch: "ReactionBranch", smarts: str
+    branch: ReactionBranch, smarts: str
 ) -> tuple[list[Chem.Mol], list[int]] | None:
-    """
-    Check if this is a ring ozonolysis case and handle it specially.
-
-    Args:
-        branch: The current reaction branch
-        smarts: The reaction SMARTS
-
-    Returns:
-        Tuple of (product_mols, reactant_indices) if handled, None otherwise
-    """
+    """Detects and handles ring ozonolysis, returning products and reactant indices."""
     if not is_ozonolysis_smarts(smarts):
         return None
 
-    # Find the alkene with a ring double bond
-    alkene_idx = None
-    ozone_idx = None
-
+    alkene_idx, ozone_idx = None, None
     for i, mol in enumerate(branch.molecules):
-        if mol is None:
+        if not mol:
             continue
         smiles = Chem.MolToSmiles(mol)
-
-        # Check for ozone
         if "[O-][O+]=O" in smiles or "O=[O+][O-]" in smiles:
             ozone_idx = i
-            continue
-
-        # Check for ring double bond
-        if find_ring_double_bond(mol) is not None:
+        elif find_ring_double_bond(mol):
             alkene_idx = i
 
-    # If we found both alkene with ring double bond and ozone
     if alkene_idx is not None and ozone_idx is not None:
-        alkene_mol = branch.molecules[alkene_idx]
-        product_mol = perform_ring_ozonolysis(alkene_mol)
-
-        if product_mol is not None:
-            return ([product_mol], [alkene_idx, ozone_idx])
+        product = perform_ring_ozonolysis(branch.molecules[alkene_idx])
+        if product:
+            return ([product], [alkene_idx, ozone_idx])
 
     return None
 
 
+# ============================================================================
+# Core Logic: Branch Processing
+# ============================================================================
+
+
 def sanitize_and_gather_products(products: tuple) -> list[dict]:
-    """Sanitize reaction products and gather information about each."""
-    prod_info = []
+    """Sanitize mols and return dict with metadata."""
+    info = []
     for p in products:
         try:
             p.UpdatePropertyCache()
             Chem.SanitizeMol(p)
-            prod_info.append(
+            info.append(
                 {
                     "mol": p,
                     "smiles": Chem.MolToSmiles(p, isomericSmiles=True),
@@ -313,50 +261,19 @@ def sanitize_and_gather_products(products: tuple) -> list[dict]:
                 }
             )
         except Exception:
-            continue
-    return prod_info
+            pass
+    return info
 
 
 def deduplicate_branches(branches: list[ReactionBranch]) -> list[ReactionBranch]:
-    """Remove duplicate branches based on their molecule SMILES."""
-    unique_branches = []
-    seen_signatures = set()
-
-    for branch in branches:
-        # Create a signature from sorted SMILES
-        signature = ".".join(sorted(branch.get_smiles()))
-        if signature not in seen_signatures:
-            seen_signatures.add(signature)
-            unique_branches.append(branch)
-
-    return unique_branches
-
-
-def separate_organic_inorganic(
-    branches: list[ReactionBranch],
-) -> tuple[set[str], set[str]]:
-    """Separate molecules into organic and inorganic from all branches."""
-    organic = set()
-    inorganic = set()
-
-    for branch in branches:
-        for mol in branch.molecules:
-            if mol is None:
-                continue
-            smi = Chem.MolToSmiles(mol, isomericSmiles=True)
-            has_carbon = any(atom.GetSymbol() == "C" for atom in mol.GetAtoms())
-
-            if has_carbon:
-                organic.add(smi)
-            else:
-                inorganic.add(smi)
-
-    return organic, inorganic
-
-
-# ============================================================================
-# Branch-Based Reaction Processing
-# ============================================================================
+    unique = []
+    seen = set()
+    for b in branches:
+        sig = ".".join(sorted(b.get_smiles()))
+        if sig not in seen:
+            seen.add(sig)
+            unique.append(b)
+    return unique
 
 
 def process_branch_reaction_outcome(
@@ -366,118 +283,102 @@ def process_branch_reaction_outcome(
     smarts: str,
     step_counter: int,
     all_steps: list[ReactionStepInfo],
+    reaction_context: str | None = None,
+    reaction_name: str | None = None,
 ) -> tuple[list[ReactionBranch], int]:
     """
-    Process a single reaction outcome from a branch, creating new branches for each outcome.
-
-    Returns:
-        Tuple of (list of new branches, updated step_counter)
+    Creates new branches from a reaction result.
+    Handles product creation, spectator preservation, and carbocation rearrangements.
     """
-    new_branches = []
-    group_id = f"grp_{str(uuid.uuid4())[:8]}"
-
-    # Gather and sanitize products
     prod_info = sanitize_and_gather_products(products)
     if not prod_info:
         return [], step_counter
 
-    # Get reactant molecules and spectators
+    # Identify reactants and spectators
     reactants = [branch.molecules[i] for i in reactant_indices]
-
-    spectator_mols = [
-        branch.molecules[i]
-        for i in range(len(branch.molecules))
-        if i not in reactant_indices
+    spectators = [
+        m for i, m in enumerate(branch.molecules) if i not in reactant_indices
     ]
-    spectator_smiles = [
-        Chem.MolToSmiles(m, isomericSmiles=True) for m in spectator_mols
-    ]
+    spectator_smiles = [Chem.MolToSmiles(m, isomericSmiles=True) for m in spectators]
 
-    # Determine step type
-    is_carbocation_intermediate = any(info["stability"] > 0 for info in prod_info)
-    reaction_step_id = f"step_{step_counter}_rxn"
+    # Create the reaction step
+    is_carbocation = any(i["stability"] > 0 for i in prod_info)
+    step_id = f"step_{step_counter}_rxn"
+    group_id = f"grp_{str(uuid.uuid4())[:8]}"
+
     input_smiles = [Chem.MolToSmiles(r) for r in reactants]
-    all_step_products = [info["smiles"] for info in prod_info] + spectator_smiles
+    product_smiles = [i["smiles"] for i in prod_info] + spectator_smiles
 
-    # Build parent_ids list - includes main parent and auto_add parent if present
-    parent_ids = []
+    # Build parent IDs
+    parents = []
     if branch.parent_step_id:
-        parent_ids.append(branch.parent_step_id)
+        parents.append(branch.parent_step_id)
     if branch.auto_add_step_id:
-        parent_ids.append(branch.auto_add_step_id)
+        parents.append(branch.auto_add_step_id)
 
-    # Record the reaction step
-    all_steps.append(
-        ReactionStepInfo(
-            step_id=reaction_step_id,
-            step_index=step_counter,
-            smarts_used=smarts,
-            input_smiles=input_smiles,
-            products=all_step_products,
-            parent_id=branch.parent_step_id,
-            step_type="carbocation_intermediate"
-            if is_carbocation_intermediate
-            else "reaction",
-            group_id=group_id,
-            parent_ids=parent_ids,
-        )
+    step_info = ReactionStepInfo(
+        step_id=step_id,
+        step_index=step_counter,
+        smarts_used=smarts,
+        input_smiles=input_smiles,
+        products=product_smiles,
+        parent_id=branch.parent_step_id,
+        step_type="carbocation_intermediate" if is_carbocation else "reaction",
+        group_id=group_id,
+        parent_ids=parents,
+        reaction_context=reaction_context,
+        reaction_name=reaction_name,
     )
+    all_steps.append(step_info)
     step_counter += 1
 
-    # Create new branch with products + spectators
-    product_mols = [info["mol"] for info in prod_info]
-    new_branch = ReactionBranch(
-        molecules=product_mols + spectator_mols,
-        parent_step_id=reaction_step_id,
-    )
-    new_branches.append(new_branch)
-    print(f"  Created branch: {new_branch.get_smiles()}")
+    new_branches = []
 
-    # Handle carbocation rearrangements - each creates a new branch
-    if is_carbocation_intermediate:
+    # 1. Primary Product Branch
+    product_mols = [i["mol"] for i in prod_info]
+    main_branch = branch.copy(product_mols + spectators, step_id)
+    new_branches.append(main_branch)
+
+    # 2. Carbocation Rearrangements (creates additional parallel branches)
+    if is_carbocation:
         for info in prod_info:
-            if info["stability"] > 0:
-                rearrangements = get_all_rearrangements(info["mol"])
+            if info["stability"] <= 0:
+                continue
 
-                for rearranged_mol, shift_type in rearrangements:
-                    rearranged_smiles = Chem.MolToSmiles(
-                        rearranged_mol, isomericSmiles=True
-                    )
-                    rearr_step_id = f"step_{step_counter}_rearr"
+            rearrangements = get_all_rearrangements(info["mol"])
+            other_products = [i for i in prod_info if i is not info]
 
-                    # Get other product molecules (not the one being rearranged)
-                    other_prod_mols = [i["mol"] for i in prod_info if i is not info]
-                    other_prod_smiles = [
-                        i["smiles"] for i in prod_info if i is not info
-                    ]
-                    all_rearranged_products = (
-                        [rearranged_smiles] + other_prod_smiles + spectator_smiles
-                    )
+            for rearr_mol, shift_type in rearrangements:
+                rearr_step_id = f"step_{step_counter}_rearr"
+                rearr_smiles = Chem.MolToSmiles(rearr_mol, isomericSmiles=True)
 
-                    # Record rearrangement step
-                    all_steps.append(
-                        ReactionStepInfo(
-                            step_id=rearr_step_id,
-                            step_index=step_counter,
-                            smarts_used=f"({shift_type})",
-                            input_smiles=[info["smiles"]],
-                            products=all_rearranged_products,
-                            parent_id=reaction_step_id,
-                            step_type="carbocation_rearrangement",
-                            group_id=group_id,
-                        )
-                    )
-                    step_counter += 1
+                # Gather all molecules for this outcome
+                branch_mols = (
+                    [rearr_mol] + [op["mol"] for op in other_products] + spectators
+                )
+                branch_smiles = (
+                    [rearr_smiles]
+                    + [op["smiles"] for op in other_products]
+                    + spectator_smiles
+                )
 
-                    # Create rearrangement branch
-                    rearr_branch = ReactionBranch(
-                        molecules=[rearranged_mol] + other_prod_mols + spectator_mols,
-                        parent_step_id=rearr_step_id,
+                all_steps.append(
+                    ReactionStepInfo(
+                        step_id=rearr_step_id,
+                        step_index=step_counter,
+                        smarts_used=f"({shift_type})",
+                        input_smiles=[info["smiles"]],
+                        products=branch_smiles,
+                        parent_id=step_id,
+                        step_type="carbocation_rearrangement",
+                        group_id=group_id,
+                        reaction_context=reaction_context,
+                        reaction_name=reaction_name,
                     )
-                    new_branches.append(rearr_branch)
-                    print(
-                        f"  Created rearrangement branch: {rearr_branch.get_smiles()}"
-                    )
+                )
+                step_counter += 1
+
+                new_branches.append(main_branch.copy(branch_mols, rearr_step_id))
 
     return new_branches, step_counter
 
@@ -487,150 +388,256 @@ def process_branch_with_smarts(
     smarts: str,
     step_counter: int,
     all_steps: list[ReactionStepInfo],
+    reaction_context: str | None = None,
+    reaction_name: str | None = None,
 ) -> tuple[list[ReactionBranch], int]:
-    """
-    Process a single branch with a SMARTS pattern.
+    """Apply a single SMARTS pattern to a branch."""
 
-    Returns:
-        Tuple of (list of new branches, updated step_counter)
-    """
-    print(f"\nProcessing branch: {branch.get_smiles()}")
-    print(f"  SMARTS: {smarts}")
-
-    # Special handling for ring ozonolysis - use fragmentation instead of SMARTS
-    ring_ozonolysis_result = handle_ring_ozonolysis_for_branch(branch, smarts)
-    if ring_ozonolysis_result is not None:
-        product_mols, reactant_indices = ring_ozonolysis_result
-        print(f"  Ring ozonolysis detected, using fragmentation approach")
-
-        # Create products tuple for further processing
-        products_tuple = tuple(product_mols)
-
-        # Process this outcome through the standard outcome handler
-        outcome_branches, step_counter = process_branch_reaction_outcome(
+    # Check for Ring Ozonolysis special case
+    ozonolysis = handle_ring_ozonolysis_for_branch(branch, smarts)
+    if ozonolysis:
+        mols, indices = ozonolysis
+        return process_branch_reaction_outcome(
             branch,
-            tuple(reactant_indices),
-            products_tuple,
+            tuple(indices),
+            tuple(mols),
             smarts + " (ring fragmentation)",
             step_counter,
             all_steps,
+            reaction_context,
+            reaction_name,
         )
-        return outcome_branches, step_counter
 
-    # Standard SMARTS-based processing for non-ring cases
+    # Standard SMARTS processing
     rxn = AllChem.ReactionFromSmarts(smarts)
     num_templates = rxn.GetNumReactantTemplates()
+
+    # Try all permutations of molecules
+    indices = range(len(branch.molecules))
+    combinations = list(itertools.permutations(indices, num_templates))
+
     new_branches = []
-
-    print(f"  SMARTS needs {num_templates} reactant(s)")
-
-    # Generate all permutations of molecules from this branch
-    reactant_combinations = list(
-        itertools.permutations(range(len(branch.molecules)), num_templates)
-    )
-
-    # Track unique outcomes to avoid duplicates within this branch
     seen_outcomes = set()
 
-    for combo_indices in reactant_combinations:
-        reactants = tuple(branch.molecules[i] for i in combo_indices)
-
+    for combo in combinations:
+        reactants = tuple(branch.molecules[i] for i in combo)
         try:
-            products_tuple_list = rxn.RunReactants(reactants)
-
-            for products in products_tuple_list:
-                # Create outcome signature
-                outcome_sig = ".".join(
-                    sorted([Chem.MolToSmiles(p, isomericSmiles=True) for p in products])
+            results = rxn.RunReactants(reactants)
+            for product_tuple in results:
+                # Deduplicate outcomes within this branch execution
+                sig = ".".join(
+                    sorted(
+                        [
+                            Chem.MolToSmiles(p, isomericSmiles=True)
+                            for p in product_tuple
+                        ]
+                    )
                 )
-                if outcome_sig in seen_outcomes:
+                if sig in seen_outcomes:
                     continue
-                seen_outcomes.add(outcome_sig)
+                seen_outcomes.add(sig)
 
-                print(
-                    f"  Reaction: {mol_list_to_smiles_list(reactants)} -> {mol_list_to_smiles_list(products)}"
+                b_list, step_counter = process_branch_reaction_outcome(
+                    branch,
+                    combo,
+                    product_tuple,
+                    smarts,
+                    step_counter,
+                    all_steps,
+                    reaction_context,
+                    reaction_name,
                 )
-
-                # Process this outcome, creating new branches
-                outcome_branches, step_counter = process_branch_reaction_outcome(
-                    branch, combo_indices, products, smarts, step_counter, all_steps
-                )
-                new_branches.extend(outcome_branches)
-
+                new_branches.extend(b_list)
         except Exception as e:
-            print(f"  Error: {e}")
+            logger.debug(f"Reaction execution failed: {e}")
             continue
 
     return new_branches, step_counter
 
 
-def process_all_branches_with_smarts(
+# ============================================================================
+# Helpers: Logic & Execution
+# ============================================================================
+
+
+def separate_organic_inorganic(
     branches: list[ReactionBranch],
-    smarts: str,
+) -> tuple[set[str], set[str]]:
+    """Separates products into organic/inorganic sets."""
+    organic, inorganic = set(), set()
+    for branch in branches:
+        for mol in branch.molecules:
+            if not mol:
+                continue
+            smi = Chem.MolToSmiles(mol, isomericSmiles=True)
+            has_carbon = any(a.GetSymbol() == "C" for a in mol.GetAtoms())
+            (organic if has_carbon else inorganic).add(smi)
+    return organic, inorganic
+
+
+def find_next_reaction_matches(
+    branch: ReactionBranch,
+    exclude_ids: list[str] = None,
+    conditions: list[str] = None,
+) -> list[tuple[str, dict]]:
+    """Finds matching rules for the molecules in a branch."""
+    exclude_ids = exclude_ids or []
+    conditions = set(conditions or [])
+
+    matches = find_matching_reactions(branch.get_smiles(), conditions)
+    valid = []
+
+    for rule in matches:
+        if rule.id in exclude_ids:
+            continue
+        # Only allow SMARTS rules or specific Engine rules
+        if not rule.reaction_smarts and rule.id not in ENGINE_RULES:
+            continue
+
+        valid.append(
+            (
+                rule.id,
+                {
+                    "reactionSmarts": rule.reaction_smarts,
+                    "autoAdd": rule.auto_add or [],
+                    "name": rule.name,
+                },
+            )
+        )
+    return valid
+
+
+def _parse_auto_add_molecules(auto_add_entry: str | dict) -> list[Chem.Mol]:
+    """Parses an auto-add entry into a list of RDKit molecules."""
+    mols = []
+    if isinstance(auto_add_entry, str) and auto_add_entry.strip():
+        for smi in auto_add_entry.split("."):
+            smi = smi.strip()
+            if smi:
+                mol = Chem.MolFromSmiles(smi)
+                if mol:
+                    mols.append(mol)
+    return mols
+
+
+def _apply_auto_add_step(
+    branches: list[ReactionBranch],
+    molecules: list[Chem.Mol],
     step_counter: int,
     all_steps: list[ReactionStepInfo],
+) -> int:
+    """Adds molecules to all branches and records an 'auto_add' step."""
+    if not molecules:
+        return step_counter
+
+    smiles_list = [Chem.MolToSmiles(m, isomericSmiles=True) for m in molecules]
+    step_id = f"step_{step_counter}_autoadd"
+
+    all_steps.append(
+        ReactionStepInfo(
+            step_id=step_id,
+            step_index=step_counter,
+            smarts_used="(auto-added reagents)",
+            input_smiles=[],
+            products=smiles_list,
+            parent_id=None,
+            step_type="auto_add",
+        )
+    )
+
+    # Update all branches
+    for b in branches:
+        b.molecules.extend(molecules)
+        b.auto_add_step_id = step_id
+
+    return step_counter + 1
+
+
+# ============================================================================
+# Main Orchestration
+# ============================================================================
+
+
+def run_chain_reaction(
+    initial_branches: list[ReactionBranch],
+    all_steps: list[ReactionStepInfo],
+    step_counter: int,
+    conditions: list[str] | None = None,
 ) -> tuple[list[ReactionBranch], int]:
     """
-    Process all branches with a single SMARTS pattern.
-
-    Returns:
-        Tuple of (list of all new branches, updated step_counter)
+    Open World Mode: Iteratively finds and executes reactions on branches until stability.
     """
-    all_new_branches = []
+    current_branches = initial_branches
 
-    print(f"\n{'=' * 60}")
-    print(f"Processing SMARTS step: {smarts}")
-    print(f"Number of input branches: {len(branches)}")
-    print(f"{'=' * 60}")
+    for _ in range(MAX_CHAIN_STEPS):
+        next_round_branches = []
+        something_happened = False
 
-    for branch in branches:
-        new_branches, step_counter = process_branch_with_smarts(
-            branch, smarts, step_counter, all_steps
-        )
-        all_new_branches.extend(new_branches)
+        for branch in current_branches:
+            # Find applicable rules
+            matches = find_next_reaction_matches(
+                branch, exclude_ids=branch.rule_history, conditions=conditions
+            )
 
-    # Deduplicate branches
-    all_new_branches = deduplicate_branches(all_new_branches)
+            if not matches:
+                next_round_branches.append(branch)
+                continue
 
-    print(f"\nResulting branches after dedup: {len(all_new_branches)}")
-    for b in all_new_branches:
-        print(f"  - {b.get_smiles()}")
+            something_happened = True
 
-    return all_new_branches, step_counter
+            # Apply each matching rule (forking the universe)
+            for rule_id, rule_data in matches:
+                # Prepare SMARTS list
+                smarts_list = rule_data.get("reactionSmarts") or []
+                if isinstance(smarts_list, str):
+                    smarts_list = [smarts_list]
 
+                auto_adds = rule_data.get("autoAdd", [])
+                rule_name = rule_data.get("name")
 
-def initialize_reaction_branches(
-    reactants_smiles: list[str],
-) -> tuple[list[ReactionBranch], list[ReactionStepInfo]]:
-    """
-    Initialize a single branch with all reactants.
+                # Active branches for this rule execution chain
+                rule_branches = [branch]
 
-    Returns:
-        Tuple of (list with single initial branch, initial_steps_list)
-    """
-    initial_step_id = "step_0_reactants"
-    initial_step = ReactionStepInfo(
-        step_id=initial_step_id,
-        step_index=0,
-        smarts_used="(initial reactants)",
-        input_smiles=[],
-        products=reactants_smiles,
-        parent_id=None,
-        step_type="initial",
-    )
+                # Execute sequential steps of the rule (skip for engine rules)
+                if rule_id not in ENGINE_RULES:
+                    for i, smarts in enumerate(smarts_list):
+                        # 1. Handle Auto Add
+                        aa_mols = []
+                        if i < len(auto_adds):
+                            aa_mols = _parse_auto_add_molecules(auto_adds[i])
 
-    # Create single initial branch with all reactants
-    initial_branch = ReactionBranch(
-        molecules=[Chem.MolFromSmiles(s) for s in reactants_smiles],
-        parent_step_id=initial_step_id,
-    )
+                        if aa_mols:
+                            for b in rule_branches:
+                                b.molecules.extend(aa_mols)
 
-    return [initial_branch], [initial_step]
+                        # 2. Execute SMARTS
+                        next_step_branches = []
+                        for b in rule_branches:
+                            res_branches, step_counter = process_branch_with_smarts(
+                                b,
+                                smarts,
+                                step_counter,
+                                all_steps,
+                                reaction_context=rule_id,
+                                reaction_name=rule_name,
+                            )
+                            next_step_branches.extend(res_branches)
 
+                        rule_branches = next_step_branches
+                        if not rule_branches:
+                            break
 
-# ============================================================================
-# Main Reaction Function
-# ============================================================================
+                # Update history (applies to both SMARTS and engine rules)
+                for final_b in rule_branches:
+                    final_b.rule_history = branch.rule_history + [rule_id]
+                    next_round_branches.append(final_b)
+
+        if something_happened:
+            current_branches = deduplicate_branches(next_round_branches)
+        else:
+            break  # Stability reached
+
+    return current_branches, step_counter
 
 
 def run_reaction(
@@ -638,172 +645,86 @@ def run_reaction(
     reaction_smarts: str | list[str],
     debug: bool = False,
     auto_add: list[str | dict] | None = None,
+    reaction_context: str | None = None,
+    conditions: list[str] | None = None,
+    reaction_name: str | None = None,
 ) -> dict:
     """
-    Runs a reaction and returns products. If debug=True, returns all intermediate steps.
-
-    Each distinct reaction outcome creates a separate branch that continues independently
-    through subsequent steps. This properly handles regioselectivity and competing pathways.
-
-    Args:
-        reactants_smiles: List of SMILES strings for reactants
-        reaction_smarts: Single SMARTS string or list of SMARTS for multi-step reactions
-        debug: If True, returns detailed debug info with all intermediate steps
-        auto_add: Optional list of SMILES strings (or empty dicts) to auto-add at each step.
-                  Each element corresponds to a SMARTS step. If element is a SMILES string,
-                  those molecules are added to branches before the step runs.
-
-    Returns:
-        If debug=False: {"organic": [...], "inorganic": [...]}
-        If debug=True: {"steps": [...], "final_organic": [...], "final_inorganic": [...]}
+    Main entry point. Runs a reaction (sequence) and returns products/steps.
     """
-    # Normalize input
-    if isinstance(reaction_smarts, str):
-        steps_list = [reaction_smarts]
-    else:
-        steps_list = reaction_smarts
+    # 1. Initialization
+    initial_steps_queue = (
+        [reaction_smarts] if isinstance(reaction_smarts, str) else reaction_smarts
+    )
+    auto_adds = auto_add or []
 
-    # Normalize auto_add to match steps_list length
-    if auto_add is None:
-        auto_add = []
-    # Pad auto_add with empty dicts if shorter than steps_list
-    while len(auto_add) < len(steps_list):
-        auto_add.append({})
+    # Create initial branch
+    initial_mols = [Chem.MolFromSmiles(s) for s in reactants_smiles]
+    initial_step_id = "step_0_reactants"
 
-    # Initialize with a single branch containing all reactants
-    current_branches, all_steps = initialize_reaction_branches(reactants_smiles)
+    all_steps = [
+        ReactionStepInfo(
+            step_id=initial_step_id,
+            step_index=0,
+            smarts_used="(initial reactants)",
+            input_smiles=[],
+            products=reactants_smiles,
+            parent_id=None,
+            step_type="initial",
+        )
+    ]
+
+    current_branches = [
+        ReactionBranch(molecules=initial_mols, parent_step_id=initial_step_id)
+    ]
     step_counter = 1
 
-    print(f"\n{'#' * 60}")
-    print(f"Starting reaction with {len(reactants_smiles)} reactants")
-    print(f"Reactants: {reactants_smiles}")
-    print(f"Number of SMARTS steps: {len(steps_list)}")
-    print(f"Auto-add: {auto_add}")
-    print(f"{'#' * 60}")
+    # 2. Process Initial Directed Steps
+    ctx = reaction_context or "reaction"
 
-    # Process each SMARTS step
-    for step_idx, smarts in enumerate(steps_list):
-        # Check if we need to auto-add molecules at this step
-        auto_add_entry = auto_add[step_idx] if step_idx < len(auto_add) else {}
-
-        if isinstance(auto_add_entry, str) and auto_add_entry.strip():
-            # Parse the auto-add SMILES string (can contain multiple molecules separated by '.')
-            auto_add_smiles = auto_add_entry
-            print(f"\n>>> Auto-adding molecules at step {step_idx}: {auto_add_smiles}")
-
-            # Parse additional molecules
-            additional_mols = []
-            additional_smiles = []
-            for smi in auto_add_smiles.split("."):
-                smi = smi.strip()
-                if smi:
-                    mol = Chem.MolFromSmiles(smi)
-                    if mol:
-                        additional_mols.append(mol)
-                        additional_smiles.append(
-                            Chem.MolToSmiles(mol, isomericSmiles=True)
-                        )
-                    else:
-                        print(f"  Warning: Could not parse auto-add SMILES: {smi}")
-
-            # Add these molecules to all current branches and create a step for the graph
-            if additional_mols:
-                # Create an auto_add step to show in the graph
-                auto_add_step_id = f"step_{step_counter}_autoadd"
-                auto_add_step = ReactionStepInfo(
-                    step_id=auto_add_step_id,
-                    step_index=step_counter,
-                    smarts_used="(auto-added reagents)",
-                    input_smiles=[],  # No inputs, these are added from outside
-                    products=additional_smiles,
-                    parent_id=None,  # No parent - these come from outside the reaction
-                    step_type="auto_add",
-                )
-                all_steps.append(auto_add_step)
-                step_counter += 1
-
-                # Add molecules to all branches and track the auto-add step
-                for branch in current_branches:
-                    branch.molecules.extend(additional_mols)
-                    branch.auto_add_step_id = auto_add_step_id
-                print(
-                    f"  Added {len(additional_mols)} molecule(s) to {len(current_branches)} branch(es)"
-                )
-
-        current_branches, step_counter = process_all_branches_with_smarts(
-            current_branches, smarts, step_counter, all_steps
-        )
-
+    for i, smarts in enumerate(initial_steps_queue):
         if not current_branches:
-            print("No branches remaining, stopping.")
             break
 
-    # Separate final products from all branches
-    final_organic, final_inorganic = separate_organic_inorganic(current_branches)
+        # Auto-add
+        if i < len(auto_adds):
+            mols = _parse_auto_add_molecules(auto_adds[i])
+            step_counter = _apply_auto_add_step(
+                current_branches, mols, step_counter, all_steps
+            )
 
-    print(f"\n{'#' * 60}")
-    print(f"Final Results:")
-    print(f"  Organic: {list(final_organic)}")
-    print(f"  Inorganic: {list(final_inorganic)}")
-    print(f"{'#' * 60}\n")
+        # Process SMARTS
+        next_branches = []
+        for branch in current_branches:
+            branches, step_counter = process_branch_with_smarts(
+                branch,
+                smarts,
+                step_counter,
+                all_steps,
+                reaction_context=ctx,
+                reaction_name=reaction_name,
+            )
+            # Propagate history
+            for nb in branches:
+                nb.rule_history = list(branch.rule_history)
+            next_branches.extend(branches)
 
-    # Return based on debug flag
+        current_branches = deduplicate_branches(next_branches)
+
+    # 3. Open World Chain Reaction
+    if current_branches:
+        current_branches, step_counter = run_chain_reaction(
+            current_branches, all_steps, step_counter, conditions
+        )
+
+    # 4. Finalize Results
+    organic, inorganic = separate_organic_inorganic(current_branches)
+
     if debug:
         return {
             "steps": [s.to_dict() for s in all_steps],
-            "final_organic": list(final_organic),
-            "final_inorganic": list(final_inorganic),
+            "final_organic": list(organic),
+            "final_inorganic": list(inorganic),
         }
     else:
-        return {"organic": list(final_organic), "inorganic": list(final_inorganic)}
-
-
-# ============================================================================
-# Legacy Helper Functions
-# ============================================================================
-
-
-def apply_carbocation_rearrangements_smiles(smiles: str) -> set[str]:
-    """Convert SMILES to molecule, apply rearrangements, return SMILES set."""
-    mol = Chem.MolFromSmiles(smiles)
-    if not mol:
-        return set()
-    mols = apply_carbocation_rearrangements(mol)
-    return {Chem.MolToSmiles(m) for m in mols}
-
-
-def apply_carbocation_rearrangements(mol: Chem.Mol) -> list[Chem.Mol]:
-    """
-    Identifies 1,2-hydride and 1,2-alkyl shifts that lead to more stable carbocations.
-    """
-    rearranged_mols = []
-    mol_with_hs = Chem.AddHs(mol)
-
-    rearr_rxns = [
-        AllChem.ReactionFromSmarts("[C:1](-[H:3])-[#6+:2]>>[C+:1]-[#6:2](-[H:3])"),
-        AllChem.ReactionFromSmarts("[C:1](-[#6:3])-[#6+:2]>>[C+:1]-[#6:2](-[#6:3])"),
-    ]
-
-    def get_max_stability(m):
-        max_s = -1
-        for atom in m.GetAtoms():
-            if atom.GetSymbol() == "C" and atom.GetFormalCharge() == 1:
-                stab = atom.GetDegree()
-                if stab > max_s:
-                    max_s = stab
-        return max_s
-
-    current_stability = get_max_stability(mol)
-
-    for rxn in rearr_rxns:
-        try:
-            results = rxn.RunReactants((mol_with_hs,))
-            for product_tuple in results:
-                for prod_mol in product_tuple:
-                    prod_no_hs = Chem.RemoveHs(prod_mol)
-                    if get_max_stability(prod_no_hs) > current_stability:
-                        rearranged_mols.append(prod_no_hs)
-        except Exception:
-            continue
-
-    return rearranged_mols
+        return {"organic": list(organic), "inorganic": list(inorganic)}

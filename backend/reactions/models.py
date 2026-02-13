@@ -28,3 +28,4 @@ class ReactionRule:
     selectivity: Optional[ReactionSelectivity] = None
     rank: int = 1
     append_reaction: Optional[str] = None
+    block: bool = False

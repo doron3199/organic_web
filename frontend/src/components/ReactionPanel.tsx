@@ -82,7 +82,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
                 }
 
-                result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd) as import('../services/rdkit').DebugReactionOutcome | null
+                result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd, reactionName) as import('../services/rdkit').DebugReactionOutcome | null
             }
 
             if (result) {
