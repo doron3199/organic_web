@@ -14,9 +14,22 @@ import { alkanes } from '../src/data/curriculum/subjects/alkanes';
 import { alkenes } from '../src/data/curriculum/subjects/alkenes';
 // @ts-ignore
 import { alkynes } from '../src/data/curriculum/subjects/alkynes';
+// @ts-ignore
+import { alcohols } from '../src/data/curriculum/subjects/alcohols';
+// @ts-ignore
+import { aromatics } from '../src/data/curriculum/subjects/aromatics';
+// @ts-ignore
+import { substitutionElimination } from '../src/data/curriculum/subjects/substitution_elimination';
 
 // Aggregate all subjects
-const subjects = [alkanes, alkenes, alkynes];
+const subjects = [
+    alkanes,
+    alkenes,
+    alkynes,
+    alcohols,
+    aromatics,
+    substitutionElimination
+];
 
 // Helper to extract condition IDs (e.g. 'heat', 'light') from text
 function getConditionsList(conditions: string | undefined): string[] {

@@ -32,6 +32,14 @@ def sync():
         import shutil
 
         if os.path.exists(src):
+            # Explicitly remove destination if it exists to ensure overwrite
+            if os.path.exists(dst):
+                try:
+                    os.remove(dst)
+                    print(f"Removed existing destination: {dst}")
+                except OSError as e:
+                    print(f"Error removing {dst}: {e}")
+
             shutil.move(src, dst)
             print(f"Moved {src} to {dst}")
         else:
