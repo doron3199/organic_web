@@ -32,6 +32,17 @@
     border-bottom: 1px solid #333;
 }
 
+.console-mode {
+    font-size: 0.75rem;
+    color: #9cb5d8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: #1f1f1f;
+    border: 1px solid #333;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
 .console-actions {
     padding: 8px;
     background-color: #252526;

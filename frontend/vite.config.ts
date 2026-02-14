@@ -76,13 +76,6 @@ export default defineConfig({
   test: {
     globals: true, // Recommended for Vitest
     environment: 'jsdom', // Standard for React testing
-    browser: {
-      enabled: true,
-      provider: webdriverio({}),
-      instances: [
-        { browser: 'chrome' }
-      ]
-    },
     setupFiles: ['./vitest.setup.ts'],
   },
 } as UserConfig & { test: any })

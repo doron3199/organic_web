@@ -542,6 +542,19 @@
             ]
         },
         {
+            "id": "fc_acylation_isobutyryl",
+            "reactants": [
+                "c1ccccc1",
+                "CC(C)C(=O)Cl"
+            ],
+            "expected_products": [
+                "CC(C)C(=O)c1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[Al](Cl)(Cl)Cl"
+            ]
+        },
+        {
             "id": "alcohol_oxidation_pcc",
             "reactants": [
                 "CCCO"

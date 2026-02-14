@@ -9,6 +9,7 @@ import Cheatsheet from './Cheatsheet'
 import ReactionPredictor from './ReactionPredictor'
 import About from './About'
 import { AnalysisResult } from '../services/logicEngine'
+import { AcidComparisonResult } from '../services/acidBase'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
 import './ContentCanvas.css'
 
@@ -20,7 +21,11 @@ interface ContentCanvasProps {
     originalMolecule?: string
     onWorkbenchChange: (smiles: string) => void
     onLoadExample: (smiles: string) => void
+    onLoadCompareExample: (smilesA: string, smilesB: string) => void
     onNameMolecule: (smiles: string) => AnalysisResult
+    onCompareAcids?: (result: AcidComparisonResult) => void
+    pendingCompare?: { smilesA: string; smilesB: string } | null
+    onCompareSeeded?: () => void
     scrollTargetId: string | null
     onSectionVisible: (subId: string) => void
 }
@@ -33,7 +38,11 @@ function ContentCanvas({
     originalMolecule,
     onWorkbenchChange,
     onLoadExample,
+    onLoadCompareExample,
     onNameMolecule,
+    onCompareAcids,
+    pendingCompare,
+    onCompareSeeded,
     scrollTargetId,
     onSectionVisible
 }: ContentCanvasProps) {
@@ -128,6 +137,11 @@ function ContentCanvas({
 
     const handleEditClick = (smiles: string) => {
         onLoadExample(smiles)
+        onSwitchMode('workbench')
+    }
+
+    const handleCompareExample = (smilesA: string, smilesB: string) => {
+        onLoadCompareExample(smilesA, smilesB)
         onSwitchMode('workbench')
     }
 
@@ -252,6 +266,48 @@ function ContentCanvas({
                                             )}
                                         </div>
                                     )}
+
+                                    {subSubject.compareExamples && subSubject.compareExamples.length > 0 && (
+                                        <div className="compare-section">
+                                            <h3>Compare</h3>
+                                            {subSubject.compareExamples.map((ex, idx) => (
+                                                <div key={ex.id || idx} className="compare-card">
+                                                    <div className="compare-card-header">
+                                                        <div className="compare-title">{ex.name}</div>
+                                                        <button
+                                                            className="btn-compare"
+                                                            onClick={() => handleCompareExample(ex.left.smiles, ex.right.smiles)}
+                                                        >
+                                                            Compare
+                                                        </button>
+                                                    </div>
+                                                    <div className="compare-molecules">
+                                                        <div className="compare-molecule">
+                                                            <div className="compare-crown">👑</div>
+                                                            <MoleculeViewer
+                                                                smiles={ex.left.smiles}
+                                                                width={220}
+                                                                height={150}
+                                                                readOnly={true}
+                                                            />
+                                                            <div className="compare-label">{ex.left.name}</div>
+                                                        </div>
+                                                        <div className="compare-vs">vs</div>
+                                                        <div className="compare-molecule">
+                                                            <MoleculeViewer
+                                                                smiles={ex.right.smiles}
+                                                                width={220}
+                                                                height={150}
+                                                                readOnly={true}
+                                                            />
+                                                            <div className="compare-label">{ex.right.name}</div>
+                                                        </div>
+                                                    </div>
+                                                    {ex.note && <div className="compare-note">{ex.note}</div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                     <hr className="section-divider" />
 
                                     {subSubject.widgetType === 'sn_e_predictor' && (
@@ -293,6 +349,9 @@ function ContentCanvas({
                             initialMolecule={originalMolecule || workbenchMolecule}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
+                            onCompareAcids={onCompareAcids}
+                            pendingCompare={pendingCompare}
+                            onCompareSeeded={onCompareSeeded}
                             showDebugPanel={true}
                             initialConditions={workbenchConditions}
                         />
@@ -305,6 +364,9 @@ function ContentCanvas({
                             initialConditions={workbenchConditions}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
+                            onCompareAcids={onCompareAcids}
+                            pendingCompare={pendingCompare}
+                            onCompareSeeded={onCompareSeeded}
                         />
                     </div>
                 )}

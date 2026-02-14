@@ -6,7 +6,9 @@ import 'ketcher-react/dist/index.css'
 import './MoleculeEditor.css'
 
 import { AnalysisResult } from '../services/logicEngine'
+import { AcidComparisonResult, compareAcids } from '../services/acidBase'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
+import MoleculeViewer from './MoleculeViewer'
 
 interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
@@ -14,6 +16,9 @@ interface MoleculeEditorProps {
     initialConditions?: string[]
     onBack: () => void
     onNameMolecule: (smiles: string) => AnalysisResult
+    onCompareAcids?: (result: AcidComparisonResult) => void
+    pendingCompare?: { smilesA: string; smilesB: string } | null
+    onCompareSeeded?: () => void
     showDebugPanel?: boolean
 }
 
@@ -28,14 +33,22 @@ import ReactionDebugPanel from './ReactionDebugPanel'
 
 // ... existing code ...
 
-function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule, showDebugPanel }: MoleculeEditorProps) {
+function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule, onCompareAcids, pendingCompare, onCompareSeeded, showDebugPanel }: MoleculeEditorProps) {
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
 
+    const [selectedAction, setSelectedAction] = useState<'compare' | null>(null)
+    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false)
+
     const [currentSmiles, setCurrentSmiles] = useState<string>('')
     const lastInternalSmiles = useRef<string | null>(null)
+
+    const [compareA, setCompareA] = useState<string | null>(null)
+    const [compareB, setCompareB] = useState<string | null>(null)
+    const [compareResult, setCompareResult] = useState<AcidComparisonResult | null>(null)
+    const [compareError, setCompareError] = useState<string | null>(null)
 
     // Lifted State for Reaction Conditions
     const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || [])
@@ -55,6 +68,28 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             setMessage('Loaded new molecule')
         }
     }, [initialMolecule])
+
+    useEffect(() => {
+        if (!pendingCompare) return
+        setSelectedAction('compare')
+        setIsActionMenuOpen(false)
+        setCompareA(pendingCompare.smilesA)
+        setCompareB(pendingCompare.smilesB)
+        setCompareResult(null)
+        setCompareError(null)
+
+        const combined = `${pendingCompare.smilesA}.${pendingCompare.smilesB}`
+        if (ketcherRef.current) {
+            ketcherRef.current.setMolecule(combined).catch(console.error)
+            setCurrentSmiles(combined)
+            setMessage('Loaded comparison molecules')
+        }
+
+        const result = compareAcids(pendingCompare.smilesA, pendingCompare.smilesB)
+        setCompareResult(result)
+        onCompareAcids?.(result)
+        onCompareSeeded?.()
+    }, [pendingCompare, onCompareAcids, onCompareSeeded])
 
     // Update conditions if initialConditions prop changes
     useEffect(() => {
@@ -137,6 +172,44 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             console.error('Quick add failed:', e)
             setMessage(`Error adding ${label}`)
         }
+    }
+
+    const handleCompareAcids = async () => {
+        setCompareError(null)
+        const smiles = await updateCurrentSmiles()
+        if (!smiles) {
+            setCompareError('There should be only two molecules.')
+            setCompareResult(null)
+            return
+        }
+        const parts = smiles.split('.').map(s => s.trim()).filter(Boolean)
+        if (parts.length !== 2) {
+            setCompareError('There should be only two molecules.')
+            setCompareResult(null)
+            return
+        }
+
+        setCompareA(parts[0])
+        setCompareB(parts[1])
+
+        const result = compareAcids(parts[0], parts[1])
+        setCompareResult(result)
+        onCompareAcids?.(result)
+        setMessage('Compared acids')
+    }
+
+    const handleSelectAction = (action: 'compare') => {
+        setSelectedAction(action)
+        setIsActionMenuOpen(false)
+    }
+
+    const handleHideActionPanel = () => {
+        setSelectedAction(null)
+    }
+
+    const getActionLabel = () => {
+        if (selectedAction === 'compare') return 'Compare Acids'
+        return 'Additional Actions'
     }
 
     return (
@@ -237,7 +310,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                         onClick={handleNameMoleculeClick}
                         disabled={!isReady}
                     >
-                        🏷️ Name Molecule
+                        Name Molecule
                     </button>
                     <button
                         className="action-btn smiles-btn"
@@ -251,8 +324,29 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                         disabled={!isReady}
                         style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                     >
-                        📝 Get SMILES
+                        Get SMILES
                     </button>
+                    <div className="action-menu">
+                        <button
+                            className="action-menu-trigger"
+                            onClick={() => setIsActionMenuOpen((open) => !open)}
+                            aria-expanded={isActionMenuOpen}
+                            aria-haspopup="menu"
+                        >
+                            {getActionLabel()} ▼
+                        </button>
+                        {isActionMenuOpen && (
+                            <div className="action-menu-list" role="menu">
+                                <button
+                                    className="action-menu-item"
+                                    onClick={() => handleSelectAction('compare')}
+                                    role="menuitem"
+                                >
+                                    Compare Acids
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {analysisResult && (
@@ -261,6 +355,55 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                     </div>
                 )}
             </div>
+
+            {selectedAction === 'compare' && (
+                <div className="acid-compare-panel">
+                    <div className="acid-compare-header">
+                        <div>
+                            <div className="acid-compare-title">Acid Strength Comparison</div>
+                            <div className="acid-compare-subtitle">Draw two molecules in the editor and compare their acidity.</div>
+                        </div>
+                        <button className="btn-compare-acids" onClick={handleCompareAcids} disabled={!isReady}>
+                            Compare Acids
+                        </button>
+                    </div>
+
+                    <div className="acid-compare-grid">
+                        <div className="acid-compare-card">
+                            <div className="acid-compare-card-title">
+                                {compareResult && compareResult.winner === 'A' ? '👑 Molecule A' : 'Molecule A'}
+                            </div>
+                            {compareA ? (
+                                <MoleculeViewer smiles={compareA} readOnly={true} width={200} height={140} />
+                            ) : (
+                                <div className="acid-compare-placeholder">Not set</div>
+                            )}
+                        </div>
+                        <div className="acid-compare-card">
+                            <div className="acid-compare-card-title">
+                                {compareResult && compareResult.winner === 'B' ? '👑 Molecule B' : 'Molecule B'}
+                            </div>
+                            {compareB ? (
+                                <MoleculeViewer smiles={compareB} readOnly={true} width={200} height={140} />
+                            ) : (
+                                <div className="acid-compare-placeholder">Not set</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {compareError && <div className="acid-compare-error">{compareError}</div>}
+
+                    {compareResult && compareResult.winner === 'tie' && (
+                        <div className="acid-compare-result">
+                            <div className="acid-compare-result-title">Result: Tie</div>
+                        </div>
+                    )}
+
+                    <button className="btn-hide-panel" onClick={handleHideActionPanel}>
+                        Hide
+                    </button>
+                </div>
+            )}
 
 
             {/* Reaction Panel Overlay/Section - Always Visible */}

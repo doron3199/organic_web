@@ -13,6 +13,11 @@ export const ALL_RULES: SubSubject = {
         { id: 'rule-cyclo-naming', name: 'Cyclo Naming', logicType: 'check_cyclo_naming', unlocked: true, smarts: '', description: 'Apply rules for cyclic compounds.' },
         { id: 'rule-suffix-alcohol', name: 'Alcohol Suffix', logicType: 'check_suffix_alcohol', unlocked: true, smarts: '[OX2H]', description: 'Change the parent suffix to -ol.' },
         { id: 'rule-suffix-thiol', name: 'Thiol Suffix', logicType: 'check_suffix_thiol', unlocked: true, smarts: '[SX2H]', description: 'Change the parent suffix to -thiol.' },
-        { id: 'rule-func-priority', name: 'Functional Group Priority', logicType: 'check_functional_priority', unlocked: true, smarts: '', description: 'Prioritize functional groups in numbering.' }
+        { id: 'rule-func-priority', name: 'Functional Group Priority', logicType: 'check_functional_priority', unlocked: true, smarts: '', description: 'Prioritize functional groups in numbering.' },
+        { id: 'acid-compare-site', name: 'Most Acidic Site', unlocked: true, smarts: '', description: 'Identify the most acidic functional group and baseline pKa.' },
+        { id: 'acid-compare-resonance', name: 'Resonance', unlocked: true, smarts: '', description: 'Delocalization stabilizes the conjugate base and strengthens the acid.' },
+        { id: 'acid-compare-inductive', name: 'Inductive Effects', unlocked: true, smarts: '', description: 'Nearby electron-withdrawing atoms stabilize the conjugate base.' },
+        { id: 'acid-compare-atom-trend', name: 'Atom Trend', unlocked: true, smarts: '', description: 'Electronegativity and size trends affect acidity.' },
+        { id: 'acid-compare-hybrid', name: 'Hybridization', unlocked: true, smarts: '', description: 'For C-H acids, more s-character increases acidity.' }
     ]
 };

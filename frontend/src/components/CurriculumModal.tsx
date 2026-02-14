@@ -59,6 +59,42 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({ topic, onClose, onExp
                             </div>
                         </div>
                     )}
+
+                    {topic.compareExamples && topic.compareExamples.length > 0 && (
+                        <div className="modal-examples">
+                            <h4>Compare Examples</h4>
+                            <div className="compare-section">
+                                {topic.compareExamples.map((ex, idx) => (
+                                    <div key={ex.id || idx} className="compare-card">
+                                        <div className="compare-card-header">
+                                            <div className="compare-title">{ex.name}</div>
+                                            {onExperiment && (
+                                                <button
+                                                    className="btn-compare"
+                                                    onClick={() => onExperiment(`${ex.left.smiles}.${ex.right.smiles}`, 'compare-acids')}
+                                                >
+                                                    Compare
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="compare-molecules">
+                                            <div className="compare-molecule">
+                                                <div className="compare-crown">👑</div>
+                                                <MoleculeViewer smiles={ex.left.smiles} readOnly={true} width={200} height={130} />
+                                                <div className="compare-label">{ex.left.name}</div>
+                                            </div>
+                                            <div className="compare-vs">vs</div>
+                                            <div className="compare-molecule">
+                                                <MoleculeViewer smiles={ex.right.smiles} readOnly={true} width={200} height={130} />
+                                                <div className="compare-label">{ex.right.name}</div>
+                                            </div>
+                                        </div>
+                                        {ex.note && <div className="compare-note">{ex.note}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

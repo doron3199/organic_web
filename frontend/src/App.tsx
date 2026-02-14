@@ -7,6 +7,7 @@ import { initialCurriculum, Subject, SubSubject, Rule } from './data/curriculum'
 import { ALL_RULES } from './data/allRules'
 import { rdkitService } from './services/rdkit'
 import { LogicEngine } from './services/logicEngine'
+import { AcidComparisonResult } from './services/acidBase'
 
 function App() {
     // Layout State
@@ -23,6 +24,12 @@ function App() {
     const [activeRules, setActiveRules] = useState<Rule[]>([])
     const [appliedRuleIds, setAppliedRuleIds] = useState<string[]>([])
     const [ruleResults, setRuleResults] = useState<Record<string, string>>({})
+    const [workbenchAppliedMode, setWorkbenchAppliedMode] = useState<'naming' | 'acid-comparison' | null>(null)
+    const [workbenchRuleOverride, setWorkbenchRuleOverride] = useState<null | {
+        appliedRuleIds: string[]
+        ruleResults: Record<string, string>
+    }>(null)
+    const [pendingCompare, setPendingCompare] = useState<null | { smilesA: string; smilesB: string }>(null)
 
     // Testing Mode State
     // Import ALL_RULES dynamically or defining it here? ideally import.
@@ -64,18 +71,23 @@ function App() {
     // Auto-analyze molecule when it changes (Debounced)
     useEffect(() => {
         const timer = setTimeout(() => {
+            if (workbenchRuleOverride) {
+                return
+            }
             if (workbenchMolecule) {
                 // Always use ALL rules for analysis, but track learning context separately
                 const result = LogicEngine.analyzeMolecule(workbenchMolecule, ALL_RULES)
                 setAppliedRuleIds(result.appliedRuleIds)
                 setRuleResults(result.ruleResults)
+                setWorkbenchAppliedMode('naming')
             } else {
                 setAppliedRuleIds([])
                 setRuleResults({})
+                setWorkbenchAppliedMode(null)
             }
         }, 500)
         return () => clearTimeout(timer)
-    }, [workbenchMolecule, currentSubSubject, mode, testingRules])
+    }, [workbenchMolecule, currentSubSubject, mode, testingRules, workbenchRuleOverride])
 
     // Handler when user selects a topic from sidebar
     const handleSelectSubSubject = (subject: Subject, sub: SubSubject) => {
@@ -101,19 +113,35 @@ function App() {
 
     // Handler to load an example into the workbench
     const handleLoadExample = (smiles: string) => {
+        setWorkbenchRuleOverride(null)
+        setPendingCompare(null)
+        setWorkbenchAppliedMode(null)
         setWorkbenchMolecule(smiles)
         setOriginalMolecule(smiles)
         // Loading example automatically switches to workbench in ContentCanvas
     }
 
     const handleWorkbenchChange = (smiles: string) => {
+        setWorkbenchRuleOverride(null)
+        setWorkbenchAppliedMode(null)
         setWorkbenchMolecule(smiles)
+    }
+
+    const handleLoadCompareExample = (smilesA: string, smilesB: string) => {
+        setWorkbenchRuleOverride(null)
+        setPendingCompare({ smilesA, smilesB })
+        setWorkbenchAppliedMode(null)
+        const combined = `${smilesA}.${smilesB}`
+        setWorkbenchMolecule(combined)
+        setOriginalMolecule(combined)
     }
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
 
     const handleNameMolecule = (smiles: string) => {
+        setWorkbenchRuleOverride(null)
+        setWorkbenchAppliedMode('naming')
         // Handle multiple molecules (dot-separated)
         if (smiles.includes('.')) {
             const parts = smiles.split('.')
@@ -138,6 +166,16 @@ function App() {
         setAppliedRuleIds(result.appliedRuleIds)
         setRuleResults(result.ruleResults)
         return result
+    }
+
+    const handleCompareAcids = (result: AcidComparisonResult) => {
+        setAppliedRuleIds(result.appliedRuleIds)
+        setRuleResults(result.ruleResults)
+        setWorkbenchAppliedMode('acid-comparison')
+        setWorkbenchRuleOverride({
+            appliedRuleIds: result.appliedRuleIds,
+            ruleResults: result.ruleResults
+        })
     }
 
     const handleToggleRule = (ruleId: string) => {
@@ -181,7 +219,11 @@ function App() {
                     originalMolecule={originalMolecule}
                     onWorkbenchChange={handleWorkbenchChange}
                     onLoadExample={handleLoadExample}
+                    onLoadCompareExample={handleLoadCompareExample}
                     onNameMolecule={handleNameMolecule}
+                    onCompareAcids={handleCompareAcids}
+                    pendingCompare={pendingCompare}
+                    onCompareSeeded={() => setPendingCompare(null)}
                     scrollTargetId={scrollTargetId}
                     onSectionVisible={handleSectionVisible}
                 />
@@ -196,6 +238,7 @@ function App() {
                         allRules={ALL_RULES.rules}
                         appliedRuleIds={appliedRuleIds}
                         ruleResults={ruleResults} // Pass detailed results
+                        appliedMode={workbenchAppliedMode}
                         onToggleRule={handleToggleRule}
                         isOpen={isRightSidebarOpen}
                         onToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}

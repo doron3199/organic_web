@@ -63,11 +63,11 @@ class RDKitService {
         if (this.initialized) return true
 
         try {
-            // RDKit will be loaded from CDN via script tag in index.html
+            // RDKit will be loaded from CDN (browser) or from Node module (tests)
             // @ts-ignore
-            if (window.initRDKitModule) {
-                // @ts-ignore
-                this.rdkit = await window.initRDKitModule()
+            const initRDKitModule = (globalThis as any).initRDKitModule
+            if (initRDKitModule) {
+                this.rdkit = await initRDKitModule()
                 this.initialized = true
                 console.log('RDKit initialized successfully')
                 return true

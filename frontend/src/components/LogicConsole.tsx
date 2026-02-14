@@ -18,12 +18,13 @@ interface LogicConsoleProps {
     allRules?: Rule[] // All system rules (needed for workbench to show unlearned logic)
     appliedRuleIds: string[] // Rules that matched in workbench
     ruleResults: Record<string, string> // Detailed results per rule
+    appliedMode?: 'naming' | 'acid-comparison' | null
     onToggleRule?: (ruleId: string) => void
     isOpen: boolean
     onToggle: () => void
 }
 
-function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleResults, onToggleRule, isOpen, onToggle }: LogicConsoleProps) {
+function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleResults, appliedMode = null, onToggleRule, isOpen, onToggle }: LogicConsoleProps) {
 
     const [selectedSubSubject, setSelectedSubSubject] = useState<SubSubject | null>(null)
 
@@ -77,6 +78,11 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
             <div className="console-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <h3>{mode === 'study' ? '🧠 Unlocked Rules' : mode === 'testing' ? '🛠️ Testing Rules' : '🧪 Applied Logic'}</h3>
+                    {mode === 'workbench' && appliedMode && (
+                        <span className="console-mode">
+                            {appliedMode === 'acid-comparison' ? 'Acid Comparison' : 'Naming'}
+                        </span>
+                    )}
                     <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Collapse Logic Console" style={{ marginLeft: 'auto' }}>
                         ▶
                     </button>
