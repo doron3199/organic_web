@@ -404,7 +404,7 @@ Best for converting Primary/Secondary alcohols to Bromides.
     *   **Primary Alcohols:** Proceed via an **E2 mechanism** because primary carbocations are too unstable to form.
 *   **Reactivity Order:** Tertiary alcohols dehydrate easiest, followed by secondary, then primary (Hardest). This rate depends on the ease of carbocation formation.
 *   **Rearrangements:** Since secondary and tertiary alcohols form carbocations, **rearrangements** (like 1,2-methyl shifts or 1,2-hydride shifts) can occur to form more stable carbocations.
-*   **Competition:** Elimination competes with substitution ($S_N2$) reactions; high temperatures favor elimination.
+*   **Competition:** Elimination competes with substitution (SN2) reactions; high temperatures favor elimination.
             `,
             reactionExamples: [
                 {
@@ -425,15 +425,42 @@ Best for converting Primary/Secondary alcohols to Bromides.
             rules: []
         },
         {
+            id: 'alcohols-carbocation-rearrangement-note',
+            section: 'Reactions',
+            name: 'Note: No Rearrangement in Acylium Ions',
+            content: `
+### Comparison: When Carbocations Don't Rearrange
+While secondary and tertiary carbocations formed from alcohols (during dehydration or reaction with HX) typically rearrange to more stable forms, certain cationic intermediates are stabilized by resonance and do **not** rearrange.
+
+A primary example is the **acylium ion** (R-C≡O⁺) formed during Friedel-Crafts Acylation. Despite having a potential for a secondary or tertiary center nearby, the resonance stabilization of the acylium ion prevents any hydride or methyl shifts. This allows for predictable chain addition without the complexity of rearrangement.
+            `,
+            reactionExamples: [
+                {
+                    id: 'fc_acylation_isobutyryl',
+                    name: 'Friedel-Crafts Acylation of Benzene',
+                    reactants: [
+                        { smiles: 'c1ccccc1', name: 'Benzene' },
+                        { smiles: 'CC(C)C(=O)Cl', name: 'Isobutyryl Chloride' }
+                    ],
+                    products: [
+                        { smiles: 'CC(C)C(=O)c1ccccc1', name: 'Isobutyrophenone', yield: 100 }
+                    ],
+                    conditions: 'AlCl₃'
+                }
+            ],
+            examples: [],
+            rules: []
+        },
+        {
             id: 'alcohols-oxidation',
             section: 'Reactions',
             name: 'Oxidation of Alcohols',
             content: `
 ### Oxidation of Alcohols
 *   **Primary Alcohols:**
-    *   React with chromic acid ($H_2CrO_4$) to form an aldehyde, which then rapidly oxidizes further to a **carboxylic acid**.
+    *   React with chromic acid (H₂CrO₄) to form an aldehyde, which then rapidly oxidizes further to a **carboxylic acid**.
     *   To stop the oxidation at the **aldehyde** stage, a milder reagent like **PCC** (Pyridinium chlorochromate) must be used.
-*   **Secondary Alcohols:** Oxidize to **ketones** using reagents like $Na_2Cr_2O_7$ with $H_2SO_4$ or $H_2CrO_4$.
+*   **Secondary Alcohols:** Oxidize to **ketones** using reagents like Na₂Cr₂O₇ with H₂SO₄ or H₂CrO₄.
 *   **Tertiary Alcohols:** Cannot be oxidized to carbonyl compounds because the carbon bearing the hydroxyl group is not bonded to a hydrogen atom.
             `,
             reactionExamples: [
@@ -455,7 +482,7 @@ Best for converting Primary/Secondary alcohols to Bromides.
                     products: [
                         { smiles: 'CCC(=O)O', name: 'Propanoic Acid', yield: 100 }
                     ],
-                    conditions: 'H2CrO4'
+                    conditions: 'H₂CrO₄'
                 },
                 {
                     id: 'alcohol_oxidation_secondary',
@@ -466,7 +493,7 @@ Best for converting Primary/Secondary alcohols to Bromides.
                     products: [
                         { smiles: 'CCC(=O)C', name: 'Butanone', yield: 100 }
                     ],
-                    conditions: 'H2CrO4'
+                    conditions: 'H₂CrO₄'
                 }
             ],
             examples: [
@@ -485,11 +512,11 @@ Best for converting Primary/Secondary alcohols to Bromides.
 *   **Properties:** Similar basicity to alcohols; they must be activated (e.g., protonated) to act as leaving groups.
 *   **Nomenclature:** Substituents are listed in alphabetical order (e.g., ethyl methyl ether).
 *   **Synthesis Methods:**
-    1.  **Dehydration of Alcohols:** Heating primary alcohols with acid (approx. 140°C) to form symmetric ethers ($2 ROH \to ROR + H_2O$).
-    2.  **Williamson Ether Synthesis:** Reaction of an alkyl halide ($R-Br$) with an alkoxide ion ($R-O^-$).
+    1.  **Dehydration of Alcohols:** Heating primary alcohols with acid (approx. 140°C) to form symmetric ethers (2 ROH → ROR + H₂O).
+    2.  **Williamson Ether Synthesis:** Reaction of an alkyl halide (R-Br) with an alkoxide ion (R-O⁻).
     3.  Acid-catalyzed addition of an alcohol to an alkene.
     4.  Solvolysis.
-*   **Crown Ethers:** Cyclic polyethers that specifically bind metal ions (like $K^+$, $Na^+$, $Li^+$) depending on the ring's cavity size. The oxygen lone pairs point inward to interact with the cation.
+*   **Crown Ethers:** Cyclic polyethers that specifically bind metal ions (like K⁺, Na⁺, Li⁺) depending on the ring's cavity size. The oxygen lone pairs point inward to interact with the cation.
     *   *Example:* **Nonactin** is a naturally occurring antibiotic that acts as a crown ether, transporting potassium ions out of bacteria to disrupt electrolyte balance and kill the cell.
             `,
             reactionExamples: [
@@ -569,12 +596,12 @@ Best for converting Primary/Secondary alcohols to Bromides.
 *   **Definition:** Ethers containing a three-membered ring (oxiranes).
 ### Preparation of Epoxides
 1.  **From Alkenes (Peroxyacids):**
-    *   Alkenes react with peroxyacids ($RCO_3H$, like mCPBA) to form epoxides in a concerted *syn*-addition.
-    *   **Stereochemistry:** The stereochemistry of the alkene is retained (cis alkene $\to$ cis epoxide).
+    *   Alkenes react with peroxyacids (RCO₃H, like mCPBA) to form epoxides in a concerted *syn*-addition.
+    *   **Stereochemistry:** The stereochemistry of the alkene is retained (cis alkene → cis epoxide).
 
 2.  **From Halohydrins:**
-    *   **Step 1:** Halohydrin formation (Alkene + $X_2$ + $H_2O$).
-    *   **Step 2:** Intramolecular $S_N2$ reaction. A base removes the proton from the alcohol, and the resulting alkoxide back-attacks the carbon bearing the halogen, forming the epoxide.
+    *   **Step 1:** Halohydrin formation (Alkene + X₂ + H₂O).
+    *   **Step 2:** Intramolecular SN2 reaction. A base removes the proton from the alcohol, and the resulting alkoxide back-attacks the carbon bearing the halogen, forming the epoxide.
             `,
             reactionExamples: [
                 {
@@ -602,19 +629,19 @@ Best for converting Primary/Secondary alcohols to Bromides.
 Epoxides are highly reactive due to **ring strain**. They undergo ring-opening reactions with various nucleophiles.
 
 #### 1. Acidic Conditions
-*   **Conditions:** Acid catalyst ($H_2SO_4$, $H^+$) and a weak nucleophile ($H_2O$, $ROH$).
+*   **Conditions:** Acid catalyst (H₂SO₄, H⁺) and a weak nucleophile (H₂O, ROH).
 *   **Mechanism:** Protonation of the epoxide oxygen activates the ring.
 *   **Regioselectivity:** The nucleophile attacks the **more substituted** carbon (which better supports partial positive charge).
 *   **Stereochemistry:** Backside attack (Inversion of configuration).
 
 #### 2. Basic/Neutral Conditions
-*   **Conditions:** Strong nucleophile ($HO^-$, $RO^-$, $CN^-$, $RMgX$).
-*   **Mechanism:** Direct $S_N2$ attack.
+*   **Conditions:** Strong nucleophile (HO⁻, RO⁻, CN⁻, RMgX).
+*   **Mechanism:** Direct SN2 attack.
 *   **Regioselectivity:** The nucleophile attacks the **less sterically hindered** carbon.
 *   **Stereochemistry:** Backside attack (Inversion of configuration).
 
 #### 3. With Grignard Reagents
-*   Reaction with Grignard reagents ($R-MgX$) extends the carbon chain. Attack occurs at the less substituted carbon.
+*   Reaction with Grignard reagents (R-MgX) extends the carbon chain. Attack occurs at the less substituted carbon.
             `,
             reactionExamples: [
                 {
@@ -655,9 +682,9 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
             content: `
 ### Thiols and Sulfides
 *   **Thiols (R-SH):** Sulfur analogs of alcohols.
-    *   **Properties:** Lower boiling points than alcohols; stronger acids ($pK_a \approx 10$) than alcohols ($pK_a \approx 15$).
+    *   **Properties:** Lower boiling points than alcohols; stronger acids (pKa ≈ 10) than alcohols (pKa ≈ 15).
     *   **Reactivity:** Good nucleophiles. They react with alkyl halides to form **thioethers** (sulfides).
-    *   **Oxidation:** Mild oxidation (e.g., with $Br_2$ and base) converts thiols into **disulfides** ($R-S-S-R$).
+    *   **Oxidation:** Mild oxidation (e.g., with Br₂ and base) converts thiols into **disulfides** (R-S-S-R).
 *   **Biological Significance:**
     *   **Cysteine:** An amino acid with a thiol group. Oxidation forms **cystine** (two cysteines linked by a disulfide bond).
     *   **Hair Structure:** Disulfide bridges between keratin proteins determine hair shape. "Perms" work by reducing these bridges (breaking them), reshaping the hair, and then oxidizing them back to form new bridges that hold the new shape.
@@ -724,7 +751,7 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
             name: 'Amines',
             content: `
 ### Amines
-*   **Classification:** Classified as primary ($RNH_2$), secondary ($R_2NH$), or tertiary ($R_3N$) based on the number of organic groups attached to the nitrogen.
+*   **Classification:** Classified as primary (RNH₂), secondary (R₂NH), or tertiary (R₃N) based on the number of organic groups attached to the nitrogen.
 *   **Reactivity:** Amines act as both **bases** (accepting protons) and **nucleophiles** (attacking electrophiles like alkyl halides or epoxides).
 *   **Antihistamines:**
     *   **Histamine:** A monoamine that causes allergic responses (vasodilation, muscle contraction).

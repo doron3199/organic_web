@@ -22,7 +22,7 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
     # Pre-compiled reactions for performance
     rxn_hydride = AllChem.ReactionFromSmarts("[C;!H0:1]-[C+1:2]>>[C+1:1]-[C+0:2]")
     rxn_methyl = AllChem.ReactionFromSmarts(
-        "[C:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C+0:2](-[CH3:3])"
+        "[C;H0:1](-[CH3:3])-[C+1:2]>>[C+1:1]-[C+0:2](-[CH3:3])"
     )
 
     current_stability = get_carbocation_stability(mol)
