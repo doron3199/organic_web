@@ -43,6 +43,32 @@ def get_all_rearrangements(mol: Chem.Mol) -> list[tuple[Chem.Mol, str]]:
     if is_vinyl:
         return []
 
+    # Check for carbocation in an unsaturated ring (e.g. Sigma complex)
+    # We want to prevent rearrangements of resonance-stabilized cyclic intermediates
+    # that should instead follow the reaction path (e.g. elimination/aromatization).
+    carbocation_atom = None
+    for atom in mol.GetAtoms():
+        if atom.GetFormalCharge() == 1 and atom.GetSymbol() == "C":
+            carbocation_atom = atom
+            break
+
+    if carbocation_atom and carbocation_atom.IsInRing():
+        ring_info = mol.GetRingInfo()
+        for ring in ring_info.AtomRings():
+            if carbocation_atom.GetIdx() in ring:
+                # Check if this ring contains any double or aromatic bonds
+                has_unsaturation = False
+                for bond in mol.GetBonds():
+                    if bond.GetBeginAtomIdx() in ring and bond.GetEndAtomIdx() in ring:
+                        if (
+                            bond.GetBondType() == Chem.BondType.DOUBLE
+                            or bond.GetBondType() == Chem.BondType.AROMATIC
+                        ):
+                            has_unsaturation = True
+                            break
+                if has_unsaturation:
+                    return []
+
     for rxn, shift_type in [
         (rxn_hydride, "hydride_shift"),
         (rxn_methyl, "methyl_shift"),
