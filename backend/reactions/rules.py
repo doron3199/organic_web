@@ -678,7 +678,7 @@ def register_rules():
             name="Aldehyde Grignard",
             curriculum_subsubject_id="alcohols-preparation-grignard",
             reaction_smarts=[
-                "[C:1](=[O:2]).[C:3][Mg][Cl,Br,I] >> [C:1](-[C:3])(-[O:2]-[Mg]-[Cl,Br,I])",
+                "[C:1](=[O:2]).[C:3][Mg][Br] >> [C:1](-[C:3])(-[O:2]-[Mg][Br])",
                 "[O:2]-[Mg]-[Cl,Br,I].[OH3+:4] >> [O:2]",
             ],
             reactants_smarts=["[C](=[O])", "[C][Mg][Cl,Br,I]"],
@@ -821,22 +821,6 @@ def register_rules():
 
     registry.register(
         ReactionRule(
-            id="epoxide_creation",
-            name="Epoxide Creation",
-            curriculum_subsubject_id="ethers-epoxides",
-            reaction_smarts=[
-                "[O:1][C:2][C:3][Cl,Br,I:4].[Na]>>[O-:1][C:2][C:3][Cl,Br,I:4]",
-                "[O-:1][C:2][C:3][Cl,Br,I:4]>>[O+0:1]1[C:2][C:3]1",
-            ],
-            reactants_smarts=["OCC[Cl,Br,I]", "[NaH]"],
-            match_explanation="Alkoxide + Alkyl Halide",
-            description="SN2 formation of an ether.",
-            conditions=[set()],
-        )
-    )
-
-    registry.register(
-        ReactionRule(
             id="epoxide_opening_acid",
             name="Epoxide Opening (Acid)",
             curriculum_subsubject_id="ethers-epoxides",
@@ -902,8 +886,8 @@ def register_rules():
             id="amine_protonation",
             name="Amine Protonation (Base)",
             curriculum_subsubject_id="amines-intro",
-            reaction_smarts="[N;H3,H2,H1:1].[F,Cl,Br,I:2]>>[N+:1].[F,Cl,Br,I-:2]",
-            reactants_smarts=["[N;H3,H2,H1]", "[F,Cl,Br,I][H]"],
+            reaction_smarts="[N:1].[F,Cl,Br,I:2]>>[N+:1].[F,Cl,Br,I-:2]",
+            reactants_smarts=["[N]", "[F,Cl,Br,I;H]"],
             match_explanation="Amine + HX",
             description="Amine acts as a base, accepting a proton from an acid to form an ammonium salt.",
             conditions=[set()],
@@ -916,7 +900,7 @@ def register_rules():
             name="Elimination Substitution",
             curriculum_subsubject_id="elimination-substitution",
             reaction_smarts="",  # Special handling
-            reactants_smarts=["[CX4][F,Cl,Br,I,O]", "[*]"],
+            reactants_smarts=["[CX4][F,Cl,Br,I,O]"],
             match_explanation="Elimination Substitution",
             description="Elimination Substitution",
             conditions=[set(), set(["heat"])],
@@ -925,13 +909,13 @@ def register_rules():
 
     registry.register(
         ReactionRule(
-            id="intramolecular_substitution",
-            name="Intramolecular Substitution",
-            curriculum_subsubject_id="intramolecular-substitution",
-            reaction_smarts="",  # Special handling
-            reactants_smarts=["[CX4][F,Cl,Br,I]"],
-            match_explanation="Intramolecular Substitution",
-            description="Intramolecular Substitution",
+            id="alcohol_deprotonation_nah",
+            name="Alcohol Deprotonation (NaH)",
+            curriculum_subsubject_id="alcohols-reactions",
+            reaction_smarts="[O:1][C:2].[NaH]>>[O-:1][C:2].[NaH2]",
+            reactants_smarts=["[OH][C]", "[NaH]"],
+            match_explanation="Alcohol + NaH",
+            description="Deprotonation of alcohol by Sodium Hydride to form Alkoxide and Hydrogen gas.",
             conditions=[set()],
         )
     )

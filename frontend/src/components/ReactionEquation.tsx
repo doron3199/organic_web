@@ -89,7 +89,7 @@ function ReactionEquation({ reaction, onExperiment }: ReactionEquationProps) {
                                     readOnly={true}
                                 />
                                 <div className="reaction-label product-label">{product.name}</div>
-                                {!['elimination_substitution', 'intramolecular_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(reaction.id || '') && !product.isByproduct && (
+                                {!['elimination_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(reaction.id || '') && !product.isByproduct && (
                                     <SelectivityChart
                                         type={product.selectivity}
                                         percentage={product.yield}

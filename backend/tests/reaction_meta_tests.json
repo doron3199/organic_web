@@ -371,7 +371,8 @@
                 "CCCO"
             ],
             "conditionMolecules": [
-                "[Na+].[BH4-]",
+                "[Na+]",
+                "[BH4-]",
                 "[OH3+]"
             ]
         },
@@ -384,7 +385,8 @@
                 "CC(O)C"
             ],
             "conditionMolecules": [
-                "[Na+].[BH4-]",
+                "[Na+]",
+                "[BH4-]",
                 "[OH3+]"
             ]
         },
@@ -392,8 +394,10 @@
             "id": "alcohol_prep_red_acid",
             "reactants": [
                 "CCC(=O)OC",
-                "[Li+].[AlH4-]",
-                "[Li+].[AlH4-]"
+                "[Li+]",
+                "[AlH4-]",
+                "[Li+]",
+                "[AlH4-]"
             ],
             "expected_products": [
                 "CCCO",
@@ -407,7 +411,8 @@
             "id": "carboxylic_Acids_with_hydride_ion",
             "reactants": [
                 "CCC(=O)O",
-                "[Li+].[AlH4-]"
+                "[Li+]",
+                "[AlH4-]"
             ],
             "expected_products": [
                 "CCCO"
@@ -545,7 +550,8 @@
                 "CCC=O"
             ],
             "conditionMolecules": [
-                "[nH+]1ccccc1.[O-][Cr](=O)(=O)Cl"
+                "[nH+]1ccccc1",
+                "[O-][Cr](=O)(=O)Cl"
             ]
         },
         {
@@ -591,7 +597,7 @@
                 "CCI"
             ],
             "expected_products": [
-                "CCOC"
+                "CCOCC"
             ]
         },
         {
@@ -622,11 +628,11 @@
             "id": "intramolecular_ether_5",
             "reactants": [
                 "OCCCCBr",
-                "[OH-]"
+                "[NaH]"
             ],
             "expected_products": [
                 "C1CCOC1",
-                "Br"
+                "[Br-]"
             ]
         },
         {
@@ -717,25 +723,14 @@
             ]
         },
         {
-            "id": "amine_salt_formation",
-            "reactants": [
-                "CCCN",
-                "CBr"
-            ],
-            "expected_products": [
-                "CCC[NH2+]C",
-                "[Br-]"
-            ]
-        },
-        {
             "id": "amine_alkylation_example",
             "reactants": [
-                "CCBr",
-                "CN"
+                "CN",
+                "CCBr"
             ],
             "expected_products": [
-                "CCN(C)",
-                "Br"
+                "CC[NH2+](C)",
+                "[Br-]"
             ]
         },
         {

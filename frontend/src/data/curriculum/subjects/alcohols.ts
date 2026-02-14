@@ -514,7 +514,7 @@ Best for converting Primary/Secondary alcohols to Bromides.
                         { smiles: 'CCI', name: 'Iodomethane' }
                     ],
                     products: [
-                        { smiles: 'CCOC', name: 'Ethyl methyl ether', yield: 100 }
+                        { smiles: 'CCOCC', name: 'Ethyl methyl ether', yield: 100 }
                     ],
                     conditions: 'SN2'
                 },
@@ -548,13 +548,13 @@ Best for converting Primary/Secondary alcohols to Bromides.
                     name: 'Intramolecular Williamson Synthesis',
                     reactants: [
                         { smiles: 'OCCCCBr', name: '4-Bromobutanol' },
-                        { smiles: '[OH-]', name: 'Hydroxide' }
+                        { smiles: '[NaH]', name: 'Sodium Hydride' }
                     ],
                     products: [
                         { smiles: 'C1CCOC1', name: 'Tetrahydrofuran', yield: 100 },
-                        { smiles: 'Br', name: 'Bromide', isByproduct: true }
+                        { smiles: '[Br-]', name: 'Bromide', isByproduct: true }
                     ],
-                    conditions: 'Base'
+                    conditions: ''
                 }
             ],
             examples: [],
@@ -745,28 +745,15 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
                     conditions: ''
                 },
                 {
-                    id: 'amine_salt_formation',
-                    name: 'Formation of Ammonium Salt',
-                    reactants: [
-                        { smiles: 'CCCN', name: 'Propylamine' },
-                        { smiles: 'CBr', name: 'Methyl bromide' }
-                    ],
-                    products: [
-                        { smiles: 'CCC[NH2+]C', name: 'Methylpropylammonium', yield: 100 },
-                        { smiles: '[Br-]', name: 'Bromide', isByproduct: true }
-                    ],
-                    conditions: ''
-                },
-                {
                     id: 'amine_alkylation_example',
                     name: 'Amine as Nucleophile (SN2)',
                     reactants: [
-                        { smiles: 'CCBr', name: 'Ethyl bromide' },
-                        { smiles: 'CN', name: 'Methylamine' }
+                        { smiles: 'CN', name: 'Methylamine' },
+                        { smiles: 'CCBr', name: 'Ethyl bromide' }
                     ],
                     products: [
-                        { smiles: 'CCN(C)', name: 'Ethylmethylamine', yield: 100 },
-                        { smiles: 'Br', name: 'HBr', isByproduct: true }
+                        { smiles: 'CC[NH2+](C)', name: 'Ethylmethylamine', yield: 100 },
+                        { smiles: '[Br-]', name: 'Bromide', isByproduct: true }
                     ],
                     conditions: ''
                 },

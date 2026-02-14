@@ -1,6 +1,8 @@
+import logging
 import os
 import traceback
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -20,6 +22,13 @@ from security import (
     check_substitution_security,
     check_propose_security,
 )
+
+# Configure logging: engine modules at DEBUG, everything else at INFO
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
+logging.getLogger("engine").setLevel(logging.DEBUG)
 
 
 @asynccontextmanager

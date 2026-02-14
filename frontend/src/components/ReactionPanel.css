@@ -387,3 +387,64 @@
 .close-modal-btn:hover {
     color: var(--text-primary);
 }
+
+/* Per-Mechanism Split Display (SN2/E2 etc.) */
+.per-mechanism-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.mechanism-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.mechanism-row:last-child {
+    border-bottom: none;
+}
+
+.mechanism-row-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.mechanism-badge {
+    font-size: 1.1rem;
+    font-weight: 800;
+    padding: 4px 14px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.mechanism-badge-major {
+    background: linear-gradient(135deg, #065f46, #047857);
+    color: #a7f3d0;
+    border: 1px solid #10b981;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.mechanism-badge-minor {
+    background: linear-gradient(135deg, #78350f, #92400e);
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+}
+
+.mechanism-selectivity {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.mechanism-selectivity.major {
+    color: #34d399;
+}
+
+.mechanism-selectivity.minor {
+    color: #fbbf24;
+}

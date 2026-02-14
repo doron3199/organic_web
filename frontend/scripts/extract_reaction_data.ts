@@ -72,7 +72,12 @@ function getConditionMolecules(conditions: string | undefined): string[] {
         const labelMatch = conditions.includes(labelPlain) || conditions.includes(molecule.label);
 
         if (keyMatch || labelMatch) {
-            molecules.push(molecule.smiles);
+            // Split by dot and add each part
+            molecule.smiles.split('.').forEach((s: string) => {
+                if (!molecules.includes(s)) {
+                    molecules.push(s);
+                }
+            });
         }
     });
 
@@ -108,7 +113,7 @@ const output = {
         const conditionsList = getConditionsList(ex.conditions);
         return {
             id: ex.id,
-            reactants: ex.reactants.map((r: any) => r.smiles),
+            reactants: ex.reactants.flatMap((r: any) => r.smiles.split('.')),
             expected_products: ex.products.map((p: any) => p.smiles),
             conditionMolecules: conditionMolecules.length > 0 ? conditionMolecules : undefined,
             conditions: conditionsList.length > 0 ? conditionsList : undefined

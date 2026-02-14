@@ -39,7 +39,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         smarts: string,
         autoAdd?: (string | Record<string, never>)[],
         rank?: number,
-        mechanism?: string  // logic engine mechanism (e.g. "SN2")
+        mechanism?: string,  // logic engine mechanism (e.g. "SN2")
+        perMechanism?: { mechanism: string, selectivity: string, organic: string[], inorganic: string[] }[]
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
@@ -62,7 +63,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             const reactants = currentMolecule.split('.')
             let result: import('../services/rdkit').DebugReactionOutcome | null = null
 
-            if (reactionId === 'elimination_substitution' || reactionId === 'intramolecular_substitution') {
+            if (reactionId === 'elimination_substitution') {
                 // Special handling for Substitution/Elimination
                 // For mechanism view, we need to pass conditions again.
                 // We assume 'selectedConditions' state is current.
@@ -187,7 +188,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 smarts: Array.isArray(res.smarts) ? res.smarts.join('\n') : res.smarts,
                 autoAdd: res.autoAdd,
                 rank: res.rank,
-                mechanism: res.mechanism // if any
+                mechanism: res.mechanism, // if any
+                perMechanism: res.perMechanism // per-mechanism breakdown
             }))
 
             setResults(mappedResults)
@@ -390,53 +392,102 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                         {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}
                                     </button>
                                 </div>
-                                <div className="products-layout-container">
-                                    <div className="products-grid main-organic">
-                                        {res.products.map((prod, idx) => (
-                                            <div key={idx} className="product-card">
-                                                <div className="product-img">
-                                                    <MoleculeViewer smiles={prod.smiles} width={140} height={100} readOnly={true} />
+                                {/* Per-mechanism split display for SN/E reactions */}
+                                {res.perMechanism && res.perMechanism.length > 1 ? (
+                                    <div className="per-mechanism-container">
+                                        {res.perMechanism.map((mechData, mechIdx) => (
+                                            <div key={mechIdx} className="mechanism-row">
+                                                <div className="mechanism-row-header">
+                                                    <span className={`mechanism-badge ${mechData.selectivity === 'major' ? 'mechanism-badge-major' : 'mechanism-badge-minor'}`}>
+                                                        {mechData.mechanism}
+                                                    </span>
+                                                    <span className={`mechanism-selectivity ${mechData.selectivity}`}>
+                                                        {mechData.selectivity === 'major' ? '★ Major Product' : '○ Minor Product'}
+                                                    </span>
                                                 </div>
-                                                <button
-                                                    className="btn-small"
-                                                    onClick={() => handleAddToEditor(prod.smiles)}
-                                                >
-                                                    Add to Editor
-                                                </button>
-                                                {prod.nextStep && (
-                                                    <button
-                                                        className="btn-small btn-continue"
-                                                        style={{ marginTop: '4px', backgroundColor: '#1565c0', color: 'white', border: '1px solid #0d47a1' }}
-                                                        onClick={() => handleContinueReaction(prod.nextStep!.requiredReactants)}
-                                                        title={`Apply next reaction: ${prod.nextStep.ruleName}`}
-                                                    >
-                                                        Continue &rarr;
-                                                    </button>
-                                                )}
-                                                {!['elimination_substitution', 'intramolecular_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(res.reactionId) && (
-                                                    <SelectivityChart
-                                                        type={prod.selectivity as any}
-                                                        label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
-                                                    />
-                                                )}
+                                                <div className="products-layout-container">
+                                                    <div className="products-grid main-organic">
+                                                        {mechData.organic.map((smi, idx) => (
+                                                            <div key={idx} className="product-card">
+                                                                <div className="product-img">
+                                                                    <MoleculeViewer smiles={smi} width={140} height={100} readOnly={true} />
+                                                                </div>
+                                                                <button
+                                                                    className="btn-small"
+                                                                    onClick={() => handleAddToEditor(smi)}
+                                                                >
+                                                                    Add to Editor
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    {mechData.inorganic.length > 0 && (
+                                                        <div className="byproducts-sidebar">
+                                                            <h5 className="byproducts-title">Inorganic Byproducts</h5>
+                                                            <div className="byproducts-list">
+                                                                {mechData.inorganic.map((bSmi, bIdx) => (
+                                                                    <div key={bIdx} className="byproduct-item" title={bSmi}>
+                                                                        <MoleculeViewer smiles={bSmi} width={60} height={50} readOnly={true} />
+                                                                        <span className="byproduct-label">{bSmi}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-
-                                    {res.byproducts.length > 0 && (
-                                        <div className="byproducts-sidebar">
-                                            <h5 className="byproducts-title">Inorganic Byproducts</h5>
-                                            <div className="byproducts-list">
-                                                {res.byproducts.map((bSmi, bIdx) => (
-                                                    <div key={bIdx} className="byproduct-item" title={bSmi}>
-                                                        <MoleculeViewer smiles={bSmi} width={60} height={50} readOnly={true} />
-                                                        <span className="byproduct-label">{bSmi}</span>
+                                ) : (
+                                    /* Standard single-row display */
+                                    <div className="products-layout-container">
+                                        <div className="products-grid main-organic">
+                                            {res.products.map((prod, idx) => (
+                                                <div key={idx} className="product-card">
+                                                    <div className="product-img">
+                                                        <MoleculeViewer smiles={prod.smiles} width={140} height={100} readOnly={true} />
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <button
+                                                        className="btn-small"
+                                                        onClick={() => handleAddToEditor(prod.smiles)}
+                                                    >
+                                                        Add to Editor
+                                                    </button>
+                                                    {prod.nextStep && (
+                                                        <button
+                                                            className="btn-small btn-continue"
+                                                            style={{ marginTop: '4px', backgroundColor: '#1565c0', color: 'white', border: '1px solid #0d47a1' }}
+                                                            onClick={() => handleContinueReaction(prod.nextStep!.requiredReactants)}
+                                                            title={`Apply next reaction: ${prod.nextStep.ruleName}`}
+                                                        >
+                                                            Continue &rarr;
+                                                        </button>
+                                                    )}
+                                                    {!['elimination_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(res.reactionId) && (
+                                                        <SelectivityChart
+                                                            type={prod.selectivity as any}
+                                                            label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
-                                    )}
-                                </div>
+
+                                        {res.byproducts.length > 0 && (
+                                            <div className="byproducts-sidebar">
+                                                <h5 className="byproducts-title">Inorganic Byproducts</h5>
+                                                <div className="byproducts-list">
+                                                    {res.byproducts.map((bSmi, bIdx) => (
+                                                        <div key={bIdx} className="byproduct-item" title={bSmi}>
+                                                            <MoleculeViewer smiles={bSmi} width={60} height={50} readOnly={true} />
+                                                            <span className="byproduct-label">{bSmi}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))
                         }

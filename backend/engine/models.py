@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 # Engine-based reactions that don't use simple SMARTS
 ENGINE_RULES = {
     "elimination_substitution",
-    "intramolecular_substitution",
 }
 
 # Maximum iterations for chain reactions to prevent infinite loops

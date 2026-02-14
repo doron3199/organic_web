@@ -1,6 +1,9 @@
+import logging
 from engine import run_reaction
 from reactions.matcher import find_matching_reactions
 from engine.substitution_elimination import run_substitution_elimination
+
+logger = logging.getLogger(__name__)
 
 
 def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dict]:
@@ -8,30 +11,34 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
     Finds matching reaction rules and executes them, formatting results for the frontend.
     Handles special cases like the substitution/elimination engine.
     """
+    logger.debug(f"get_propose_results: reactants={reactants}, conditions={conditions}")
 
     # 1. Match Rules
     matches = find_matching_reactions(reactants, set(conditions))
+    logger.debug(f"Found {len(matches)} matching reactions")
 
     results = []
+
     for rule in matches:
         auto_add = rule.auto_add if rule.auto_add else []
 
         try:
             # Special handling for Substitution/Elimination engine
-            if rule.id in ["elimination_substitution", "intramolecular_substitution"]:
-                if rule.id == "intramolecular_substitution" and len(reactants) > 1:
-                    continue
-
+            if rule.id == "elimination_substitution":
                 sub_result = run_substitution_elimination(reactants, conditions)
 
                 # Skip if no products (e.g. "No Reaction" or error)
                 if not sub_result.get("products"):
                     continue
 
+                reaction_name = rule.name
+                if "Intramolecular_SN2" in sub_result.get("mechanisms", []):
+                    reaction_name = "Intramolecular Substitution"
+
                 results.append(
                     {
                         "reactionId": rule.id,
-                        "reactionName": rule.name,
+                        "reactionName": reaction_name,
                         "curriculum_subsubject_id": rule.curriculum_subsubject_id,
                         "matchExplanation": sub_result.get(
                             "explanation", rule.match_explanation
@@ -40,13 +47,14 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                             {"smiles": p, "selectivity": "mixture"}
                             for p in sub_result.get("products", [])
                         ],
-                        "byproducts": [],
+                        "byproducts": sub_result.get("inorganic", []),
                         "smarts": rule.reaction_smarts,
                         "autoAdd": rule.auto_add,
                         "rank": rule.rank,
                         "mechanism": "/".join(sub_result["mechanisms"])
                         if sub_result.get("mechanisms")
                         else None,
+                        "perMechanism": sub_result.get("per_mechanism"),
                     }
                 )
                 continue

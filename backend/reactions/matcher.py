@@ -1,8 +1,11 @@
+import logging
 from typing import List, Set
 from rdkit import Chem
 from .models import ReactionRule
 from .registry import ReactionRegistry
 from .conditions import CONDITION_MOLECULES
+
+logger = logging.getLogger(__name__)
 
 
 def check_subset_match(reactants: List[str], patterns: List[str]) -> bool:
@@ -50,6 +53,7 @@ def find_matching_reactions(
 
     # Augment reactants with molecules from conditions
     augmented_reactants = reactants.copy()
+
     for cond in conditions:
         normalized_cond = cond.lower().strip()
         if normalized_cond in CONDITION_MOLECULES:
@@ -81,9 +85,13 @@ def find_matching_reactions(
         # augmented might be length 3.
 
         if len(rule.reactants_smarts) > len(augmented_reactants):
+            logger.debug(
+                f"Rule {rule.id} ({rule.name}) skipped: needs {len(rule.reactants_smarts)} reactants, have {len(augmented_reactants)}"
+            )
             continue
 
         if check_subset_match(augmented_reactants, rule.reactants_smarts):
+            logger.debug(f"Rule {rule.id} ({rule.name}) matched!")
             # Handle append_reaction logic immediately?
             # In TS, we returned a modified rule object. We can do similar.
 
