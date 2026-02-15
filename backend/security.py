@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest
+from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest, ResonanceRequest
 
 MAX_SMILES_LENGTH = 1000
 MAX_SMARTS_LENGTH = 5000
@@ -66,3 +66,8 @@ def check_propose_security(data: ProposeRequest):
     for c in data.conditions:
         if len(c) > 200:
             raise HTTPException(status_code=400, detail="Condition string too long")
+
+
+def check_resonance_security(data: ResonanceRequest):
+    """Security validation for the /resonance endpoint."""
+    validate_smiles(data.smiles)

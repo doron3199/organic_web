@@ -14,6 +14,7 @@ interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
     initialMolecule?: string
     initialConditions?: string[]
+    initialWorkbenchSubMode?: 'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'
     onBack: () => void
     onNameMolecule: (smiles: string) => AnalysisResult
     onCompareAcids?: (result: AcidComparisonResult) => void
@@ -30,20 +31,26 @@ if ('setMaxListeners' in structServiceProvider) {
 // ... imports
 import ReactionPanel from './ReactionPanel'
 import ReactionDebugPanel from './ReactionDebugPanel'
+import ResonanceDrawer from './ResonanceDrawer'
+import AromaticDetector from './AromaticDetector'
 
 // ... existing code ...
 
-function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, onBack, onNameMolecule, onCompareAcids, pendingCompare, onCompareSeeded, showDebugPanel }: MoleculeEditorProps) {
+function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, initialWorkbenchSubMode, onBack, onNameMolecule, onCompareAcids, pendingCompare, onCompareSeeded, showDebugPanel }: MoleculeEditorProps) {
     const ketcherRef = useRef<Ketcher | null>(null)
     const [isReady, setIsReady] = useState(false)
     const [message, setMessage] = useState('Initializing...')
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
 
-    const [selectedAction, setSelectedAction] = useState<'compare' | null>(null)
     const [isActionMenuOpen, setIsActionMenuOpen] = useState(false)
+
+    // Workbench sub-mode: reactions (default), resonance, aromatic-detector, compare-acids
+    const [workbenchSubMode, setWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'>(initialWorkbenchSubMode || 'reactions')
 
     const [currentSmiles, setCurrentSmiles] = useState<string>('')
     const lastInternalSmiles = useRef<string | null>(null)
+    const [aromaticDetectNonce, setAromaticDetectNonce] = useState(0)
+    const [resonanceDrawNonce, setResonanceDrawNonce] = useState(0)
 
     const [compareA, setCompareA] = useState<string | null>(null)
     const [compareB, setCompareB] = useState<string | null>(null)
@@ -71,7 +78,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
     useEffect(() => {
         if (!pendingCompare) return
-        setSelectedAction('compare')
+        setWorkbenchSubMode('compare-acids')
         setIsActionMenuOpen(false)
         setCompareA(pendingCompare.smilesA)
         setCompareB(pendingCompare.smilesB)
@@ -90,6 +97,18 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         onCompareAcids?.(result)
         onCompareSeeded?.()
     }, [pendingCompare, onCompareAcids, onCompareSeeded])
+
+    useEffect(() => {
+        if (!initialWorkbenchSubMode || pendingCompare) {
+            return
+        }
+
+        setWorkbenchSubMode(initialWorkbenchSubMode)
+        if (initialWorkbenchSubMode === 'resonance') {
+            setResonanceDrawNonce((value) => value + 1)
+            setMessage('Resonance updated')
+        }
+    }, [initialWorkbenchSubMode, pendingCompare])
 
     // Update conditions if initialConditions prop changes
     useEffect(() => {
@@ -198,17 +217,38 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         setMessage('Compared acids')
     }
 
-    const handleSelectAction = (action: 'compare') => {
-        setSelectedAction(action)
-        setIsActionMenuOpen(false)
+    const handleAromaticDetect = async () => {
+        const smiles = await updateCurrentSmiles()
+        if (smiles) {
+            setMessage('Aromaticity updated')
+        }
+        setAromaticDetectNonce((value) => value + 1)
     }
 
-    const handleHideActionPanel = () => {
-        setSelectedAction(null)
+    const handleDrawResonance = async () => {
+        const smiles = await updateCurrentSmiles()
+        if (smiles) {
+            setMessage('Resonance updated')
+        }
+        setResonanceDrawNonce((value) => value + 1)
+    }
+
+    const handleSelectSubMode = async (subMode: 'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids') => {
+        setWorkbenchSubMode(subMode)
+        setIsActionMenuOpen(false)
+        if (subMode === 'resonance') {
+            const smiles = await updateCurrentSmiles()
+            if (smiles) {
+                setMessage('Resonance updated')
+            }
+            setResonanceDrawNonce((value) => value + 1)
+        }
     }
 
     const getActionLabel = () => {
-        if (selectedAction === 'compare') return 'Compare Acids'
+        if (workbenchSubMode === 'compare-acids') return '🧪 Compare Acids'
+        if (workbenchSubMode === 'resonance') return '↔ Resonance'
+        if (workbenchSubMode === 'aromatic-detector') return '⌬ Aromatics'
         return 'Additional Actions'
     }
 
@@ -317,6 +357,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                         onClick={async () => {
                             const s = await updateCurrentSmiles()
                             if (s) {
+                                lastInternalSmiles.current = s // Prevent initialMolecule useEffect from clearing result
                                 setAnalysisResult({ name: s, isValid: true, logs: [], appliedRuleIds: [], ruleResults: {} } as any)
                                 setMessage('SMILES generated')
                             }
@@ -338,11 +379,32 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                         {isActionMenuOpen && (
                             <div className="action-menu-list" role="menu">
                                 <button
-                                    className="action-menu-item"
-                                    onClick={() => handleSelectAction('compare')}
+                                    className={`action-menu-item ${workbenchSubMode === 'reactions' ? 'active-submode' : ''}`}
+                                    onClick={() => handleSelectSubMode('reactions')}
                                     role="menuitem"
                                 >
-                                    Compare Acids
+                                    ⚡ Reaction Workbench
+                                </button>
+                                <button
+                                    className={`action-menu-item ${workbenchSubMode === 'resonance' ? 'active-submode' : ''}`}
+                                    onClick={() => handleSelectSubMode('resonance')}
+                                    role="menuitem"
+                                >
+                                    ↔ Resonance Drawer
+                                </button>
+                                <button
+                                    className={`action-menu-item ${workbenchSubMode === 'aromatic-detector' ? 'active-submode' : ''}`}
+                                    onClick={() => handleSelectSubMode('aromatic-detector')}
+                                    role="menuitem"
+                                >
+                                    ⌬ Aromatic Detector
+                                </button>
+                                <button
+                                    className={`action-menu-item ${workbenchSubMode === 'compare-acids' ? 'active-submode' : ''}`}
+                                    onClick={() => handleSelectSubMode('compare-acids')}
+                                    role="menuitem"
+                                >
+                                    🧪 Compare Acids
                                 </button>
                             </div>
                         )}
@@ -356,8 +418,8 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                 )}
             </div>
 
-            {selectedAction === 'compare' && (
-                <div className="acid-compare-panel">
+            {workbenchSubMode === 'compare-acids' && (
+                <div className="acid-compare-panel fade-in">
                     <div className="acid-compare-header">
                         <div>
                             <div className="acid-compare-title">Acid Strength Comparison</div>
@@ -398,36 +460,58 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                             <div className="acid-compare-result-title">Result: Tie</div>
                         </div>
                     )}
-
-                    <button className="btn-hide-panel" onClick={handleHideActionPanel}>
-                        Hide
-                    </button>
                 </div>
             )}
 
 
-            {/* Reaction Panel Overlay/Section - Always Visible */}
-            <div className="reaction-panel-container fade-in">
-                <ReactionPanel
-                    currentMolecule={currentSmiles}
-                    initialConditions={initialConditions} // Legacy prop, kept for init logic if needed, but state is now controlled
-                    selectedConditions={selectedConditions}
-                    onConditionsChange={setSelectedConditions}
-                    onMoleculeUpdate={handleReactionUpdate}
-                    onRequestSmiles={updateCurrentSmiles}
-                    onReactionRun={(reaction) => setTriggeredReaction(reaction)}
-                />
-
-                {/* Debug Panel - Only in Testing Mode */}
-                {showDebugPanel && (
-                    <ReactionDebugPanel
+            {/* Reaction Panel Overlay/Section - Shown in 'reactions' sub-mode */}
+            {workbenchSubMode === 'reactions' && (
+                <div className="reaction-panel-container fade-in">
+                    <ReactionPanel
                         currentMolecule={currentSmiles}
-                        onMoleculeUpdate={handleReactionUpdate}
+                        initialConditions={initialConditions}
                         selectedConditions={selectedConditions}
-                        triggeredReaction={triggeredReaction}
+                        onConditionsChange={setSelectedConditions}
+                        onMoleculeUpdate={handleReactionUpdate}
+                        onRequestSmiles={updateCurrentSmiles}
+                        onReactionRun={(reaction) => setTriggeredReaction(reaction)}
                     />
-                )}
-            </div>
+
+                    {/* Debug Panel - Only in Testing Mode */}
+                    {showDebugPanel && (
+                        <ReactionDebugPanel
+                            currentMolecule={currentSmiles}
+                            onMoleculeUpdate={handleReactionUpdate}
+                            selectedConditions={selectedConditions}
+                            triggeredReaction={triggeredReaction}
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Resonance Drawer - Shown in 'resonance' sub-mode */}
+            {workbenchSubMode === 'resonance' && (
+                <div className="reaction-panel-container fade-in">
+                    <ResonanceDrawer
+                        smiles={currentSmiles}
+                        onDrawResonance={handleDrawResonance}
+                        drawDisabled={!isReady}
+                        drawNonce={resonanceDrawNonce}
+                    />
+                </div>
+            )}
+
+            {/* Aromatic Detector - Shown in 'aromatic-detector' sub-mode */}
+            {workbenchSubMode === 'aromatic-detector' && (
+                <div className="reaction-panel-container fade-in">
+                    <AromaticDetector
+                        smiles={currentSmiles}
+                        onDetect={handleAromaticDetect}
+                        detectDisabled={!isReady}
+                        detectNonce={aromaticDetectNonce}
+                    />
+                </div>
+            )}
         </div>
     )
 }

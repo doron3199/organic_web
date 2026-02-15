@@ -19,3 +19,11 @@ class SubstitutionRequest(BaseModel):
 class ProposeRequest(BaseModel):
     reactants: List[str] = Field(..., max_length=10)
     conditions: List[str] = Field(..., max_length=10)
+
+
+class ResonanceRequest(BaseModel):
+    smiles: str = Field(..., max_length=500)
+    allow_incomplete_octets: bool = False
+    allow_charge_separation: bool = False
+    unconstrained_cations: bool = False
+    unconstrained_anions: bool = False

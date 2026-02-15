@@ -6,11 +6,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest, ResonanceRequest
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from resonance_service import get_resonance_structures as get_resonance_structures_service
 
-from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest
 from reactions.rules import register_rules
 from reaction_service import (
     get_propose_results,
@@ -21,6 +22,7 @@ from security import (
     check_reaction_security,
     check_substitution_security,
     check_propose_security,
+    check_resonance_security,
 )
 
 # Configure logging: engine modules at DEBUG, everything else at INFO
@@ -102,6 +104,19 @@ async def propose_reactions(request: Request, data: ProposeRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.post("/resonance")
+@limiter.limit("10/minute")
+async def get_resonance_structures(request: Request, data: ResonanceRequest):
+    try:
+        check_resonance_security(data)
+        return get_resonance_structures_service(data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

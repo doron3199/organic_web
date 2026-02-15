@@ -51,6 +51,7 @@ function ContentCanvas({
     const observerRef = useRef<IntersectionObserver | null>(null)
     const [testSmiles, setTestSmiles] = useState('')
     const [workbenchConditions, setWorkbenchConditions] = useState<string[]>([])
+    const [initialWorkbenchSubMode, setInitialWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'>('reactions')
 
     const handleExperiment = (smiles: string, conditions: string) => {
         let smilesToLoad = smiles
@@ -85,6 +86,7 @@ function ContentCanvas({
 
         onLoadExample(smilesToLoad)
         setWorkbenchConditions(conds)
+        setInitialWorkbenchSubMode('reactions')
         onSwitchMode('workbench')
     }
 
@@ -136,11 +138,19 @@ function ContentCanvas({
 
 
     const handleEditClick = (smiles: string) => {
+        if (subject.id === 'resonance') {
+            setInitialWorkbenchSubMode('resonance')
+        } else if (subject.id === 'aromatics') {
+            setInitialWorkbenchSubMode('aromatic-detector')
+        } else {
+            setInitialWorkbenchSubMode('reactions')
+        }
         onLoadExample(smiles)
         onSwitchMode('workbench')
     }
 
     const handleCompareExample = (smilesA: string, smilesB: string) => {
+        setInitialWorkbenchSubMode('reactions')
         onLoadCompareExample(smilesA, smilesB)
         onSwitchMode('workbench')
     }
@@ -347,6 +357,7 @@ function ContentCanvas({
                         <MoleculeEditor
                             onMoleculeChange={onWorkbenchChange}
                             initialMolecule={originalMolecule || workbenchMolecule}
+                            initialWorkbenchSubMode={initialWorkbenchSubMode}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
                             onCompareAcids={onCompareAcids}
@@ -362,6 +373,7 @@ function ContentCanvas({
                             onMoleculeChange={onWorkbenchChange}
                             initialMolecule={originalMolecule || workbenchMolecule}
                             initialConditions={workbenchConditions}
+                            initialWorkbenchSubMode={initialWorkbenchSubMode}
                             onBack={() => onSwitchMode('study')}
                             onNameMolecule={onNameMolecule}
                             onCompareAcids={onCompareAcids}

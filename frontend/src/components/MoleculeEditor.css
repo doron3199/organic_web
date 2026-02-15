@@ -173,6 +173,18 @@
     background: var(--bg-secondary);
 }
 
+.action-menu-item.active-submode {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    border-left: 3px solid var(--primary-color);
+}
+
+.action-menu-divider {
+    height: 1px;
+    background: var(--border-color, #333);
+    margin: 4px 0;
+}
+
 
 .button-group {
     display: flex;
