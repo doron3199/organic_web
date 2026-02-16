@@ -51,7 +51,7 @@ function ContentCanvas({
     const observerRef = useRef<IntersectionObserver | null>(null)
     const [testSmiles, setTestSmiles] = useState('')
     const [workbenchConditions, setWorkbenchConditions] = useState<string[]>([])
-    const [initialWorkbenchSubMode, setInitialWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'>('reactions')
+    const [initialWorkbenchSubMode, setInitialWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'>('reactions')
 
     const handleExperiment = (smiles: string, conditions: string) => {
         let smilesToLoad = smiles
@@ -140,6 +140,8 @@ function ContentCanvas({
     const handleEditClick = (smiles: string) => {
         if (subject.id === 'resonance') {
             setInitialWorkbenchSubMode('resonance')
+        } else if (subject.id === 'chirality') {
+            setInitialWorkbenchSubMode('chiral-detector')
         } else if (subject.id === 'aromatics') {
             setInitialWorkbenchSubMode('aromatic-detector')
         } else {

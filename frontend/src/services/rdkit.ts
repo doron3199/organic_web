@@ -55,6 +55,20 @@ export interface DebugReactionOutcome {
     finalByproducts: string[]
 }
 
+export interface ChiralCenter {
+    atom_index: number
+    atom_symbol: string
+    configuration: 'R' | 'S' | 'Unassigned'
+    neighbors: string[]
+}
+
+export interface ChiralityResult {
+    chiral_centers: ChiralCenter[]
+    chiral_atom_indices: number[]
+    is_chiral: boolean
+    error?: string
+}
+
 class RDKitService {
     private rdkit: any = null
     private initialized: boolean = false
@@ -472,6 +486,28 @@ class RDKitService {
         }
     }
 
+    async detectChiralCenters(smiles: string): Promise<ChiralityResult | null> {
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+            const response = await fetch(`${apiUrl}/chirality`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ smiles })
+            })
+
+            if (!response.ok) {
+                console.error('Chirality request failed:', response.statusText)
+                return null
+            }
+
+            const data = await response.json()
+            return data as ChiralityResult
+        } catch (error) {
+            console.error('Chiral center detection error:', error)
+            return null
+        }
+    }
+
     // Generate SVG with highlighted atoms (for aromatic detector)
     generateHighlightedSVG(
         smiles: string,
@@ -479,7 +515,8 @@ class RDKitService {
         highlightBonds: number[],
         width: number = 400,
         height: number = 300,
-        atomColor: string = '#ff0000'
+        atomColor: string = '#ff0000',
+        atomColorMap?: Record<number, string>
     ): string | null {
         if (!this.isAvailable()) {
             return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><text x="50%" y="50%" text-anchor="middle">RDKit not loaded</text></svg>`;
@@ -493,16 +530,25 @@ class RDKitService {
             const atomColors: Record<number, number[]> = {};
             const bondColors: Record<number, number[]> = {};
 
-            // Parse color from hex to [r, g, b] in 0..1 range
-            const r = parseInt(atomColor.slice(1, 3), 16) / 255;
-            const g = parseInt(atomColor.slice(3, 5), 16) / 255;
-            const b = parseInt(atomColor.slice(5, 7), 16) / 255;
+            const parseHexColor = (hex: string): [number, number, number] => {
+                if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
+                    return [1, 0, 0]
+                }
+                const r = parseInt(hex.slice(1, 3), 16) / 255
+                const g = parseInt(hex.slice(3, 5), 16) / 255
+                const b = parseInt(hex.slice(5, 7), 16) / 255
+                return [r, g, b]
+            }
+
+            const [defaultR, defaultG, defaultB] = parseHexColor(atomColor)
 
             highlightAtoms.forEach(idx => {
-                atomColors[idx] = [r, g, b];
+                const atomHex = atomColorMap?.[idx] || atomColor
+                const [r, g, b] = parseHexColor(atomHex)
+                atomColors[idx] = [r, g, b]
             });
             highlightBonds.forEach(idx => {
-                bondColors[idx] = [r, g, b];
+                bondColors[idx] = [defaultR, defaultG, defaultB]
             });
 
             const drawOpts = JSON.stringify({

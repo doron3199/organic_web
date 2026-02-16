@@ -6,11 +6,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest, ResonanceRequest
+from schemas import (
+    ChiralityRequest,
+    ProposeRequest,
+    ReactionRequest,
+    ResonanceRequest,
+    SubstitutionRequest,
+)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from resonance_service import get_resonance_structures as get_resonance_structures_service
+from chirality_service import get_chiral_centers as get_chiral_centers_service
 
 from reactions.rules import register_rules
 from reaction_service import (
@@ -19,6 +26,7 @@ from reaction_service import (
     execute_substitution_elimination,
 )
 from security import (
+    check_chirality_security,
     check_reaction_security,
     check_substitution_security,
     check_propose_security,
@@ -112,6 +120,19 @@ async def get_resonance_structures(request: Request, data: ResonanceRequest):
     try:
         check_resonance_security(data)
         return get_resonance_structures_service(data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chirality")
+@limiter.limit("20/minute")
+async def get_chirality(request: Request, data: ChiralityRequest):
+    try:
+        check_chirality_security(data)
+        return get_chiral_centers_service(data.smiles)
     except HTTPException:
         raise
     except Exception as e:

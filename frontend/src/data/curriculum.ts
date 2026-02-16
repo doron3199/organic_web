@@ -6,6 +6,7 @@ import { alcohols } from './curriculum/subjects/alcohols';
 import { acidBase } from './curriculum/subjects/acid_base';
 import { substitutionElimination } from './curriculum/subjects/substitution_elimination';
 import { resonance } from './curriculum/subjects/resonance';
+import { chirality } from './curriculum/subjects/chirality';
 import { Subject } from './curriculum/types';
 
 export * from './curriculum/types';
@@ -16,6 +17,7 @@ export const initialCurriculum: Subject[] = [
     alkynes,
     substitutionElimination,
     acidBase,
+    chirality,
     resonance,
     aromatics,
     alcohols

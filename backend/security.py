@@ -1,5 +1,11 @@
 from fastapi import HTTPException
-from schemas import ReactionRequest, SubstitutionRequest, ProposeRequest, ResonanceRequest
+from schemas import (
+    ChiralityRequest,
+    ProposeRequest,
+    ReactionRequest,
+    ResonanceRequest,
+    SubstitutionRequest,
+)
 
 MAX_SMILES_LENGTH = 1000
 MAX_SMARTS_LENGTH = 5000
@@ -70,4 +76,9 @@ def check_propose_security(data: ProposeRequest):
 
 def check_resonance_security(data: ResonanceRequest):
     """Security validation for the /resonance endpoint."""
+    validate_smiles(data.smiles)
+
+
+def check_chirality_security(data: ChiralityRequest):
+    """Security validation for the /chirality endpoint."""
     validate_smiles(data.smiles)

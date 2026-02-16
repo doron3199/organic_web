@@ -14,7 +14,7 @@ interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
     initialMolecule?: string
     initialConditions?: string[]
-    initialWorkbenchSubMode?: 'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'
+    initialWorkbenchSubMode?: 'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'
     onBack: () => void
     onNameMolecule: (smiles: string) => AnalysisResult
     onCompareAcids?: (result: AcidComparisonResult) => void
@@ -33,6 +33,7 @@ import ReactionPanel from './ReactionPanel'
 import ReactionDebugPanel from './ReactionDebugPanel'
 import ResonanceDrawer from './ResonanceDrawer'
 import AromaticDetector from './AromaticDetector'
+import ChiralDetector from './ChiralDetector'
 
 // ... existing code ...
 
@@ -44,12 +45,13 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
     const [isActionMenuOpen, setIsActionMenuOpen] = useState(false)
 
-    // Workbench sub-mode: reactions (default), resonance, aromatic-detector, compare-acids
-    const [workbenchSubMode, setWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids'>(initialWorkbenchSubMode || 'reactions')
+    // Workbench sub-mode: reactions (default), resonance, aromatic-detector, chiral-detector, compare-acids
+    const [workbenchSubMode, setWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'>(initialWorkbenchSubMode || 'reactions')
 
     const [currentSmiles, setCurrentSmiles] = useState<string>('')
     const lastInternalSmiles = useRef<string | null>(null)
     const [aromaticDetectNonce, setAromaticDetectNonce] = useState(0)
+    const [chiralDetectNonce, setChiralDetectNonce] = useState(0)
     const [resonanceDrawNonce, setResonanceDrawNonce] = useState(0)
 
     const [compareA, setCompareA] = useState<string | null>(null)
@@ -233,7 +235,15 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         setResonanceDrawNonce((value) => value + 1)
     }
 
-    const handleSelectSubMode = async (subMode: 'reactions' | 'resonance' | 'aromatic-detector' | 'compare-acids') => {
+    const handleChiralDetect = async () => {
+        const smiles = await updateCurrentSmiles()
+        if (smiles) {
+            setMessage('Chirality updated')
+        }
+        setChiralDetectNonce((value) => value + 1)
+    }
+
+    const handleSelectSubMode = async (subMode: 'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids') => {
         setWorkbenchSubMode(subMode)
         setIsActionMenuOpen(false)
         if (subMode === 'resonance') {
@@ -242,6 +252,12 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                 setMessage('Resonance updated')
             }
             setResonanceDrawNonce((value) => value + 1)
+        } else if (subMode === 'chiral-detector') {
+            const smiles = await updateCurrentSmiles()
+            if (smiles) {
+                setMessage('Chirality updated')
+            }
+            setChiralDetectNonce((value) => value + 1)
         }
     }
 
@@ -249,6 +265,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
         if (workbenchSubMode === 'compare-acids') return '🧪 Compare Acids'
         if (workbenchSubMode === 'resonance') return '↔ Resonance'
         if (workbenchSubMode === 'aromatic-detector') return '⌬ Aromatics'
+        if (workbenchSubMode === 'chiral-detector') return '🧭 Chirality'
         return 'Additional Actions'
     }
 
@@ -400,6 +417,13 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                                     ⌬ Aromatic Detector
                                 </button>
                                 <button
+                                    className={`action-menu-item ${workbenchSubMode === 'chiral-detector' ? 'active-submode' : ''}`}
+                                    onClick={() => handleSelectSubMode('chiral-detector')}
+                                    role="menuitem"
+                                >
+                                    🧭 Chiral Detector
+                                </button>
+                                <button
                                     className={`action-menu-item ${workbenchSubMode === 'compare-acids' ? 'active-submode' : ''}`}
                                     onClick={() => handleSelectSubMode('compare-acids')}
                                     role="menuitem"
@@ -509,6 +533,17 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                         onDetect={handleAromaticDetect}
                         detectDisabled={!isReady}
                         detectNonce={aromaticDetectNonce}
+                    />
+                </div>
+            )}
+
+            {workbenchSubMode === 'chiral-detector' && (
+                <div className="reaction-panel-container fade-in">
+                    <ChiralDetector
+                        smiles={currentSmiles}
+                        onDetect={handleChiralDetect}
+                        detectDisabled={!isReady}
+                        detectNonce={chiralDetectNonce}
                     />
                 </div>
             )}

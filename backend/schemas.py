@@ -27,3 +27,7 @@ class ResonanceRequest(BaseModel):
     allow_charge_separation: bool = False
     unconstrained_cations: bool = False
     unconstrained_anions: bool = False
+
+
+class ChiralityRequest(BaseModel):
+    smiles: str = Field(..., max_length=500)

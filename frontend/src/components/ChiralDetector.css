@@ -1,0 +1,340 @@
+.chiral-detector {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.chiral-header {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chiral-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.chiral-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.chiral-subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.chiral-input-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 2rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chiral-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.chiral-smiles {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    background: var(--bg-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+.chiral-formula {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+.chiral-results {
+    flex: 1;
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+}
+
+.chiral-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 0;
+    color: var(--text-secondary);
+}
+
+.chiral-loading .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: chiral-spin 0.8s linear infinite;
+}
+
+@keyframes chiral-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.chiral-error {
+    background: color-mix(in srgb, var(--error) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 50%, transparent);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.chiral-visualization {
+    margin-bottom: 1.5rem;
+}
+
+.chiral-visualization h3 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.chiral-svg-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1.5rem;
+    min-height: 200px;
+}
+
+.chiral-svg-container svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.chiral-verdict {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+}
+
+.chiral-verdict.is-chiral {
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent);
+}
+
+.chiral-verdict.not-chiral {
+    background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
+}
+
+.verdict-icon {
+    font-size: 1.5rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.is-chiral .verdict-icon {
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    color: var(--accent-primary);
+}
+
+.not-chiral .verdict-icon {
+    background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+    color: var(--text-secondary);
+}
+
+.verdict-text {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.verdict-detail {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.chiral-center-analysis {
+    margin-bottom: 1rem;
+}
+
+.chiral-center-analysis h4 {
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.chiral-legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0 0 0.9rem;
+}
+
+.chiral-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.legend-emoji {
+    line-height: 1;
+    font-size: 0.95rem;
+}
+
+.legend-text {
+    line-height: 1.2;
+}
+
+.chiral-center-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chiral-center-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.chiral-center-badge {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.chiral-center-info {
+    flex: 1;
+}
+
+.chiral-center-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 0.15rem;
+}
+
+.chiral-center-detail {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.chiral-config {
+    padding: 0.35rem 0.75rem;
+    border-radius: 16px;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.chiral-config.unassigned {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.chiral-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.chiral-empty .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.35;
+    color: var(--accent-primary);
+}
+
+.chiral-empty p {
+    font-size: 1.1rem;
+    margin: 0 0 2rem;
+}
+
+.chiral-tips {
+    text-align: center;
+}
+
+.chiral-tips h4 {
+    margin: 0 0 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.chiral-tips .tip-examples {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.chiral-tips .tip-molecule {
+    padding: 0.35rem 0.75rem;
+    border-radius: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+.chiral-detect-btn {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.chiral-detect-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.chiral-detect-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
