@@ -25,7 +25,6 @@ The actual molecule is a **Resonance Hybrid** — a blend (weighted average) of 
                 { smiles: '[O-][N+](=O)c1ccccc1', name: 'Nitrobenzene' },
                 { smiles: 'C(=O)[O-]', name: 'Formate Ion' }
             ],
-            rules: []
         },
         {
             id: 'resonance-rules',
@@ -56,7 +55,6 @@ The actual molecule is a **Resonance Hybrid** — a blend (weighted average) of 
                 { smiles: 'C=C[O-]', name: 'Enolate (lone pair → π)' },
                 { smiles: 'C=CC=CC=C', name: '1,3,5-Hexatriene (Conjugated)' }
             ],
-            rules: []
         },
         {
             id: 'resonance-stability',
@@ -84,7 +82,6 @@ Benzene's resonance energy is approximately **36 kcal/mol** — this is the extr
                 { smiles: 'CC(=O)[O-]', name: 'Acetate Ion (2 equivalent contributors)' },
                 { smiles: 'C(=O)(O)O', name: 'Carbonic Acid' }
             ],
-            rules: []
         },
         {
             id: 'resonance-functional-groups',
@@ -113,7 +110,6 @@ Phenol (ArOH) is ~10⁶ times more acidic than cyclohexanol because the phenoxid
                 { smiles: 'Oc1ccccc1', name: 'Phenol' },
                 { smiles: 'OC1CCCCC1', name: 'Cyclohexanol (no resonance)' }
             ],
-            rules: []
         },
         {
             id: 'resonance-and-acidity',
@@ -141,7 +137,6 @@ The more the conjugate base is stabilized by resonance, the stronger the acid.
                 { smiles: 'Oc1ccccc1', name: 'Phenol (pKa ≈ 10)' },
                 { smiles: 'CCO', name: 'Ethanol (pKa ≈ 16)' }
             ],
-            rules: []
         }
     ]
 };

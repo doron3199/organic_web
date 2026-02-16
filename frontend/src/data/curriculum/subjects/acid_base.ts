@@ -18,7 +18,6 @@ export const acidBase: Subject = {
 Every step on the pH scale represents a tenfold change in acidity.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-proton-transfer',
@@ -40,7 +39,6 @@ HCl + H2O ⇌ Cl- + H3O+
 - **Irreversible:** A + B → C + D.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-conjugates',
@@ -54,7 +52,6 @@ When a base accepts a proton, it becomes its **conjugate acid**.
 **Key rule:** The stronger the acid, the weaker its conjugate base.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-strength',
@@ -73,7 +70,6 @@ When a base accepts a proton, it becomes its **conjugate acid**.
 pH = -log[H+]
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-amphoteric',
@@ -92,7 +88,6 @@ Some molecules can act as both acids and bases.
 - As bases: N can accept a proton.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-equilibrium-direction',
@@ -107,7 +102,6 @@ If reactant acid pKa = 4.8 and product acid pKa = 9.4,
 then equilibrium favors products (the weaker acid).
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'acid-base-strength-factors',
@@ -193,43 +187,6 @@ then equilibrium favors products (the weaker acid).
                     note: 'Resonance stabilization increases conjugate base stability.'
                 }
             ],
-            rules: [
-                {
-                    id: 'acid-rule-electronegativity',
-                    name: 'Electronegativity',
-                    smarts: '',
-                    description: 'More electronegative atoms stabilize the conjugate base in a row trend.',
-                    unlocked: true
-                },
-                {
-                    id: 'acid-rule-hybridization',
-                    name: 'Hybridization',
-                    smarts: '',
-                    description: 'sp > sp2 > sp3: more s-character increases acidity.',
-                    unlocked: true
-                },
-                {
-                    id: 'acid-rule-atomic-size',
-                    name: 'Atomic Size',
-                    smarts: '',
-                    description: 'Larger atoms better stabilize negative charge down a group.',
-                    unlocked: true
-                },
-                {
-                    id: 'acid-rule-inductive',
-                    name: 'Inductive Effects',
-                    smarts: '',
-                    description: 'Electron-withdrawing groups stabilize the conjugate base.',
-                    unlocked: true
-                },
-                {
-                    id: 'acid-rule-resonance',
-                    name: 'Resonance',
-                    smarts: '',
-                    description: 'Delocalization of charge increases conjugate base stability.',
-                    unlocked: true
-                }
-            ]
         },
         {
             id: 'acid-base-lewis',
@@ -243,7 +200,6 @@ then equilibrium favors products (the weaker acid).
 Note: In organic chemistry, "acid" usually means a proton donor unless stated as Lewis acid.
             `,
             examples: [],
-            rules: []
         }
     ]
 };

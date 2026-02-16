@@ -16,7 +16,6 @@ export const substitutionElimination: Subject = {
 *   **Elimination Reaction**: The electronegative group is removed along with a hydrogen atom from an adjacent carbon, resulting in the formation of a double bond (alkene).
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'sn2-reaction',
@@ -54,7 +53,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'sn1-reaction',
@@ -93,7 +91,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'e2-reaction',
@@ -132,7 +129,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'e1-reaction',
@@ -169,7 +165,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'intramolecular-substitution',
@@ -202,7 +197,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'substitution-elimination-summary',
@@ -236,7 +230,6 @@ export const substitutionElimination: Subject = {
 *   In synthesis design (Retrosynthetic Analysis), one works backward from the target molecule to identify the necessary alkyl halide and nucleophile.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'interactive-prediction',
@@ -248,7 +241,6 @@ export const substitutionElimination: Subject = {
 Use the tool below to predict whether an Sɴ1, Sɴ2, E1, or E2 reaction will occur based on the substrate and conditions.
             `,
             examples: [],
-            rules: [],
             widgetType: 'sn_e_predictor'
         }
     ]

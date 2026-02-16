@@ -33,24 +33,6 @@ Sulfur analogs of alcohols (R-SH). Add the suffix **-thiol** to the parent alkan
                 { smiles: 'COC', name: 'Dimethyl ether' },
                 { smiles: 'CCS', name: 'Ethanethiol' }
             ],
-            rules: [
-                {
-                    id: 'alcohol-suffix',
-                    name: 'Alcohol Suffix',
-                    smarts: '[OX2H]',
-                    description: 'Change the parent suffix to -ol.',
-                    logicType: 'check_suffix_alcohol',
-                    unlocked: true
-                },
-                {
-                    id: 'alcohol-priority',
-                    name: 'Alcohol Priority',
-                    smarts: '',
-                    description: 'The -OH group gets priority over double bonds and halogens in numbering.',
-                    logicType: 'check_functional_priority',
-                    unlocked: true
-                }
-            ]
         },
         {
             id: 'alcohols-preparation-alkenes',
@@ -89,7 +71,6 @@ Sulfur analogs of alcohols (R-SH). Add the suffix **-thiol** to the parent alkan
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-preparation-substitution',
@@ -117,7 +98,6 @@ Sulfur analogs of alcohols (R-SH). Add the suffix **-thiol** to the parent alkan
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-preparation-reduction-carbonyls',
@@ -154,7 +134,6 @@ Sulfur analogs of alcohols (R-SH). Add the suffix **-thiol** to the parent alkan
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-preparation-reduction-acids',
@@ -193,7 +172,6 @@ Sulfur analogs of alcohols (R-SH). Add the suffix **-thiol** to the parent alkan
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-preparation-grignard',
@@ -270,7 +248,6 @@ Nucleophilic attack on carbonyls.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-activation-hx',
@@ -311,7 +288,6 @@ The OH group is a bad leaving group (strong base). We must turn it into a good l
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-activation-socl2',
@@ -337,7 +313,6 @@ Best for converting Primary/Secondary alcohols to Chlorides.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-activation-pbcl',
@@ -363,7 +338,6 @@ Best for converting Primary/Secondary alcohols to Chlorides.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-activation-pbr3',
@@ -389,7 +363,6 @@ Best for converting Primary/Secondary alcohols to Bromides.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-dehydration',
@@ -422,7 +395,6 @@ Best for converting Primary/Secondary alcohols to Bromides.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-carbocation-rearrangement-note',
@@ -449,7 +421,6 @@ A primary example is the **acylium ion** (R-C≡O⁺) formed during Friedel-Craf
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alcohols-oxidation',
@@ -500,7 +471,6 @@ A primary example is the **acylium ion** (R-C≡O⁺) formed during Friedel-Craf
                 { smiles: '[nH+]1ccccc1.[O-][Cr](=O)(=O)Cl', name: 'PCC' },
                 { smiles: 'O[Cr](=O)(=O)O', name: 'Chromic Acid' }
             ],
-            rules: []
         },
         {
             id: 'ethers-structure',
@@ -585,7 +555,6 @@ A primary example is the **acylium ion** (R-C≡O⁺) formed during Friedel-Craf
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'epoxides-preparation',
@@ -618,7 +587,6 @@ A primary example is the **acylium ion** (R-C≡O⁺) formed during Friedel-Craf
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'epoxides-reactions',
@@ -673,7 +641,6 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'thiols-sulfides',
@@ -743,7 +710,6 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'amines-intro',
@@ -798,7 +764,6 @@ Epoxides are highly reactive due to **ring strain**. They undergo ring-opening r
                 }
             ],
             examples: [],
-            rules: []
         }
     ]
 };

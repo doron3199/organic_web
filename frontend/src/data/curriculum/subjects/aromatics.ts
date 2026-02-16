@@ -27,16 +27,6 @@ Originally named for their smell, these compounds are chemically unique because 
                 { smiles: 'c1cc[nH]c1', name: 'Pyrrole (Aromatic)' },
                 { smiles: 'C1=CC=C1', name: 'Cyclobutadiene (Anti-aromatic)' }
             ],
-            rules: [
-                {
-                    id: 'aromatics-huckel',
-                    name: 'Hückel\'s Rule',
-                    smarts: '',
-                    description: 'Checks if the molecule follows Hückel\'s rule (4n + 2 π electrons).',
-                    logicType: 'check_aromaticity',
-                    unlocked: true
-                }
-            ]
         },
         {
             id: 'aromatics-naming',
@@ -75,24 +65,6 @@ When there are two substituents, their relative position is crucial.
                 { smiles: 'CC1=CC(C)=CC=C1', name: 'Meta-DiMethylbenzene (1,3-dimethylbenzene)' },
                 { smiles: 'CC1=CC=C(C)C=C1', name: 'Para-DiMethylbenzene (1,4-dimethylbenzene)' }
             ],
-            rules: [
-                {
-                    id: 'aromatics-naming-benzene',
-                    name: 'Benzene Parent',
-                    smarts: 'c1ccccc1',
-                    description: 'The benzene ring is treated as the parent structure.',
-                    logicType: 'check_aromatic_naming',
-                    unlocked: true
-                },
-                {
-                    id: 'aromatics-numbering',
-                    name: 'Lowest Numbering',
-                    smarts: '',
-                    description: 'Give substituents the lowest possible numbers.',
-                    logicType: 'check_lowest_locants',
-                    unlocked: true
-                }
-            ]
         },
         {
             id: 'aromatics-eas-intro',
@@ -110,7 +82,6 @@ Benzene is unusually stable and does not undergo addition reactions. Instead, it
             `,
             reactionExamples: [],
             examples: [],
-            rules: []
         },
         {
             id: 'aromatics-halogenation',
@@ -138,7 +109,6 @@ Replaces a Hydrogen with a Halogen (Br or Cl).
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'aromatics-nitration',
@@ -168,7 +138,6 @@ Replaces a Hydrogen with a Nitro group (NO₂).
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'aromatics-sulfonation',
@@ -196,7 +165,6 @@ Replaces a Hydrogen with a Sulfonic Acid group (SO₃H).
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'aromatics-fc-alkylation',
@@ -225,7 +193,6 @@ Places an alkyl group on the ring.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'aromatics-fc-acylation',
@@ -264,7 +231,6 @@ Places an **acyl group** (R-C=O) on the ring to form a ketone.
                 }
             ],
             examples: [],
-            rules: []
         }
     ]
 };

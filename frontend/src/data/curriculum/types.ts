@@ -6,6 +6,7 @@ export interface Rule {
     smarts: string
     description: string
     unlocked: boolean
+    subSubjectId?: string
     errorMessage?: string
     logicType?: RuleLogicType
 }
@@ -42,7 +43,6 @@ export interface CompareExample {
 export interface SubSubject {
     id: string
     name: string
-    rules: Rule[]
     content: string // Markdown or HTML content
     examples: { smiles: string; name: string; customSvg?: string; customSvgUrl?: string }[]
     reactionExamples?: ReactionExample[];

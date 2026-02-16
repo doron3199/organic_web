@@ -28,24 +28,6 @@ Like alkenes, the triple bond gets priority for the lowest number.
                 { smiles: 'CC#CC', name: 'But-2-yne' },
                 { smiles: 'CC(C)C#C', name: '3-Methylbut-1-yne' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain_alkyne',
-                    name: 'Parent Chain',
-                    smarts: '',
-                    description: 'The parent chain MUST contain the triple bond.',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule_numbering_alkyne',
-                    name: 'Lowest Numbering',
-                    smarts: '',
-                    description: 'Number the chain to give the Triple Bond the lowest possible number.',
-                    unlocked: true,
-                    logicType: 'lowest_numbering'
-                }
-            ]
         },
         {
             id: 'enynes-intro',
@@ -69,16 +51,6 @@ What if a molecule has **both** a double and a triple bond?
                 { smiles: 'C=CCCC#C', name: 'Hex-1-en-5-yne' },
                 { smiles: 'C=CC(CC)C#C', name: '3-Ethylpent-1-en-4-yne' }
             ],
-            rules: [
-                {
-                    id: 'rule_enyne_priority',
-                    name: 'Enyne Priority',
-                    smarts: '',
-                    description: 'Double bonds win ties against Triple bonds, but lowest set rule comes first.',
-                    unlocked: true,
-                    logicType: 'lowest_numbering'
-                }
-            ]
         },
         {
             id: 'alkynes-addition-hx',
@@ -129,7 +101,6 @@ The stability of the carbocation intermediate determines the major product. **Hy
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-addition-x2',
@@ -177,7 +148,6 @@ Alkene > Alkyne > Halo-substituted Alkene
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-hydration-acid',
@@ -208,7 +178,6 @@ The OH group adds to the **more substituted** carbon. For terminal alkynes, this
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-hydration-hydroboration',
@@ -243,7 +212,6 @@ To convert a terminal alkyne into an **Aldehyde** (Anti-Markovnikov product), we
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-reduction-complete',
@@ -271,7 +239,6 @@ Alkynes can be reduced completely to **Alkanes** by adding two equivalents of hy
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-reduction-cis',
@@ -299,7 +266,6 @@ To stop the hydrogenation at the alkene stage, a **Poisoned Catalyst** is used.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkynes-alkylation',
@@ -354,7 +320,6 @@ The resulting Acetylide Ion is a strong nucleophile.
                 }
             ],
             examples: [],
-            rules: []
         }
     ]
 }

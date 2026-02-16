@@ -22,14 +22,6 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject, i
         }))
     }
 
-    // Calculate progress for a subject (mock calculation for now)
-    const getProgress = (subject: Subject) => {
-        const totalRules = subject.subSubjects.reduce((acc, sub) => acc + sub.rules.length, 0)
-        const unlockedRules = subject.subSubjects.reduce((acc, sub) =>
-            acc + sub.rules.filter(r => r.unlocked).length, 0)
-        return { total: totalRules, unlocked: unlockedRules }
-    }
-
     if (!isOpen) {
         return (
             <div className="curriculum-tree collapsed">
@@ -52,7 +44,6 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject, i
             </div>
             <div className="curriculum-content">
                 {curriculum.map(subject => {
-                    const progress = getProgress(subject)
                     const isExpanded = expandedSubjects[subject.id]
 
                     return (
@@ -64,9 +55,6 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject, i
                                 <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
                                 <span className="subject-icon">{subject.icon}</span>
                                 <span className="subject-name">{subject.name}</span>
-                                <span className="progress-badge" title={`${progress.unlocked}/${progress.total} rules unlocked`}>
-                                    {progress.unlocked}/{progress.total}
-                                </span>
                             </div>
 
                             {isExpanded && (
@@ -96,9 +84,7 @@ function CurriculumTree({ curriculum, currentSubSubjectId, onSelectSubSubject, i
                                                     className={`sub-subject-item ${currentSubSubjectId === sub.id ? 'active' : ''}`}
                                                     onClick={() => onSelectSubSubject(subject, sub)}
                                                 >
-                                                    <div className="status-dot">
-                                                        {sub.rules.every(r => r.unlocked) ? '●' : '○'}
-                                                    </div>
+                                                    <div className="status-dot">●</div>
                                                     <span className="sub-name">{sub.name}</span>
                                                 </div>
                                             ))}

@@ -31,7 +31,6 @@ export const chirality: Subject = {
                 { smiles: 'COC', name: 'Dimethyl ether' },
                 { smiles: 'CCC(C)Cl', name: '2-Chlorobutane' }
             ],
-            rules: []
         },
         {
             id: 'chirality-cis-trans-ez',
@@ -57,7 +56,6 @@ Use CIP priority rules to assign E/Z when substituents are complex.
                 { smiles: 'CC/C=C/CC', name: 'trans-3-Pentene (E)' },
                 { smiles: 'CC/C=C\\CC', name: 'cis-3-Pentene (Z)' },
             ],
-            rules: []
         },
         {
             id: 'chirality-chiral-vs-achiral',
@@ -87,7 +85,6 @@ The two mirror-image stereoisomers are **enantiomers**.
                 { smiles: 'CC[C@@H](C)Br', name: '2-Bromobutane (mirror enantiomer)' },
                 { smiles: 'CC(C)Br', name: '2-Bromopropane (achiral)' }
             ],
-            rules: []
         },
         {
             id: 'chirality-rs-naming',
@@ -111,7 +108,6 @@ Use the **Chiral Detector** in the workbench to identify chiral carbons and assi
                 { smiles: 'F[C@](Cl)(Br)I', name: 'Single stereocenter (R/S depends on arrangement)' },
                 { smiles: 'N[C@H](C)C(=O)O', name: 'Alanine stereocenter' }
             ],
-            rules: []
         },
         {
             id: 'chirality-optical-activity',
@@ -134,7 +130,6 @@ These are experimental properties and do **not** directly equal R/S.
                 { smiles: 'CC[C@H](C)Br', name: 'Chiral molecule (optically active)' },
                 { smiles: 'CC(C)Br', name: 'Achiral molecule (optically inactive)' }
             ],
-            rules: []
         },
         {
             id: 'chirality-multiple-centers',
@@ -155,7 +150,6 @@ Diastereomers typically have different physical and chemical properties.
                 { smiles: 'C[C@H](O)[C@H](Cl)C', name: 'One diastereomer' },
                 { smiles: 'C[C@H](O)[C@@H](Cl)C', name: 'Another diastereomer' }
             ],
-            rules: []
         },
         {
             id: 'chirality-meso-compounds',
@@ -178,7 +172,6 @@ This reduces the total count of unique stereoisomers below 2ⁿ.
                 { smiles: 'C[C@](O)([C@@](O)(C)[H])[H]', name: 'not Meso' },
                 { smiles: 'C1CC[C@H](Br)[C@@H](Br)C1', name: 'not Meso' }
             ],
-            rules: []
         },
         {
             id: 'chirality-biological-impact',
@@ -198,7 +191,6 @@ Chirality is critical in medicinal chemistry and drug safety.
             examples: [
                 { smiles: 'CC(C)=CCC[C@H](C)C1=CC=CC(=O)C1', name: 'Carvone enantiomer example' }
             ],
-            rules: []
         },
         {
             id: 'chirality-reaction-outcomes',
@@ -218,7 +210,6 @@ Stereochemical control in synthesis is a central goal in modern organic chemistr
                 { smiles: 'CC[C@H](C)Br', name: 'One enantiomeric outcome' },
                 { smiles: 'CC[C@@H](C)Br', name: 'Mirror enantiomeric outcome' }
             ],
-            rules: []
         }
     ]
 };
