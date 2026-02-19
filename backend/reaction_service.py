@@ -1,9 +1,20 @@
 import logging
 from engine import run_reaction
+from engine.stereo import postprocess_stereo
 from reactions.matcher import find_matching_reactions
 from engine.substitution_elimination import run_substitution_elimination
 
 logger = logging.getLogger(__name__)
+
+
+def _collect_stereo_notes(sub_result):
+    """Gather all stereo notes from per_mechanism entries."""
+    notes = []
+    for pm in sub_result.get("per_mechanism", []):
+        note = pm.get("stereo_note")
+        if note:
+            notes.append(note)
+    return " ".join(notes) if notes else None
 
 
 def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dict]:
@@ -55,6 +66,7 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                         if sub_result.get("mechanisms")
                         else None,
                         "perMechanism": sub_result.get("per_mechanism"),
+                        "stereoNote": _collect_stereo_notes(sub_result),
                     }
                 )
                 continue
@@ -68,6 +80,13 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                 reaction_name=rule.name,
             )
 
+            organic_products = execution_result["organic"]
+
+            # --- Stereochemistry post-processing ---
+            stereo_products, stereo_note = postprocess_stereo(
+                rule.id, organic_products
+            )
+
             results.append(
                 {
                     "reactionId": rule.id,
@@ -76,12 +95,13 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                     "matchExplanation": rule.match_explanation,
                     "products": [
                         {"smiles": p, "selectivity": "major"}
-                        for p in execution_result["organic"]
+                        for p in stereo_products
                     ],
                     "byproducts": execution_result["inorganic"],
                     "smarts": rule.reaction_smarts,
                     "autoAdd": rule.auto_add,
                     "rank": rule.rank,
+                    "stereoNote": stereo_note,
                 }
             )
 

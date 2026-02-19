@@ -44,7 +44,22 @@ def load_test_data():
 EXAMPLES = load_test_data()
 
 
-@pytest.mark.parametrize("example", EXAMPLES)
+def example_display_id(example):
+    if not isinstance(example, dict):
+        return str(example)
+
+    test_id = example.get("id", "unknown")
+    reactants = example.get("reactants", [])
+    reactants_text = " + ".join(reactants) if reactants else "no-reactants"
+
+    # Keep VS Code Test Explorer entries readable
+    if len(reactants_text) > 90:
+        reactants_text = reactants_text[:87] + "..."
+
+    return f"{test_id} :: {reactants_text}"
+
+
+@pytest.mark.parametrize("example", EXAMPLES, ids=example_display_id)
 def test_reaction_example(example):
     test_id = example["id"]
 

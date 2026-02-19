@@ -3,6 +3,7 @@ import logging
 from rdkit import Chem
 
 from engine.reaction_logic import run_reaction
+from engine.stereo import apply_sn2_inversion, apply_sn1_racemization
 
 logger = logging.getLogger(__name__)
 
@@ -783,8 +784,26 @@ def run_substitution_elimination(reactants, conditions):
                 reaction_name=mech_name,
             )
 
+            # --- Stereochemistry post-processing ---
+            organic_products = outcome.get("final_organic", [])
+            stereo_note = None
+            substrate_smi = substrate[0] if substrate else None
+
+            if mech_name == "SN2" and substrate_smi:
+                organic_products, stereo_note = apply_sn2_inversion(
+                    substrate_smi, organic_products
+                )
+            elif mech_name == "SN1" and substrate_smi:
+                organic_products, stereo_note = apply_sn1_racemization(
+                    substrate_smi, organic_products
+                )
+
+            if stereo_note:
+                inter_res["explanation"].append(stereo_note)
+                logger.debug(f"    Stereo note ({mech_name}): {stereo_note}")
+
             # Collect
-            inter_res["organic"].extend(outcome.get("final_organic", []))
+            inter_res["organic"].extend(organic_products)
             inter_res["inorganic"].extend(outcome.get("final_inorganic", []))
 
             # Steps prefix
@@ -805,8 +824,9 @@ def run_substitution_elimination(reactants, conditions):
                 {
                     "mechanism": mech_name,
                     "selectivity": mech_selectivity,
-                    "organic": outcome.get("final_organic", []),
+                    "organic": organic_products,
                     "inorganic": outcome.get("final_inorganic", []),
+                    "stereo_note": stereo_note,
                 }
             )
 

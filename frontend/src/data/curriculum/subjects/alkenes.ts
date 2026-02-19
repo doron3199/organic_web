@@ -424,7 +424,11 @@ Addition of H₂ across a double bond to form an alkane.
             name: 'Epoxidation',
             content: `
 ### Epoxidation
-Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-membered cyclic ether). The mechanism is concerted, meaning bonds break and form at the same time.
+Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-membered cyclic ether).
+
+- **Mechanism**: Concerted — bonds break and form simultaneously. The oxygen is delivered to one face of the double bond in a single step.
+- **Stereochemistry**: **Syn addition** — the oxygen bridge is added to a single face of the alkene. If the starting alkene is *cis*, the substituents remain *cis* in the epoxide; if *trans*, they remain *trans*. The geometry of the alkene is **retained** in the product.
+- **Byproduct**: A carboxylic acid is formed from the peroxyacid.
 
 | Alkene | | Peroxyacid | | Epoxide | | Carboxylic Acid |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -457,12 +461,34 @@ Addition of two OH groups across the double bond to form a **cis-diol**.
             `,
             reactionExamples: [
                 {
-                    id: 'alkene_hydroxylation',
+                    id: 'alkene_hydroxylation_cyclic',
                     reactants: [
                         { smiles: 'C1CC=CCC1', name: 'Cyclohexene' }
                     ],
                     products: [
-                        { smiles: 'OC1C(O)CCCC1', name: '1,2-DiMethylCycloHexane', selectivity: 'major' }
+                        { smiles: 'O[C@H]1[C@@H](O)CCCC1', name: '1,2-DiMethylCycloHexane', selectivity: 'major' },
+                    ],
+                    conditions: 'KMnO₄'
+                },
+                {
+                    id: 'alkene_hydroxylation_cyclic_2',
+                    reactants: [
+                        { smiles: 'C1CCC=CC1C', name: 'Methylcyclohexene' }
+                    ],
+                    products: [
+                        { smiles: 'CC1[C@H](O)[C@H](O)CCC1', name: '', selectivity: 'equal' },
+                        { smiles: 'CC1[C@@H](O)[C@@H](O)CCC1', name: '', selectivity: 'equal' },
+                    ],
+                    conditions: 'KMnO₄'
+                },
+                {
+                    id: 'alkene_hydroxylation_acyclic',
+                    reactants: [
+                        { smiles: 'CCC=CCC', name: '2-Hexene' }
+                    ],
+                    products: [
+                        { smiles: 'CC[C@H]([C@@H](CC)O)O', name: '', selectivity: 'equal' },
+                        { smiles: 'CC[C@@H]([C@H](CC)O)O', name: '', selectivity: 'equal' },
                     ],
                     conditions: 'KMnO₄'
                 }

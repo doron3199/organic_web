@@ -9,7 +9,7 @@ This document outlines the strategic roadmap for the **Organic Chemistry Solver*
 *Current Focus: Centralizing chemical logic and enhancing backend computational capabilities.*
 
 ### 1.1 Backend Orchestration
-- [ ] **Transition to Modular Logic Repositories**
+- [X] **Transition to Modular Logic Repositories**
     - **Rationale:** Decouple reaction logic from the API layer to improve maintainability and scalability.
     - **Implementation:** Migration of `reaction_definitions.ts` logic into domain-specific Python modules (e.g., `alcohols.py`, `carbonyls.py`).
 - [ ] **Dynamic Chemical Knowledge Base**
@@ -55,10 +55,10 @@ This document outlines the strategic roadmap for the **Organic Chemistry Solver*
     - **Implementation:** Integrate a UI trigger for the Anomalous Entry Pipeline, allowing users to request documentation for unsupported reactions.
 
 ### 3.2 Advanced Chemical Workbench Tools
-- [ ] **Acidity Comparative Analysis Mode**
+- [X] **Acidity Comparative Analysis Mode**
     - **Rationale:** Provide comparative data for acid-base chemistry based on quantitative (pKa) and qualitative (chemical intuition) factors.
     - **Implementation:** Develop a workbench mode to compare two molecules using pKa values or periodic trends (e.g., atomic size, electronegativity, inductive effects, resonance).
-- [ ] **Resonance & Aromaticity Engine**
+- [X] **Resonance & Aromaticity Engine**
     - **Rationale:** Visualize electron delocalization and validate structural stability.
     - **Implementation:** Implement a "Resonance Drawer" to generate valid delocalization structures and a detection system for aromatic/anti-aromatic/non-aromatic properties.
 - [ ] **Mechanistic Visualization (Electron Pushing)**
@@ -75,6 +75,22 @@ This document outlines the strategic roadmap for the **Organic Chemistry Solver*
     - **Strategy:** Achieve comprehensive coverage for both Vitest (frontend) and Pytest (backend) to ensure consistency during the migration.
 - [ ] **Security Hardening**
     - **Focus:** Rate limiting optimization, input sanitization, and dependency vulnerability monitoring.
+
+---
+
+## 🧬 Immediate Chemistry TODOs
+- [X] **Add chirality handling to relevant reactions**
+    - Include chiral outcomes in applicable reaction rules (e.g., syn additions such as Lindlar hydrogenation and KMnO4 syn dihydroxylation where relevant).
+    - Ensure stereochemical inversion in `SN2` (reverse `R/S` where applicable) and racemization/combination behavior in `SN1` outputs.
+- [ ] **Upgrade reaction-bank SMARTS change representation**
+    - For each molecule-change rule in the reaction bank, migrate from a SMARTS-only list to a mixed list containing plain SMARTS strings and dictionaries.
+    - Each dictionary entry must include:
+        - `smarts` (required SMARTS string)
+        - `selectivity` (required when multiple outcomes are possible)
+        - `explanation` (optional, explaining why that pathway occurs)
+    - Example use case: acid vs basic ether conditions that produce different outcomes and require mechanistic explanation.
+- [ ] **Add last slides from the material**
+
 
 ---
 
