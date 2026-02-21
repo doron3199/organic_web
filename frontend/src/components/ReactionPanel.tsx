@@ -56,7 +56,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
 
-    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string, stepExplanations?: string[]) => {
+    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string) => {
         if (!currentMolecule) return
 
         setIsMechanismLoading(reactionName)
@@ -389,7 +389,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                 <div style={{ padding: '0 0px 8px 0px' }}>
                                     <button
                                         className="reaction-mechanism-btn"
-                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd, res.reactionId, res.stepExplanations)}
+                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd, res.reactionId)}
                                         disabled={isMechanismLoading === res.reactionName}
                                     >
                                         {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}
