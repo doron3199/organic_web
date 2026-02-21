@@ -1,9 +1,5 @@
 # Organic Chemistry Solver 🧪
 
-> [!CAUTION]
-> **PULL REQUESTS ARE NOT WELCOMED AT THIS MOMENT.**
-> A major code change/architectural overhaul is currently in progress. Please refrain from submitting PRs until this transition is complete.
-
 ## Overview
 Organic Chemistry Solver is an interactive web application designed to simulate and visualize organic chemistry reactions. It provides users with a platform to draw molecules, predict reaction products, and explore chemical mechanisms.
 

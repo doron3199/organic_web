@@ -78,23 +78,6 @@ This document outlines the strategic roadmap for the **Organic Chemistry Solver*
 
 ---
 
-## 🧬 Immediate Chemistry TODOs
-- [X] **Add chirality handling to relevant reactions**
-    - Include chiral outcomes in applicable reaction rules (e.g., syn additions such as Lindlar hydrogenation and KMnO4 syn dihydroxylation where relevant).
-    - Ensure stereochemical inversion in `SN2` (reverse `R/S` where applicable) and racemization/combination behavior in `SN1` outputs.
-- [X] **Upgrade reaction-bank SMARTS change representation**
-    - For each molecule-change rule in the reaction bank, migrate from a SMARTS-only list to a mixed list containing plain SMARTS strings and dictionaries.
-    - Each dictionary entry must include:
-        - `smarts` (required SMARTS string)
-        - `selectivity` (required when multiple outcomes are possible)
-        - `explanation` (optional, explaining why that pathway occurs)
-        - `stereo rules` (optional, include data for spesic chemesty. replace SYN_ADDITION_RULES and ANTI_ADDITION_RULES in stero.py )
-    - Example use case: acid vs basic ether conditions that produce different outcomes and require mechanistic explanation.
-- [ ] **Add last slides from the material**
-
-
----
-
 ## 📈 Version History & Milestones
 - **v0.1**: Initial Prototype (Frontend Logic) - *Completed*
 - **v0.2**: Backend Infrastructure & Rate Limiting - *Current*
