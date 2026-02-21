@@ -910,6 +910,265 @@
             "expected_products": [
                 "C1CCOCC1"
             ]
+        },
+        {
+            "id": "carboxylic_prep_oxidation",
+            "reactants": [
+                "CCCO"
+            ],
+            "expected_products": [
+                "CCC(=O)O"
+            ],
+            "conditionMolecules": [
+                "O[Cr](=O)(=O)O"
+            ]
+        },
+        {
+            "id": "carboxylic_prep_ozonolysis",
+            "reactants": [
+                "CC=CC"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ],
+            "conditionMolecules": [
+                "O",
+                "[O-][O+]=O",
+                "OO"
+            ],
+            "conditions": [
+                "cold"
+            ]
+        },
+        {
+            "id": "carboxylic_prep_grignard",
+            "reactants": [
+                "CC[Mg]Br",
+                "O=C=O"
+            ],
+            "expected_products": [
+                "CCC(=O)O"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
+        },
+        {
+            "id": "ester_acid_hydrolysis",
+            "reactants": [
+                "CC(=O)OCC",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CCO"
+            ]
+        },
+        {
+            "id": "ester_transesterification",
+            "reactants": [
+                "CC(=O)OC",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "CO"
+            ]
+        },
+        {
+            "id": "ester_aminolysis",
+            "reactants": [
+                "CC(=O)OCC",
+                "CN"
+            ],
+            "expected_products": [
+                "CC(=O)NC",
+                "CCO"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "ester_grignard",
+            "reactants": [
+                "CC(=O)OCC",
+                "C[Mg]Br",
+                "C[Mg]Br"
+            ],
+            "expected_products": [
+                "CC(C)(C)O",
+                "CCO"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
+        },
+        {
+            "id": "acyl_chloride_socl2",
+            "reactants": [
+                "CC(=O)O"
+            ],
+            "expected_products": [
+                "CC(=O)Cl"
+            ],
+            "conditionMolecules": [
+                "ClS(=O)Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_pcl3",
+            "reactants": [
+                "CCC(=O)O"
+            ],
+            "expected_products": [
+                "CCC(=O)Cl"
+            ],
+            "conditionMolecules": [
+                "ClP(Cl)Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_alcohol",
+            "reactants": [
+                "CC(=O)Cl",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_water",
+            "reactants": [
+                "CC(=O)Cl",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_amine",
+            "reactants": [
+                "CC(=O)Cl",
+                "CCN",
+                "CCN"
+            ],
+            "expected_products": [
+                "CC(=O)NCC",
+                "CC[NH3+]",
+                "[Cl-]"
+            ]
+        },
+        {
+            "id": "amide_acid_hydrolysis",
+            "reactants": [
+                "CC(=O)N",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "N"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "amide_basic_hydrolysis",
+            "reactants": [
+                "CC(=O)N",
+                "O",
+                "[OH-]"
+            ],
+            "expected_products": [
+                "CC(=O)[O-]",
+                "N"
+            ]
+        },
+        {
+            "id": "amide_alcoholysis",
+            "reactants": [
+                "CC(=O)N",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "N"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "anhydride_dehydration",
+            "reactants": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ],
+            "expected_products": [
+                "CC(=O)OC(=O)C",
+                "O"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "anhydride_mixed",
+            "reactants": [
+                "CC(=O)O",
+                "CCC(=O)Cl"
+            ],
+            "expected_products": [
+                "CC(=O)OC(=O)CC",
+                "Cl"
+            ],
+            "conditionMolecules": [
+                "[OH-]"
+            ]
+        },
+        {
+            "id": "anhydride_alcohol",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "CC(=O)O"
+            ]
+        },
+        {
+            "id": "anhydride_water",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ]
+        },
+        {
+            "id": "anhydride_amine",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "CCN",
+                "CCN"
+            ],
+            "expected_products": [
+                "CC(=O)NCC",
+                "CC(=O)[O-]",
+                "CC[NH3+]"
+            ]
         }
     ],
     "smarts": {}

@@ -20,6 +20,8 @@ import { alcohols } from '../src/data/curriculum/subjects/alcohols';
 import { aromatics } from '../src/data/curriculum/subjects/aromatics';
 // @ts-ignore
 import { substitutionElimination } from '../src/data/curriculum/subjects/substitution_elimination';
+// @ts-ignore
+import { carboxylicAcids } from '../src/data/curriculum/subjects/carboxylic_acids';
 
 // Aggregate all subjects
 const subjects = [
@@ -28,7 +30,8 @@ const subjects = [
     alkynes,
     alcohols,
     aromatics,
-    substitutionElimination
+    substitutionElimination,
+    carboxylicAcids
 ];
 
 // Helper to extract condition IDs (e.g. 'heat', 'light') from text
@@ -114,7 +117,7 @@ const output = {
         return {
             id: ex.id,
             reactants: ex.reactants.flatMap((r: any) => r.smiles.split('.')),
-            expected_products: ex.products.map((p: any) => p.smiles),
+            expected_products: ex.products.flatMap((p: any) => p.smiles.split('.')),
             conditionMolecules: conditionMolecules.length > 0 ? conditionMolecules : undefined,
             conditions: conditionsList.length > 0 ? conditionsList : undefined
         };

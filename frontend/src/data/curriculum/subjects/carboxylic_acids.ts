@@ -427,7 +427,7 @@ Amide + NaOH + heat → **Carboxylate Ion** (−COO⁻) + **Amine** (e.g., NH₃
                     ],
                     products: [
                         { smiles: 'CC(=O)O', name: 'Acetic Acid', yield: 50 },
-                        { smiles: '[NH4+]', name: 'Ammonium Ion', yield: 50, isByproduct: true },
+                        { smiles: 'N', name: 'Ammonium Ion', yield: 50, isByproduct: true },
                     ],
                     conditions: 'H₃O⁺, heat'
                 },
@@ -466,7 +466,7 @@ Reacting an amide with an alcohol under **acid catalysis** and **heat** converts
                     ],
                     products: [
                         { smiles: 'CC(=O)OCC', name: 'Ethyl Acetate', yield: 50 },
-                        { smiles: '[NH4+]', name: 'Ammonium', yield: 50, isByproduct: true },
+                        { smiles: 'N', name: 'Ammonium', yield: 50, isByproduct: true },
                     ],
                     conditions: 'H⁺, heat'
                 }

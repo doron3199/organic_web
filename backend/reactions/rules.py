@@ -534,12 +534,25 @@ def register_rules():
         ReactionRule(
             id="acid_to_acyl_chloride",
             name="Formation of Acyl Chloride",
-            curriculum_subsubject_id="carboxylic-acids",
-            reaction_smarts="[C:1](=[O:2])[OH]>>[C:1](=[O:2])[Cl]",
+            curriculum_subsubject_id="acyl-chlorides-prep",
+            reaction_smarts="[C:1](=[O:2])[OH].[S](=O)(Cl)Cl>>[C:1](=[O:2])[Cl]",
             reactants_smarts=["[C](=[O])[OH]", "[$([S](=O)(Cl)Cl)]"],
             match_explanation="Carboxylic Acid + SOCl2",
             description="Conversion to Acyl Chloride using Thionyl Chloride.",
-            conditions=[set(["socl2"])],
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="acid_to_acyl_chloride_pcl3",
+            name="Formation of Acyl Chloride (PCl3)",
+            curriculum_subsubject_id="acyl-chlorides-prep",
+            reaction_smarts="[C:1](=[O:2])[OH].[P](Cl)(Cl)Cl>>[C:1](=[O:2])[Cl]",
+            reactants_smarts=["[C](=[O])[OH]", "[$([P](Cl)(Cl)Cl)]"],
+            match_explanation="Carboxylic Acid + PCl3",
+            description="Conversion to Acyl Chloride using Phosphorus Trichloride.",
+            conditions=[set()],
         )
     )
 
@@ -547,8 +560,8 @@ def register_rules():
         ReactionRule(
             id="acyl_chloride_hydrolysis",
             name="Acyl Chloride Hydrolysis",
-            curriculum_subsubject_id="acyl-chlorides",
-            reaction_smarts="[C:1](=[O:2])[Cl].[OH2:3]>>[C:1](=[O:2])[OH:3]",
+            curriculum_subsubject_id="acyl-chlorides-reactions",
+            reaction_smarts="[C:1](=[O:2])[Cl].[OH2:3]>>[C:1](=[O:2])[OH:3].[ClH]",
             reactants_smarts=["[C](=[O])[Cl]", "[OH2]"],
             match_explanation="Acyl Chloride + Water",
             description="Vigorous hydrolysis to Carboxylic Acid.",
@@ -560,8 +573,8 @@ def register_rules():
         ReactionRule(
             id="acyl_chloride_alcoholysis",
             name="Acyl Chloride Alcoholysis",
-            curriculum_subsubject_id="acyl-chlorides",
-            reaction_smarts="[C:1](=[O:2])[Cl].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3]",
+            curriculum_subsubject_id="acyl-chlorides-reactions",
+            reaction_smarts="[C:1](=[O:2])[Cl].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3].[ClH]",
             reactants_smarts=["[C](=[O])[Cl]", "[C][OH]"],
             match_explanation="Acyl Chloride + Alcohol",
             description="Formation of Ester.",
@@ -573,11 +586,11 @@ def register_rules():
         ReactionRule(
             id="acyl_chloride_aminolysis",
             name="Acyl Chloride Aminolysis",
-            curriculum_subsubject_id="acyl-chlorides",
-            reaction_smarts="[C:1](=[O:2])[Cl].[N;H2,H1:3]>>[C:1](=[O:2])[N:3]",
-            reactants_smarts=["[C](=[O])[Cl]", "[N;H2,H1]"],
-            match_explanation="Acyl Chloride + Amine",
-            description="Formation of Amide.",
+            curriculum_subsubject_id="acyl-chlorides-reactions",
+            reaction_smarts="[C:1](=[O:2])[Cl].[N;H2,H1:3].[N;H2,H1:4]>>[C:1](=[O:2])[N:3].[N+H3:4].[Cl-]",
+            reactants_smarts=["[C](=[O])[Cl]", "[N;H2,H1]", "[N;H2,H1]"],
+            match_explanation="Acyl Chloride + 2 × Amine",
+            description="Formation of Amide (requires 2 eq. amine; second acts as base for HCl).",
             conditions=[set()],
         )
     )
@@ -597,6 +610,80 @@ def register_rules():
 
     registry.register(
         ReactionRule(
+            id="ester_acid_hydrolysis",
+            name="Ester Acid Hydrolysis",
+            curriculum_subsubject_id="esters-hydrolysis",
+            reaction_smarts="[C:1](=[O:2])[O:3][C:4].[OH2:5]>>[C:1](=[O:2])[OH:5].[C:4][O+0H:3]",
+            reactants_smarts=["[C](=[O])[O][C;!$(C=O)]", "[OH2]"],
+            match_explanation="Ester + Water (Acid Hydrolysis)",
+            description="Acid-catalysed hydrolysis of ester to carboxylic acid and alcohol.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="ester_transesterification",
+            name="Transesterification",
+            curriculum_subsubject_id="esters-transesterification",
+            reaction_smarts="[C:1](=[O:2])[O:3][C:4].[C:5][OH:6]>>[C:1](=[O:2])[O:6][C:5].[C:4][O+0H:3]",
+            reactants_smarts=["[C](=[O])[O][C]", "[C][OH]"],
+            match_explanation="Ester + Alcohol (Transesterification)",
+            description="Exchange of alcohol group in ester to form a new ester.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="ester_aminolysis",
+            name="Ester Aminolysis",
+            curriculum_subsubject_id="esters-aminolysis",
+            reaction_smarts="[C:1](=[O:2])[O:3][C:4].[N;H2,H1:5]>>[C:1](=[O:2])[N:5].[C:4][O+0H:3]",
+            reactants_smarts=["[C](=[O])[O][C]", "[N;H2,H1]"],
+            match_explanation="Ester + Amine (Aminolysis)",
+            description="Reaction of ester with amine to form amide and alcohol.",
+            conditions=[set(["heat"])],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="ester_grignard",
+            name="Ester + Grignard (2 eq.)",
+            curriculum_subsubject_id="esters-grignard",
+            reaction_smarts=[
+                SmartsEntry(
+                    smarts="[C:1](=[O:2])[O:3][C:4].[C:5][Mg][Br]>>[C:1](-[C:5])(-[O:2]-[Mg][Br])([O:3][C:4])",
+                    explanation="First Grignard addition forms a tetrahedral intermediate (hemiketal-like alkoxide).",
+                ),
+                SmartsEntry(
+                    smarts="[C:1](-[C:5])(-[O:2]-[Mg][Br])([O:3][C:4])>>[C:1](=[O:2])[C:5].[C:4][OH:3]",
+                    explanation="Alkoxide collapses, expelling the alkoxy leaving group to give a ketone intermediate.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1](=[O:2])[C:5].[C:6][Mg][Br]>>[C:1](-[C:5])(-[C:6])(-[O:2]-[Mg][Br])",
+                    explanation="Second Grignard addition attacks the ketone carbonyl.",
+                ),
+                SmartsEntry(
+                    smarts="[O:2]-[Mg]-[Cl,Br,I].[OH3+:4]>>[O:2]",
+                    explanation="Acid workup protonates the alkoxide to give the tertiary alcohol.",
+                ),
+            ],
+            reactants_smarts=[
+                "[C](=[O])[O][C]",
+                "[C][Mg][Cl,Br,I]",
+                "[C][Mg][Cl,Br,I]",
+            ],
+            auto_add=["", "", "[OH3+]"],
+            match_explanation="Ester + 2 × Grignard Reagent",
+            description="Two Grignard additions: first via ketone intermediate to give tertiary alcohol.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
             id="saponification",
             name="Saponification",
             curriculum_subsubject_id="esters",
@@ -605,6 +692,111 @@ def register_rules():
             match_explanation="Ester + Base (Hydroxide)",
             description="Basic hydrolysis to Carboxylate and Alcohol.",
             conditions=[set(["base"]), set(["oh-"])],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="amide_acid_hydrolysis",
+            name="Amide Acid Hydrolysis",
+            curriculum_subsubject_id="amides-hydrolysis",
+            reaction_smarts="[C:1](=[O:2])[N;H2,H1,H0:3].[OH2:4].[OH3+]>>[C:1](=[O:2])[OH:4].[N:3]",
+            reactants_smarts=["[C](=[O])[N]", "[OH2]", "[OH3+]"],
+            match_explanation="Amide + Water + Acid Catalyst + Heat",
+            description="Acidic hydrolysis of amide to carboxylic acid and ammonium ion.",
+            conditions=[set(["heat"])],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="amide_basic_hydrolysis",
+            name="Amide Basic Hydrolysis",
+            curriculum_subsubject_id="amides-hydrolysis",
+            reaction_smarts="[C:1](=[O:2])[N;H2,H1,H0:3].[OH2:4].[OH-]>>[C:1](=[O:2])[O-:4].[N+0H3:3]",
+            reactants_smarts=["[C](=[O])[N]", "[OH2]", "[OH-]"],
+            match_explanation="Amide + Water + Hydroxide",
+            description="Basic hydrolysis of amide to carboxylate and amine.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="amide_alcoholysis",
+            name="Amide Alcoholysis",
+            curriculum_subsubject_id="amides-alcoholysis",
+            reaction_smarts="[C:1](=[O:2])[N;H2,H1,H0:3].[C:4][OH:5]>>[C:1](=[O:2])[O:5][C:4].[N+0H3:3]",
+            reactants_smarts=["[C](=[O])[N]", "[C][OH]"],
+            match_explanation="Amide + Alcohol + Acid + Heat",
+            description="Conversion of amide to ester and ammonium salt.",
+            conditions=[set(["heat"])],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="anhydride_dehydration",
+            name="Anhydride Formation (Dehydration)",
+            curriculum_subsubject_id="anhydrides-prep",
+            reaction_smarts="[C:1](=[O:2])[OH].[C:3](=[O:4])[OH]>>[C:1](=[O:2])[O][C:3](=[O:4]).[OH2]",
+            reactants_smarts=["[C](=[O])[OH]", "[C](=[O])[OH]"],
+            match_explanation="2 × Carboxylic Acid + Heat → Anhydride + H2O",
+            description="Dehydration of two carboxylic acids to form acid anhydride.",
+            conditions=[set(["heat"])],
+            chain_block=["anhydride_hydrolysis", "ester_acid_hydrolysis"],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="anhydride_mixed_formation",
+            name="Mixed Anhydride Formation",
+            curriculum_subsubject_id="anhydrides-prep",
+            reaction_smarts="[C:1](=[O:2])[OH].[C:3](=[O:4])[Cl].[OH-]>>[C:1](=[O:2])[O][C:3](=[O:4]).[Cl-]",
+            reactants_smarts=["[C](=[O])[OH]", "[C](=[O])[Cl]", "[OH-]"],
+            match_explanation="Carboxylic Acid + Acyl Chloride + Base → Anhydride + Cl-",
+            description="Formation of mixed anhydride from carboxylic acid and acyl chloride in the presence of base.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="anhydride_alcoholysis",
+            name="Anhydride + Alcohol → Ester",
+            curriculum_subsubject_id="anhydrides-reactions",
+            reaction_smarts="[C:1](=[O:2])[O][C:3](=[O:4]).[C:5][OH:6]>>[C:1](=[O:2])[O:6][C:5].[C:3](=[O:4])[OH]",
+            reactants_smarts=["[C](=[O])[O][C](=[O])", "[C][OH]"],
+            match_explanation="Anhydride + Alcohol",
+            description="Nucleophilic addition of alcohol to anhydride to give ester and carboxylic acid.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="anhydride_hydrolysis",
+            name="Anhydride Hydrolysis",
+            curriculum_subsubject_id="anhydrides-reactions",
+            reaction_smarts="[C:1](=[O:2])[O][C:3](=[O:4]).[OH2:5]>>[C:1](=[O:2])[OH:5].[C:3](=[O:4])[OH]",
+            reactants_smarts=["[C](=[O])[O][C](=[O])", "[OH2]"],
+            match_explanation="Anhydride + Water",
+            description="Hydrolysis of anhydride to give two carboxylic acid molecules.",
+            conditions=[set()],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
+            id="anhydride_aminolysis",
+            name="Anhydride + Amine → Amide",
+            curriculum_subsubject_id="anhydrides-reactions",
+            reaction_smarts="[C:1](=[O:2])[O][C:3](=[O:4]).[N;H2,H1:5].[N;H2,H1:6]>>[C:1](=[O:2])[N:5].[C:3](=[O:4])[O-].[N+H3:6]",
+            reactants_smarts=["[C](=[O])[O][C](=[O])", "[N;H2,H1]", "[N;H2,H1]"],
+            match_explanation="Anhydride + 2 × Amine",
+            description="Aminolysis of anhydride to give amide and carboxylate ammonium salt.",
+            conditions=[set()],
         )
     )
 

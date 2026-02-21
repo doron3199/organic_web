@@ -105,7 +105,9 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                 rule.reaction_smarts,
                 debug=False,
                 auto_add=auto_add,
+                reaction_context=rule.id,
                 reaction_name=rule.name,
+                chain_block=rule.chain_block or [],
             )
 
             organic_products = execution_result["organic"]
@@ -194,12 +196,16 @@ def execute_single_reaction(
     effective_smarts: str | list = smarts
     if reaction_id:
         from reactions.registry import ReactionRegistry
+
         rule = ReactionRegistry.get_instance().get(reaction_id)
         if rule and rule.reaction_smarts:
             effective_smarts = rule.reaction_smarts
 
     result = run_reaction(
-        reactants, effective_smarts, debug=debug, auto_add=auto_add,
+        reactants,
+        effective_smarts,
+        debug=debug,
+        auto_add=auto_add,
         reaction_name=reaction_name,
     )
     if debug:

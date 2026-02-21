@@ -10,6 +10,7 @@ class ReactionSelectivity:
     the highest-priority (lowest-index) pattern are labelled
     ``"major"``; the rest are ``"minor"``.
     """
+
     rules: List[str]
 
 
@@ -18,7 +19,9 @@ class StereoRule:
     """Stereochemistry directive embedded in a reaction rule."""
 
     type: str  # 'syn_addition' | 'anti_addition' | 'sn2_inversion' | 'sn1_racemization'
-    pattern: Optional[str] = None  # Optional SMARTS pattern override for stereo matching
+    pattern: Optional[str] = (
+        None  # Optional SMARTS pattern override for stereo matching
+    )
     description: Optional[str] = None  # Human-readable explanation
 
 
@@ -53,3 +56,4 @@ class ReactionRule:
     append_reaction: Optional[str] = None
     block: bool = False
     stereo_rules: Optional[List[StereoRule]] = None
+    chain_block: List[str] = field(default_factory=list)

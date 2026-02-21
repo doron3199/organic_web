@@ -358,6 +358,7 @@ def run_reaction(
     reaction_context: str | None = None,
     conditions: list[str] | None = None,
     reaction_name: str | None = None,
+    chain_block: list[str] | None = None,
 ) -> dict:
     """
     Main entry point. Runs a reaction (sequence) and returns products/steps.
@@ -481,6 +482,17 @@ def run_reaction(
         logger.debug(
             f"  Entering open-world chain reaction with {len(current_branches)} branches"
         )
+        # Seed rule_history so the same rule isn't immediately re-applied to products.
+        # Also seed any chain_block IDs provided by the rule (e.g., reverse reactions).
+        ids_to_block = []
+        if reaction_context:
+            ids_to_block.append(reaction_context)
+        if chain_block:
+            ids_to_block.extend(chain_block)
+        for branch in current_branches:
+            for bid in ids_to_block:
+                if bid not in branch.rule_history:
+                    branch.rule_history = list(branch.rule_history) + [bid]
         current_branches, step_counter = run_chain_reaction(
             current_branches, all_steps, step_counter, conditions
         )
