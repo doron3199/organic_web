@@ -28,10 +28,139 @@ from engine.helpers import (
     find_next_reaction_matches,
     _parse_auto_add_molecules,
     _apply_auto_add_step,
+    normalize_smarts_steps,
+    extract_step_explanations,
+    extract_step_selectivities,
 )
+from reactions.models import SmartsEntry
 
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Selectivity Helpers
+# ============================================================================
+
+
+def _apply_step_selectivity(
+    all_steps: list[ReactionStepInfo],
+    selectivity,
+    step_idx_from: int,
+    step_idx_to: int,
+):
+    """
+    Apply step-level selectivity rules to newly created steps.
+
+    Groups sibling steps (same parent_id) and labels each as
+    major / minor / equal based on the selectivity rules.
+    Also propagates ``is_on_major_path`` to rearrangement steps.
+    """
+    from collections import defaultdict
+
+    new_steps = [s for s in all_steps if step_idx_from <= s.step_index < step_idx_to]
+
+    reaction_steps = [
+        s for s in new_steps if s.step_type in ("reaction", "carbocation_intermediate")
+    ]
+    rearrangement_steps = [
+        s for s in new_steps if s.step_type == "carbocation_rearrangement"
+    ]
+
+    # Group reaction steps by parent_id (siblings from the same input branch)
+    groups: dict[str | None, list[ReactionStepInfo]] = defaultdict(list)
+    for s in reaction_steps:
+        groups[s.parent_id].append(s)
+
+    step_map = {s.step_id: s for s in all_steps}
+
+    for _parent_id, siblings in groups.items():
+        # If the parent is already on a minor path, all its descendants
+        # are also minor. We don't upgrade them even if they match a major rule.
+        parent = step_map.get(_parent_id)
+        if parent and not parent.is_on_major_path:
+            for s in siblings:
+                s.step_selectivity = "minor"
+                s.is_on_major_path = False
+            continue
+
+        if len(siblings) <= 1:
+            # Only one outcome — no selectivity decision to make
+            continue
+
+        # Relative ranking: best rank(s) → major, rest → minor
+        sibling_ranks: dict[str, int] = {}
+        for step in siblings:
+            best_rank = len(selectivity.rules)
+            for rank, smarts in enumerate(selectivity.rules):
+                pattern = Chem.MolFromSmarts(smarts)
+                if not pattern:
+                    continue
+                for product_smiles in step.products:
+                    mol = Chem.MolFromSmiles(product_smiles)
+                    if mol and mol.HasSubstructMatch(pattern):
+                        if rank < best_rank:
+                            best_rank = rank
+                        break
+            sibling_ranks[step.step_id] = best_rank
+
+        best_overall = min(sibling_ranks.values())
+        major_count = sum(1 for r in sibling_ranks.values() if r == best_overall)
+        # Two or more share the best rank → equal; exactly one → major
+        winner_label = "equal" if major_count >= 2 else "major"
+        for step in siblings:
+            if sibling_ranks[step.step_id] == best_overall:
+                step.step_selectivity = winner_label
+            else:
+                step.step_selectivity = "minor"
+                step.is_on_major_path = False
+            logger.debug(
+                "  Selectivity: step %s  products=%s  label=%s",
+                step.step_id,
+                step.products,
+                step.step_selectivity,
+            )
+
+    # Propagate to rearrangement steps.
+    # If a parent step was demoted to minor (e.g. anti-Markovnikov),
+    # its rearrangement children must also be demoted, even if
+    # they were labeled "major" by the rearrangement fork logic.
+    for rearr in rearrangement_steps:
+        parent = step_map.get(rearr.parent_id)
+        if parent and not parent.is_on_major_path:
+            # Parent was demoted — rearrangement inherits minor
+            rearr.is_on_major_path = False
+            rearr.step_selectivity = "minor"
+        elif rearr.step_selectivity is None and parent:
+            rearr.is_on_major_path = parent.is_on_major_path
+
+
+def _build_product_selectivity(
+    branches: list[ReactionBranch],
+) -> dict[str, str]:
+    """
+    Build a mapping from organic product SMILES to a selectivity label
+    (``"major"``, ``"minor"``, or ``"equal"``) based on the branch's
+    ``selectivity_label`` (falling back to ``is_on_major_path``).
+
+    Precedence when a product appears in multiple branches:
+    major > equal > minor.
+    """
+    _PRIORITY = {"major": 0, "equal": 1, "minor": 2}
+    result: dict[str, str] = {}
+    for branch in branches:
+        sel = branch.selectivity_label
+        if sel is None:
+            sel = "major" if branch.is_on_major_path else "minor"
+        for mol in branch.molecules:
+            if not mol:
+                continue
+            if any(a.GetSymbol() == "C" for a in mol.GetAtoms()):
+                smi = Chem.MolToSmiles(mol, isomericSmiles=True)
+                prev = result.get(smi)
+                if prev is None or _PRIORITY.get(sel, 2) < _PRIORITY.get(prev, 2):
+                    result[smi] = sel
+    return result
 
 
 # ============================================================================
@@ -78,10 +207,13 @@ def run_chain_reaction(
 
             # Apply each matching rule (forking the universe)
             for rule_id, rule_data in matches:
-                # Prepare SMARTS list
-                smarts_list = rule_data.get("reactionSmarts") or []
-                if isinstance(smarts_list, str):
-                    smarts_list = [smarts_list]
+                # Prepare SMARTS list — normalize mixed str/SmartsEntry
+                raw_smarts = rule_data.get("reactionSmarts") or []
+                if isinstance(raw_smarts, str):
+                    raw_smarts = [raw_smarts]
+                elif isinstance(raw_smarts, SmartsEntry):
+                    raw_smarts = [raw_smarts]
+                smarts_list = normalize_smarts_steps(raw_smarts)
 
                 auto_adds = rule_data.get("autoAdd", [])
                 rule_name = rule_data.get("name")
@@ -180,6 +312,10 @@ def run_chain_reaction(
                                 parent_id=branch.parent_step_id,
                                 step_type="reaction",
                                 reaction_name=rule_name or "Intramolecular Cyclization",
+                                is_on_major_path=branch.is_on_major_path,
+                                step_selectivity="major"
+                                if branch.is_on_major_path
+                                else "minor",
                             )
                             all_steps.append(new_step)
 
@@ -187,6 +323,8 @@ def run_chain_reaction(
                             new_branch = branch.copy(
                                 new_molecules=new_mols, new_parent_id=s_uuid
                             )
+                            new_branch.is_on_major_path = new_step.is_on_major_path
+                            new_branch.selectivity_label = new_step.step_selectivity
                             generated_branches.append(new_branch)
                             rule_branches = generated_branches
                     if not rule_branches:
@@ -232,10 +370,15 @@ def run_reaction(
     )
     logger.debug(f"  conditions={conditions}, auto_add={auto_add}")
 
-    # 1. Initialization
-    initial_steps_queue = (
-        [reaction_smarts] if isinstance(reaction_smarts, str) else reaction_smarts
-    )
+    # 1. Initialization — normalize mixed str/SmartsEntry lists
+    if isinstance(reaction_smarts, str):
+        initial_steps_queue = [reaction_smarts]
+    elif isinstance(reaction_smarts, SmartsEntry):
+        initial_steps_queue = [reaction_smarts.smarts]
+    else:
+        initial_steps_queue = normalize_smarts_steps(reaction_smarts)
+    step_explanations = extract_step_explanations(reaction_smarts)
+    step_selectivities = extract_step_selectivities(reaction_smarts)
     auto_adds = auto_add or []
     logger.debug(f"  {len(initial_steps_queue)} directed step(s) queued")
 
@@ -276,6 +419,9 @@ def run_reaction(
                 current_branches, mols, step_counter, all_steps
             )
 
+        # Track where new reaction steps start
+        step_counter_before = step_counter
+
         # Process SMARTS
         next_branches = []
         for branch in current_branches:
@@ -292,8 +438,43 @@ def run_reaction(
                 nb.rule_history = list(branch.rule_history)
             next_branches.extend(branches)
 
+        # Apply step-level selectivity BEFORE dedup so that
+        # deduplicate_branches can prefer major-path branches when a
+        # rearranged minor-path intermediate duplicates a direct major one.
+        step_sel = step_selectivities[i] if i < len(step_selectivities) else None
+        if step_sel:
+            _apply_step_selectivity(
+                all_steps, step_sel, step_counter_before, step_counter
+            )
+            # Sync branches' is_on_major_path with their parent step.
+            # Use AND logic: a branch is on-major only if BOTH the
+            # parent step is major AND the branch wasn't already
+            # demoted (e.g. by rearrangement fork logic).
+            step_map = {s.step_id: s for s in all_steps}
+            for branch in next_branches:
+                parent = step_map.get(branch.parent_step_id)
+                if parent:
+                    branch.is_on_major_path = (
+                        parent.is_on_major_path and branch.is_on_major_path
+                    )
+                    if not parent.is_on_major_path:
+                        branch.selectivity_label = "minor"
+                    elif branch.selectivity_label is None:
+                        branch.selectivity_label = parent.step_selectivity
+
         current_branches = deduplicate_branches(next_branches)
         logger.debug(f"  After directed step {i}: {len(current_branches)} branches")
+
+        # Attach step explanation to any new reaction steps created in this iteration
+        explanation = step_explanations[i] if i < len(step_explanations) else None
+        if explanation:
+            for s in all_steps:
+                if (
+                    s.step_explanation is None
+                    and s.step_type in ("reaction", "carbocation_intermediate")
+                    and s.smarts_used == smarts
+                ):
+                    s.step_explanation = explanation
 
     # 3. Open World Chain Reaction
     if current_branches:
@@ -306,7 +487,9 @@ def run_reaction(
 
     # 4. Finalize Results
     organic, inorganic = separate_organic_inorganic(current_branches)
+    product_selectivity = _build_product_selectivity(current_branches)
     logger.debug("=== run_reaction END ===")
+    logger.debug(f"  Product selectivity: {product_selectivity}")
     logger.debug(f"  Final organic: {list(organic)}")
     logger.debug(f"  Final inorganic: {list(inorganic)}")
     logger.debug(f"  Total steps recorded: {len(all_steps)}")
@@ -316,6 +499,11 @@ def run_reaction(
             "steps": [s.to_dict() for s in all_steps],
             "final_organic": list(organic),
             "final_inorganic": list(inorganic),
+            "product_selectivity": product_selectivity,
         }
     else:
-        return {"organic": list(organic), "inorganic": list(inorganic)}
+        return {
+            "organic": list(organic),
+            "inorganic": list(inorganic),
+            "product_selectivity": product_selectivity,
+        }

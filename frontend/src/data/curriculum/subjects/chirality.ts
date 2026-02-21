@@ -172,44 +172,6 @@ This reduces the total count of unique stereoisomers below 2ⁿ.
                 { smiles: 'C[C@](O)([C@@](O)(C)[H])[H]', name: 'not Meso' },
                 { smiles: 'C1CC[C@H](Br)[C@@H](Br)C1', name: 'not Meso' }
             ],
-        },
-        {
-            id: 'chirality-biological-impact',
-            section: 'Applications',
-            name: 'Biological and Pharmacological Impact',
-            content: `
-### Biology is Chiral
-Enzymes and receptors are chiral, so they often distinguish enantiomers strongly.
-
-### Classic Examples
-- **Carvone enantiomers**: different smells (spearmint vs caraway)
-- **Thalidomide**: enantiomers with drastically different biological outcomes
-- **Methamphetamine**: enantiomers with different activity profiles
-
-Chirality is critical in medicinal chemistry and drug safety.
-            `,
-            examples: [
-                { smiles: 'CC(C)=CCC[C@H](C)C1=CC=CC(=O)C1', name: 'Carvone enantiomer example' }
-            ],
-        },
-        {
-            id: 'chirality-reaction-outcomes',
-            section: 'Applications',
-            name: 'Reactions that Create Stereocenters',
-            content: `
-### Racemic Mixtures
-When a new stereocenter forms from an achiral substrate through a planar intermediate, products are often **racemic** (50:50 enantiomers).
-
-### Diastereoselective Formation
-If a substrate is already chiral, forming an additional stereocenter usually yields **diastereomers** in unequal amounts.
-
-Stereochemical control in synthesis is a central goal in modern organic chemistry.
-            `,
-            examples: [
-                { smiles: 'CC=C', name: 'Achiral alkene precursor' },
-                { smiles: 'CC[C@H](C)Br', name: 'One enantiomeric outcome' },
-                { smiles: 'CC[C@@H](C)Br', name: 'Mirror enantiomeric outcome' }
-            ],
         }
     ]
 };

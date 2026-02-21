@@ -38,14 +38,22 @@ def sanitize_and_gather_products(products: tuple) -> list[dict]:
 
 
 def deduplicate_branches(branches: list[ReactionBranch]) -> list[ReactionBranch]:
-    unique = []
-    seen = set()
+    """Deduplicate branches by SMILES signature, preferring major-path branches.
+
+    When two branches produce the same molecules (e.g. a direct Markovnikov
+    carbocation and a rearranged anti-Markovnikov carbocation), the one on the
+    major path is kept so that selectivity labels propagate correctly through
+    subsequent steps.
+    """
+    unique: dict[str, ReactionBranch] = {}
     for b in branches:
         sig = ".".join(sorted(b.get_smiles()))
-        if sig not in seen:
-            seen.add(sig)
-            unique.append(b)
-    return unique
+        if sig not in unique:
+            unique[sig] = b
+        elif b.is_on_major_path and not unique[sig].is_on_major_path:
+            # Replace minor-path duplicate with the major-path branch
+            unique[sig] = b
+    return list(unique.values())
 
 
 def process_branch_reaction_outcome(
@@ -100,6 +108,7 @@ def process_branch_reaction_outcome(
         parent_ids=parents,
         reaction_context=reaction_context,
         reaction_name=reaction_name,
+        is_on_major_path=branch.is_on_major_path,
     )
     all_steps.append(step_info)
     step_counter += 1
@@ -112,12 +121,18 @@ def process_branch_reaction_outcome(
     new_branches.append(main_branch)
 
     # 2. Carbocation Rearrangements (creates additional parallel branches)
+    #    Rearrangement to a more stable carbocation is thermodynamically
+    #    favored, so: rearranged → major, direct (non-rearranged) → minor.
     if is_carbocation:
+        has_rearrangements = False
         for info in prod_info:
             if info["stability"] <= 0:
                 continue
 
             rearrangements = get_all_rearrangements(info["mol"])
+            if not rearrangements:
+                continue
+            has_rearrangements = True
             other_products = [i for i in prod_info if i is not info]
 
             for rearr_mol, shift_type in rearrangements:
@@ -134,6 +149,11 @@ def process_branch_reaction_outcome(
                     + spectator_smiles
                 )
 
+                # Rearrangement to more stable carbocation is favored → major
+                # ONLY IF parent branch is on major path
+                rearr_is_major = branch.is_on_major_path
+                rearr_label = "major" if rearr_is_major else "minor"
+
                 all_steps.append(
                     ReactionStepInfo(
                         step_id=rearr_step_id,
@@ -146,11 +166,22 @@ def process_branch_reaction_outcome(
                         group_id=group_id,
                         reaction_context=reaction_context,
                         reaction_name=reaction_name,
+                        is_on_major_path=rearr_is_major,
+                        step_selectivity=rearr_label,
                     )
                 )
                 step_counter += 1
 
-                new_branches.append(main_branch.copy(branch_mols, rearr_step_id))
+                rearr_branch = main_branch.copy(branch_mols, rearr_step_id)
+                rearr_branch.is_on_major_path = rearr_is_major
+                rearr_branch.selectivity_label = rearr_label
+                new_branches.append(rearr_branch)
+
+        # If rearrangements exist, the direct (non-rearranged) path is minor
+        if has_rearrangements:
+            step_info.step_selectivity = "minor"
+            main_branch.is_on_major_path = False
+            main_branch.selectivity_label = "minor"
 
     return new_branches, step_counter
 

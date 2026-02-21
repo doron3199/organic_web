@@ -152,7 +152,7 @@ function ContentCanvas({
     }
 
     const handleCompareExample = (smilesA: string, smilesB: string) => {
-        setInitialWorkbenchSubMode('reactions')
+        setInitialWorkbenchSubMode('compare-acids')
         onLoadCompareExample(smilesA, smilesB)
         onSwitchMode('workbench')
     }

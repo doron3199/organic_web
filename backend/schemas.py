@@ -9,6 +9,7 @@ class ReactionRequest(BaseModel):
     debug: bool = False
     autoAdd: List[Union[str, dict]] = []
     reactionName: Optional[str] = None
+    reactionId: Optional[str] = None
 
 
 class SubstitutionRequest(BaseModel):

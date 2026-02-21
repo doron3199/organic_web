@@ -1,7 +1,9 @@
 import logging
 from engine import run_reaction
 from engine.stereo import postprocess_stereo
+from engine.helpers import normalize_smarts_for_json
 from reactions.matcher import find_matching_reactions
+from reactions.models import SmartsEntry
 from engine.substitution_elimination import run_substitution_elimination
 
 logger = logging.getLogger(__name__)
@@ -15,6 +17,32 @@ def _collect_stereo_notes(sub_result):
         if note:
             notes.append(note)
     return " ".join(notes) if notes else None
+
+
+def _collect_step_explanations(rule):
+    """
+    Collect per-step explanations from SmartsEntry objects in the
+    reaction_smarts list.  Returns a list of strings (may be empty).
+    """
+    explanations = []
+    smarts = rule.reaction_smarts
+    if isinstance(smarts, str):
+        return explanations
+    if isinstance(smarts, SmartsEntry):
+        if smarts.explanation:
+            explanations.append(smarts.explanation)
+        return explanations
+    for entry in smarts:
+        if isinstance(entry, SmartsEntry) and entry.explanation:
+            explanations.append(entry.explanation)
+    return explanations
+
+
+def _collect_step_stereo_rules(rule):
+    """
+    Return the rule-level stereo rules, or ``None`` if none are set.
+    """
+    return rule.stereo_rules or None
 
 
 def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dict]:
@@ -59,7 +87,7 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
                             for p in sub_result.get("products", [])
                         ],
                         "byproducts": sub_result.get("inorganic", []),
-                        "smarts": rule.reaction_smarts,
+                        "smarts": normalize_smarts_for_json(rule.reaction_smarts),
                         "autoAdd": rule.auto_add,
                         "rank": rule.rank,
                         "mechanism": "/".join(sub_result["mechanisms"])
@@ -83,31 +111,63 @@ def get_propose_results(reactants: list[str], conditions: list[str]) -> list[dic
             organic_products = execution_result["organic"]
 
             # --- Stereochemistry post-processing ---
+            stereo_rules = _collect_step_stereo_rules(rule)
             stereo_products, stereo_note = postprocess_stereo(
-                rule.id, organic_products
+                rule.id, organic_products, stereo_rules=stereo_rules
             )
 
-            results.append(
-                {
-                    "reactionId": rule.id,
-                    "reactionName": rule.name,
-                    "curriculum_subsubject_id": rule.curriculum_subsubject_id,
-                    "matchExplanation": rule.match_explanation,
-                    "products": [
-                        {"smiles": p, "selectivity": "major"}
-                        for p in stereo_products
-                    ],
-                    "byproducts": execution_result["inorganic"],
-                    "smarts": rule.reaction_smarts,
-                    "autoAdd": rule.auto_add,
-                    "rank": rule.rank,
-                    "stereoNote": stereo_note,
-                }
+            # Collect step explanations from SmartsEntry objects
+            step_explanations = _collect_step_explanations(rule)
+
+            product_selectivity = execution_result.get("product_selectivity", {})
+
+            # Build products with selectivity labels
+            products_with_sel = []
+            for p in stereo_products:
+                products_with_sel.append(
+                    {"smiles": p, "selectivity": product_selectivity.get(p, "major")}
+                )
+            # If 2+ products share "major", downgrade to "equal"
+            major_count = sum(
+                1 for item in products_with_sel if item["selectivity"] == "major"
             )
+            if major_count >= 2:
+                for item in products_with_sel:
+                    if item["selectivity"] == "major":
+                        item["selectivity"] = "equal"
+
+            result_entry = {
+                "reactionId": rule.id,
+                "reactionName": rule.name,
+                "curriculum_subsubject_id": rule.curriculum_subsubject_id,
+                "matchExplanation": rule.match_explanation,
+                "products": products_with_sel,
+                "byproducts": execution_result["inorganic"],
+                "smarts": normalize_smarts_for_json(rule.reaction_smarts),
+                "autoAdd": rule.auto_add,
+                "rank": rule.rank,
+                "stereoNote": stereo_note,
+            }
+
+            if step_explanations:
+                result_entry["stepExplanations"] = step_explanations
+
+            results.append(result_entry)
 
         except Exception as e:
             print(f"Error executing rule {rule.id}: {e}")
             continue
+
+    # --- Cross-reaction rank-based selectivity ---
+    # When multiple reactions matched, sort by rank (highest first) and
+    # demote every reaction below the top rank to "minor".
+    if len(results) > 1:
+        results.sort(key=lambda r: r.get("rank") or 0, reverse=True)
+        top_rank = results[0].get("rank") or 0
+        for res in results:
+            if (res.get("rank") or 0) < top_rank:
+                for p in res["products"]:
+                    p["selectivity"] = "minor"
 
     return results
 
@@ -118,13 +178,29 @@ def execute_single_reaction(
     debug: bool = False,
     auto_add: list[str | dict] | None = None,
     reaction_name: str | None = None,
+    reaction_id: str | None = None,
 ) -> dict:
     """
     Executes a specific reaction defined by SMARTS.
     Wraps the core run_reaction logic and handles formatting.
+
+    If ``reaction_id`` is provided, the full rule is looked up from the
+    registry so that SmartsEntry metadata (explanations, selectivity)
+    is available to the engine.
     """
+    # When a reaction_id is supplied, prefer the rich reaction_smarts
+    # from the registry (contains SmartsEntry objects with selectivity
+    # and explanation data).
+    effective_smarts: str | list = smarts
+    if reaction_id:
+        from reactions.registry import ReactionRegistry
+        rule = ReactionRegistry.get_instance().get(reaction_id)
+        if rule and rule.reaction_smarts:
+            effective_smarts = rule.reaction_smarts
+
     result = run_reaction(
-        reactants, smarts, debug=debug, auto_add=auto_add, reaction_name=reaction_name
+        reactants, effective_smarts, debug=debug, auto_add=auto_add,
+        reaction_name=reaction_name,
     )
     if debug:
         return result

@@ -78,6 +78,7 @@ async def execute_reaction(request: Request, data: ReactionRequest):
             debug=data.debug,
             auto_add=data.autoAdd,
             reaction_name=data.reactionName,
+            reaction_id=data.reactionId,
         )
     except HTTPException:
         raise

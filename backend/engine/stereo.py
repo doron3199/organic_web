@@ -418,12 +418,24 @@ def apply_anti_addition_stereo(product_smiles_list, pattern=None):
 # Convenience: reaction-aware dispatcher
 # ---------------------------------------------------------------------------
 
-# Reaction IDs that receive specific stereochemical treatment
+# Legacy hardcoded rule sets — kept for backward compatibility.
+# New rules should use ``StereoRule`` entries on the ``ReactionRule`` instead.
 SYN_ADDITION_RULES = {"alkene_hydroxylation", "alkene_hydroboration"}
 ANTI_ADDITION_RULES = {"alkene_halogenation", "alkene_halohydrin"}
 
+# Pre-compiled patterns keyed by SMARTS string for reuse
+_PATTERN_CACHE: dict[str, Chem.Mol] = {}
 
-def postprocess_stereo(reaction_id, products, substrate_smi=None, mechanism=None):
+
+def _get_pattern(smarts_str: str) -> Chem.Mol | None:
+    """Return a compiled SMARTS pattern, caching for reuse."""
+    if smarts_str not in _PATTERN_CACHE:
+        _PATTERN_CACHE[smarts_str] = Chem.MolFromSmarts(smarts_str)
+    return _PATTERN_CACHE[smarts_str]
+
+
+def postprocess_stereo(reaction_id, products, substrate_smi=None, mechanism=None,
+                       stereo_rules=None):
     """
     High-level dispatcher that applies the appropriate stereochemical
     post-processing based on the reaction identifier or mechanism type.
@@ -438,18 +450,27 @@ def postprocess_stereo(reaction_id, products, substrate_smi=None, mechanism=None
         Substrate SMILES (needed for SN1/SN2).
     mechanism : str | None
         Mechanism name (e.g. 'SN2', 'SN1') when called from the sub/elim engine.
+    stereo_rules : list[StereoRule] | None
+        Explicit stereo rules from the ReactionRule.  When provided these
+        take priority over the legacy hardcoded rule-id sets.
 
     Returns
     -------
     tuple[list[str], str | None]
         (processed_products, stereo_note)
     """
+    # --- Mechanism-based (SN1/SN2) always takes priority ---
     if mechanism in ("SN2", "SN2_anionic", "SN2_neutral") and substrate_smi:
         return apply_sn2_inversion(substrate_smi, products)
 
     if mechanism == "SN1" and substrate_smi:
         return apply_sn1_racemization(substrate_smi, products)
 
+    # --- Explicit stereo_rules from the reaction rule ---
+    if stereo_rules:
+        return _apply_stereo_rules(products, stereo_rules, reaction_id)
+
+    # --- Legacy fallback: hardcoded rule-id sets ---
     if reaction_id in SYN_ADDITION_RULES:
         return apply_syn_addition_stereo(products)
 
@@ -460,5 +481,59 @@ def postprocess_stereo(reaction_id, products, substrate_smi=None, mechanism=None
             else _ANTI_DIHALO_PATTERN
         )
         return apply_anti_addition_stereo(products, pattern=pattern)
+
+    return products, None
+
+
+def _apply_stereo_rules(products, stereo_rules, reaction_id=None):
+    """
+    Apply a list of ``StereoRule`` objects to the product SMILES.
+
+    Each rule's ``type`` field selects the processing function:
+      - syn_addition  → ``apply_syn_addition_stereo`` (or custom pattern)
+      - anti_addition → ``apply_anti_addition_stereo`` (or custom pattern)
+      - sn2_inversion / sn1_racemization → already handled above
+
+    The first rule whose processing produces a stereo assignment wins.
+    """
+    for rule in stereo_rules:
+        rule_type = rule.type
+
+        if rule_type == "syn_addition":
+            if rule.pattern:
+                pat = _get_pattern(rule.pattern)
+                if pat is None:
+                    continue
+                result, any_stereo = _apply_addition_stereo(products, pat, "syn")
+            else:
+                result, any_stereo = _apply_addition_stereo(
+                    products, _DIOL_PATTERN, "syn"
+                )
+
+            if any_stereo:
+                note = rule.description or (
+                    "Syn-addition: both substituents are added to the same face "
+                    "of the double bond via a cyclic intermediate, producing the "
+                    "syn (cis) diastereomer."
+                )
+                return result, note
+
+        elif rule_type == "anti_addition":
+            if rule.pattern:
+                pat = _get_pattern(rule.pattern)
+                if pat is None:
+                    continue
+            else:
+                pat = _ANTI_DIHALO_PATTERN
+
+            result, any_stereo = _apply_addition_stereo(products, pat, "anti")
+
+            if any_stereo:
+                note = rule.description or (
+                    "Anti-addition: the two substituents are added to opposite faces "
+                    "of the double bond (via a cyclic halonium/bridged intermediate), "
+                    "producing the anti (trans) diastereomer."
+                )
+                return result, note
 
     return products, None

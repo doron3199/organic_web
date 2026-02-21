@@ -41,6 +41,9 @@ class ReactionStepInfo:
     reaction_context: Optional[str] = None
     reaction_name: Optional[str] = None
     parent_ids: list[str] = field(default_factory=list)
+    step_explanation: Optional[str] = None
+    step_selectivity: Optional[str] = None  # 'major', 'minor', 'equal'
+    is_on_major_path: bool = True
 
     def to_dict(self) -> dict:
         parents = (
@@ -60,6 +63,9 @@ class ReactionStepInfo:
             "group_id": self.group_id,
             "reaction_context": self.reaction_context,
             "reaction_name": self.reaction_name,
+            "step_explanation": self.step_explanation,
+            "step_selectivity": self.step_selectivity,
+            "is_on_major_path": self.is_on_major_path,
         }
 
 
@@ -72,6 +78,8 @@ class ReactionBranch:
     branch_id: str = field(default_factory=lambda: f"branch_{str(uuid.uuid4())[:8]}")
     auto_add_step_id: Optional[str] = None
     rule_history: list[str] = field(default_factory=list)
+    is_on_major_path: bool = True
+    selectivity_label: Optional[str] = None  # 'major' | 'minor' | 'equal'
 
     def get_smiles(self) -> list[str]:
         return [Chem.MolToSmiles(m, isomericSmiles=True) for m in self.molecules]
@@ -84,4 +92,6 @@ class ReactionBranch:
             molecules=new_molecules,
             parent_step_id=new_parent_id,
             rule_history=list(self.rule_history),
+            is_on_major_path=self.is_on_major_path,
+            selectivity_label=self.selectivity_label,
         )

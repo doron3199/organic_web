@@ -40,7 +40,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         autoAdd?: (string | Record<string, never>)[],
         rank?: number,
         mechanism?: string,  // logic engine mechanism (e.g. "SN2")
-        perMechanism?: { mechanism: string, selectivity: string, organic: string[], inorganic: string[] }[]
+        perMechanism?: { mechanism: string, selectivity: string, organic: string[], inorganic: string[] }[],
+        stepExplanations?: string[]
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
     const [searchPerformed, setSearchPerformed] = useState(false)
@@ -55,7 +56,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
 
-    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string) => {
+    const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string, stepExplanations?: string[]) => {
         if (!currentMolecule) return
 
         setIsMechanismLoading(reactionName)
@@ -83,10 +84,11 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     smartsArg = smarts.split('\n').map(s => s.trim()).filter(s => !!s)
                 }
 
-                result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd, reactionName) as import('../services/rdkit').DebugReactionOutcome | null
+                result = await rdkitService.runReaction(reactants, smartsArg, true, autoAdd, reactionName, reactionId) as import('../services/rdkit').DebugReactionOutcome | null
             }
 
             if (result) {
+                // Backend now handles explanations and selectivity via reactionId lookup
                 setMechanismResult({ ...result, reactionName })
             }
         } catch (e) {
@@ -189,7 +191,8 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                 autoAdd: res.autoAdd,
                 rank: res.rank,
                 mechanism: res.mechanism, // if any
-                perMechanism: res.perMechanism // per-mechanism breakdown
+                perMechanism: res.perMechanism, // per-mechanism breakdown
+                stepExplanations: res.stepExplanations // per-step explanations from SmartsEntry
             }))
 
             setResults(mappedResults)
@@ -386,7 +389,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                 <div style={{ padding: '0 0px 8px 0px' }}>
                                     <button
                                         className="reaction-mechanism-btn"
-                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd, res.reactionId)}
+                                        onClick={() => handleViewMechanism(res.reactionName, res.smarts, res.autoAdd, res.reactionId, res.stepExplanations)}
                                         disabled={isMechanismLoading === res.reactionName}
                                     >
                                         {isMechanismLoading === res.reactionName ? 'Loading...' : 'Steps'}

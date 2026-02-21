@@ -47,6 +47,9 @@ export interface ReactionStep {
     group_id?: string
     reaction_context?: string  // Rule ID (e.g. 'alkene_halogenation')
     reaction_name?: string     // Human-readable name (e.g. 'Alkene Halogenation')
+    step_explanation?: string  // Per-step explanation from SmartsEntry
+    step_selectivity?: 'major' | 'minor' | 'equal' | null  // Selectivity label from backend
+    is_on_major_path?: boolean  // Whether this step is on the major product path
 }
 
 export interface DebugReactionOutcome {
@@ -327,7 +330,8 @@ class RDKitService {
         reactionSmarts: string | string[],
         debug: boolean = false,
         autoAdd?: (string | Record<string, never>)[],
-        reactionName?: string
+        reactionName?: string,
+        reactionId?: string
     ): Promise<ReactionOutcome | DebugReactionOutcome | null> {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -339,7 +343,8 @@ class RDKitService {
                     smarts: reactionSmarts,
                     debug: debug,
                     autoAdd: autoAdd || [],
-                    reactionName: reactionName || null
+                    reactionName: reactionName || null,
+                    reactionId: reactionId || null
                 })
             });
 

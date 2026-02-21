@@ -1,7 +1,7 @@
 import logging
 from typing import List, Set
 from rdkit import Chem
-from .models import ReactionRule
+from .models import ReactionRule, SmartsEntry
 from .registry import ReactionRegistry
 from .conditions import CONDITION_MOLECULES
 
@@ -42,6 +42,20 @@ def _match_recursive(
                 used[i] = False
 
     return False
+
+
+def _to_smarts_list(reaction_smarts) -> list:
+    """
+    Normalize ``reaction_smarts`` (str, List[str], List[SmartsEntry], or mixed)
+    into a flat list preserving element types (str / SmartsEntry).
+    """
+    if isinstance(reaction_smarts, str):
+        return [reaction_smarts]
+    if isinstance(reaction_smarts, SmartsEntry):
+        return [reaction_smarts]
+    if isinstance(reaction_smarts, list):
+        return list(reaction_smarts)
+    return [reaction_smarts]
 
 
 def find_matching_reactions(
@@ -98,26 +112,15 @@ def find_matching_reactions(
             if rule.append_reaction:
                 appended_rule = registry.get(rule.append_reaction)
                 if appended_rule:
-                    # Merge SMARTS
-                    base_smarts = (
-                        rule.reaction_smarts
-                        if isinstance(rule.reaction_smarts, list)
-                        else [rule.reaction_smarts]
-                    )
-                    append_smarts = (
-                        appended_rule.reaction_smarts
-                        if isinstance(appended_rule.reaction_smarts, list)
-                        else [appended_rule.reaction_smarts]
-                    )
+                    # Merge SMARTS (handles mixed str/SmartsEntry lists)
+                    base_smarts = _to_smarts_list(rule.reaction_smarts)
+                    append_smarts = _to_smarts_list(appended_rule.reaction_smarts)
 
                     # Create a transient rule copy with merged SMARTS
                     from dataclasses import replace
 
                     new_rule = replace(rule)
                     new_rule.reaction_smarts = base_smarts + append_smarts
-                    new_rule.selectivity = (
-                        appended_rule.selectivity
-                    )  # Inherit selectivity?
                     matches.append(new_rule)
                 else:
                     matches.append(rule)

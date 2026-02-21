@@ -1,4 +1,4 @@
-from .models import ReactionRule, ReactionSelectivity, SelectivityRule
+from .models import ReactionRule, ReactionSelectivity, SmartsEntry, StereoRule
 from .registry import ReactionRegistry
 
 
@@ -25,20 +25,22 @@ def register_rules():
             id="alkane_halogenation_br",
             name="Free Radical Bromination",
             curriculum_subsubject_id="alkanes-reactions",
-            reaction_smarts="[C;H1,H2,H3,H4:1].[Br][Br]>>[C:1][Br].[Br]",
+            reaction_smarts=SmartsEntry(
+                smarts="[C;H1,H2,H3,H4:1].[Br][Br]>>[C:1][Br].[Br]",
+                selectivity=ReactionSelectivity(
+                    rules=[
+                        "[C;D4][Br]",
+                        "[C;D3][Br]",
+                        "[C;D2][Br]",
+                        "[C;D1][Br]",
+                    ],
+                ),
+                explanation="The most substituted radical is favored.",
+            ),
             reactants_smarts=["[#6;H1,H2,H3,H4]", "[Br][Br]"],
             match_explanation="Alkane + Br2",
             description="Selective substitution of Hydrogen with Bromine at the most substituted carbon.",
             conditions=create_condition_sets("light", "heat"),
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][Br]", label="major"),
-                    SelectivityRule(smarts="[C;D3][Br]", label="minor"),
-                    SelectivityRule(smarts="[C;D2][Br]", label="minor"),
-                    SelectivityRule(smarts="[C;D1][Br]", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -47,7 +49,12 @@ def register_rules():
             id="alkane_halogenation_cl",
             name="Free Radical Chlorination",
             curriculum_subsubject_id="alkanes-reactions",
-            reaction_smarts="[C;H1,H2,H3,H4:1].[Cl][Cl]>>[C:1][Cl].[Cl]",
+            reaction_smarts=SmartsEntry(
+                smarts="[C;H1,H2,H3,H4:1].[Cl][Cl]>>[C:1][Cl].[Cl]",
+                explanation=(
+                    "Chlorine is less selective than Bromine, so multiple substitution sites may be observed."
+                ),
+            ),
             reactants_smarts=["[#6;H1,H2,H3,H4]", "[Cl][Cl]"],
             match_explanation="Alkane + Cl2",
             description="Substitution of Hydrogen with Chlorine (Low selectivity).",
@@ -63,21 +70,26 @@ def register_rules():
             rank=20,
             curriculum_subsubject_id="alkenes-hydrohalogenation",
             reaction_smarts=[
-                "[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]",
-                "[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]",
+                    explanation="Proton adds to the less substituted carbon (Markovnikov's rule), forming the more stable carbocation.",
+                    selectivity=ReactionSelectivity(
+                        rules=[
+                            "[C+;D3]",
+                            "[C+;D2]",
+                            "[C+;D1]",
+                        ],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]",
+                    explanation="Halide ion attacks the carbocation to give the Markovnikov product.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[F,Cl,Br,I;H1]"],
             match_explanation="Alkene + HX (X=F, Cl, Br, I)",
             description="Addition of H-X across a double bond (Markovnikov).",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][F,Cl,Br,I]", label="major"),
-                    SelectivityRule(smarts="[C;D3][F,Cl,Br,I]", label="major"),
-                    SelectivityRule(smarts="[C;D2][F,Cl,Br,I]", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -88,22 +100,26 @@ def register_rules():
             rank=20,
             curriculum_subsubject_id="alkenes-hydration",
             reaction_smarts=[
-                "[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
-                "[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
+                    explanation="Protonation of the double bond forms a carbocation at the more substituted position (Markovnikov).",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C+;D3]", "[C+;D2]", "[C+;D1]"],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
+                    explanation="Water attacks the carbocation as a nucleophile.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
+                    explanation="Deprotonation yields the Markovnikov alcohol.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[OH2]", "[$([SX4](=[OX1])(=[OX1])[OX2H1])]"],
             match_explanation="Alkene + H2O",
             description="Addition of water to form an alcohol (Markovnikov).",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][OH]", label="major"),
-                    SelectivityRule(smarts="[C;D3][OH]", label="major"),
-                    SelectivityRule(smarts="[C;D2][OH]", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -114,9 +130,21 @@ def register_rules():
             rank=20,
             curriculum_subsubject_id="alkenes-alcohol-addition",
             reaction_smarts=[
-                "[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH:5][C:2] >> [C+0:1]-[OH+:5][C:2]",
-                "[C:1][OH1:2][C:3].[O-:4][S:5][OH:6] >>  [C:1][O+0H0:2][C:3].[O+0H:4][S:5][OH:6]",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
+                    explanation="Acid protonates the alkene to form a carbocation (Markovnikov).",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C+;D3]", "[C+;D2]", "[C+;D1]"],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[C+:1].[OH:5][C:2] >> [C+0:1]-[OH+:5][C:2]",
+                    explanation="Alcohol attacks the carbocation.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1][OH1:2][C:3].[O-:4][S:5][OH:6] >>  [C:1][O+0H0:2][C:3].[O+0H:4][S:5][OH:6]",
+                    explanation="Deprotonation gives the ether product.",
+                ),
             ],
             reactants_smarts=[
                 "[C]=[C]",
@@ -126,14 +154,6 @@ def register_rules():
             match_explanation="Alkene + Alcohol",
             description="Addition of an alcohol to form an ether (Markovnikov).",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4]OC", label="major"),
-                    SelectivityRule(smarts="[C;D3]OC", label="major"),
-                    SelectivityRule(smarts="[C;D2]OC", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -143,8 +163,14 @@ def register_rules():
             name="Hydroboration-Oxidation",
             curriculum_subsubject_id="alkenes-hydroboration",
             reaction_smarts=[
-                "[C;H2,H1:1]=[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
-                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
+                SmartsEntry(
+                    smarts="[C;H2,H1:1]=[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
+                    explanation="Borane adds across the double bond in a single concerted syn-addition step (anti-Markovnikov).",
+                ),
+                SmartsEntry(
+                    smarts="[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
+                    explanation="Oxidation replaces B with OH, retaining the syn stereochemistry.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[B]"],
             match_explanation="Alkene + BH3 (Hydroboration)",
@@ -152,6 +178,15 @@ def register_rules():
             description="Addition of H-OH with Anti-Markovnikov regioselectivity via hydroboration-oxidation.",
             conditions=[set()],
             rank=20,
+            stereo_rules=[
+                StereoRule(
+                    type="syn_addition",
+                    description=(
+                        "Syn-addition: both H and OH are delivered to the same face "
+                        "of the double bond via a concerted four-membered transition state."
+                    ),
+                ),
+            ],
         )
     )
 
@@ -162,13 +197,30 @@ def register_rules():
             rank=20,
             curriculum_subsubject_id="alkenes-halogenation",
             reaction_smarts=[
-                "[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
+                    explanation="Electrophilic halogen attacks the π-bond to form a cyclic halonium ion intermediate.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])",
+                    explanation="Halide ion opens the halonium ring from the back side, yielding anti (trans) addition.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[Br,Cl][Br,Cl]"],
             match_explanation="Alkene + Halogen (Br2 or Cl2)",
             description="Anti-addition of Halogen to form a vicinal dihalide.",
             conditions=[set()],
+            stereo_rules=[
+                StereoRule(
+                    type="anti_addition",
+                    pattern="[C:1]([F,Cl,Br,I])-[C:2]([F,Cl,Br,I])",
+                    description=(
+                        "Anti-addition: the two halogen atoms are added to opposite faces "
+                        "of the double bond via a cyclic halonium ion intermediate, "
+                        "producing the anti (trans) vicinal dihalide."
+                    ),
+                ),
+            ],
         )
     )
 
@@ -179,24 +231,42 @@ def register_rules():
             rank=21,
             curriculum_subsubject_id="alkenes-halogenation",
             reaction_smarts=[
-                "[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1[C:2][Br+,Cl+:3]1.[OH2:5]>>[C:1]([O+H2:5])[C:2]([Br+0,Cl+0:3])",
-                "[C:1]([O+H2:5])[C:2]([Br,Cl:3]).[O:6]>>[C:1]([O+0H1:5])[C:2]([Br,Cl:3]).[O+:6]",
-                "[OH3:8].[Br-,Cl-:7]>>[O+0H2:8].[Br+0,Cl+0:7]",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
+                    explanation="Electrophilic halogen forms a cyclic halonium ion intermediate.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]1[C:2][Br+,Cl+:3]1.[OH2:5]>>[C:1]([O+H2:5])[C:2]([Br+0,Cl+0:3])",
+                    explanation="Water attacks the more substituted carbon from the opposite face (anti-addition).",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C;D4][O]", "[C;D3][O]", "[C;D2][O]"],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[C:1]([O+H2:5])[C:2]([Br,Cl:3]).[O:6]>>[C:1]([O+0H1:5])[C:2]([Br,Cl:3]).[O+:6]",
+                    explanation="Deprotonation of the oxonium ion yields the halohydrin.",
+                ),
+                SmartsEntry(
+                    smarts="[OH3:8].[Br-,Cl-:7]>>[O+0H2:8].[Br+0,Cl+0:7]",
+                    explanation="Proton transfer and halide ion neutralization.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[Br,Cl][Br,Cl]", "[OH2]"],
             match_explanation="Alkene + Halogen + H2O",
             auto_add=["", "", "O", ""],
             description="Addition of OH and Halogen (OH to more substituted Carbon).",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][OH]", label="major"),
-                    SelectivityRule(smarts="[C;D3][OH]", label="major"),
-                    SelectivityRule(smarts="[C;D2][OH]", label="minor"),
-                ],
-            ),
+            stereo_rules=[
+                StereoRule(
+                    type="anti_addition",
+                    pattern="[C:1]([OH])-[C:2]([F,Cl,Br,I])",
+                    description=(
+                        "Anti-addition: the hydroxyl and halogen are added to opposite faces "
+                        "of the double bond via a cyclic halonium ion intermediate, "
+                        "producing the anti (trans) halohydrin."
+                    ),
+                ),
+            ],
         )
     )
 
@@ -219,7 +289,10 @@ def register_rules():
             name="Epoxidation",
             rank=20,
             curriculum_subsubject_id="alkenes-epoxidation",
-            reaction_smarts="[C:1]=[C:2].[CX3:3](=[OX1:4])[OX2:5][OX2H1:6] >> [C:1]1[OX2:6][C:2]1.[CX3:3](=[OX1:4])[OX2H1:5]",
+            reaction_smarts=SmartsEntry(
+                smarts="[C:1]=[C:2].[CX3:3](=[OX1:4])[OX2:5][OX2H1:6] >> [C:1]1[OX2:6][C:2]1.[CX3:3](=[OX1:4])[OX2H1:5]",
+                explanation="Peroxyacid transfers an oxygen atom to the alkene in a concerted, stereospecific syn-addition to form an epoxide.",
+            ),
             reactants_smarts=["[C]=[C]", "[CX3](=[OX1])[OX2][OX2H1]"],
             match_explanation="Alkene + Peroxyacid (mCPBA)",
             description="Formation of an epoxide ring.",
@@ -233,7 +306,10 @@ def register_rules():
             name="Ozonolysis (Reductive)",
             rank=20,
             curriculum_subsubject_id="alkenes-ozonolysis",
-            reaction_smarts="[C:1]=[C:2].[O-][O+]=O>>[C:1]=[O].[C:2]=[O]",  # Cleavage logic
+            reaction_smarts=SmartsEntry(
+                smarts="[C:1]=[C:2].[O-][O+]=O>>[C:1]=[O].[C:2]=[O]",
+                explanation="Ozone cleaves the C=C double bond; each carbon becomes a carbonyl.",
+            ),
             reactants_smarts=["[C]=[C]", "[O-][O+]=O"],
             match_explanation="Alkene (Ozonolysis)",
             description="Cleavage of double bond to form Carbonyls.",
@@ -248,14 +324,30 @@ def register_rules():
             rank=20,
             curriculum_subsubject_id="alkenes-hydroxylation",
             reaction_smarts=[
-                "[C:1]=[C:2].[O-][Mn](=O)(=O)=O>>[C:1]1[O][Mn](=O)([O-])[O][C:2]1",
-                "[C:1]1[O][Mn](=O)([O-])[O][C:2]1.[OH2:3]>>[C:1]([OH])[C:2]([OH])",
+                SmartsEntry(
+                    smarts="[C:1]=[C:2].[O-][Mn](=O)(=O)=O>>[C:1]1[O][Mn](=O)([O-])[O][C:2]1",
+                    explanation="KMnO4 forms a cyclic manganate ester with the alkene (syn-addition to the same face).",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]1[O][Mn](=O)([O-])[O][C:2]1.[OH2:3]>>[C:1]([OH])[C:2]([OH])",
+                    explanation="Hydrolysis of the manganate ester yields the cis-1,2-diol.",
+                ),
             ],
             reactants_smarts=["[C]=[C]", "[O-][Mn](=O)(=O)=O"],
             match_explanation="Alkene + KMnO4 (Syn-Hydroxylation)",
             auto_add=["", "O.O"],
             description="Formation of a cis-diol via cyclic manganate ester.",
             conditions=[set()],
+            stereo_rules=[
+                StereoRule(
+                    type="syn_addition",
+                    description=(
+                        "Syn-addition: both hydroxyl groups are added to the same face "
+                        "of the double bond via a cyclic manganate ester intermediate, "
+                        "producing the syn (cis) diol diastereomer."
+                    ),
+                ),
+            ],
         )
     )
 
@@ -265,8 +357,14 @@ def register_rules():
             name="Hydrohalogenation",
             curriculum_subsubject_id="alkynes-addition",
             reaction_smarts=[
-                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]",
-                "[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]>>[C+0:1]=[C:2]([F+0,Cl+0,Br+0,I+0:3])",
+                SmartsEntry(
+                    smarts="[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]",
+                    explanation="Proton adds to the less substituted carbon of the triple bond (Markovnikov).",
+                ),
+                SmartsEntry(
+                    smarts="[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]>>[C+0:1]=[C:2]([F+0,Cl+0,Br+0,I+0:3])",
+                    explanation="Halide attacks the vinyl cation to form a vinyl halide.",
+                ),
             ],
             # append_reaction="alkene_hydrohalogenation",
             reactants_smarts=["[C]#[C]", "[F,Cl,Br,I;H1]"],
@@ -282,8 +380,14 @@ def register_rules():
             name="Halogenation",
             curriculum_subsubject_id="alkynes-addition",
             reaction_smarts=[
-                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])",
+                SmartsEntry(
+                    smarts="[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
+                    explanation="Electrophilic halogen attacks the π-system of the triple bond.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])",
+                    explanation="Halide opens the bridged intermediate to form a dihaloalkene.",
+                ),
             ],
             reactants_smarts=["[C]#[C]", "[Br,Cl][Br,Cl]"],
             # append_reaction="alkene_halogenation",
@@ -299,22 +403,30 @@ def register_rules():
             name="Acid-Catalyzed Hydration",
             curriculum_subsubject_id="alkynes-hydration-acid",
             reaction_smarts=[
-                "[C:1]#[C:2].[OX2H1:3][SX4:4] >> [C+:1]=[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
-                "[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
-                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]",
+                SmartsEntry(
+                    smarts="[C:1]#[C:2].[OX2H1:3][SX4:4] >> [C+:1]=[C:2].[O-H0:3][SX4:4]",
+                    explanation="Acid protonates the triple bond (Markovnikov).",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C+;D2]", "[C+;D1]"],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
+                    explanation="Water attacks the carbocation.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
+                    explanation="Deprotonation yields the enol.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]",
+                    explanation="Keto-enol tautomerization produces the ketone (Markovnikov product).",
+                ),
             ],
             reactants_smarts=["[C]#[C]", "[OH2]", "[$([SX4](=[OX1])(=[OX1])[OX2H1])]"],
             match_explanation="Alkyne + H2O",
             description="Hydration to form a Ketone (Markovnikov).",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D3]=O", label="major"),
-                    SelectivityRule(smarts="[C;D2]=O", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -324,9 +436,18 @@ def register_rules():
             name="Hydroboration-Oxidation",
             curriculum_subsubject_id="alkynes-hydration",
             reaction_smarts=[
-                "[C;H2,H1:1]#[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
-                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
-                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]",
+                SmartsEntry(
+                    smarts="[C;H2,H1:1]#[C;H1,H0:2].[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
+                    explanation="Borane adds syn across the triple bond (anti-Markovnikov).",
+                ),
+                SmartsEntry(
+                    smarts="[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
+                    explanation="Oxidation replaces B with OH to form the enol.",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]",
+                    explanation="Keto-enol tautomerization produces the aldehyde (anti-Markovnikov product).",
+                ),
             ],
             reactants_smarts=["[C]#[C]", "[B]"],
             auto_add=["", "[OH-].OO.O"],
@@ -380,14 +501,14 @@ def register_rules():
             id="acetylide_alkylation",
             name="Acetylide Alkylation",
             curriculum_subsubject_id="alkynes-alkylation",
-            reaction_smarts="[C:1]#[C-:2].[C:3][F,Cl,Br,I:4]>>[C:1]#[C+0:2][C:3].[F-,Cl-,Br-,I-:4]",
+            reaction_smarts=SmartsEntry(
+                smarts="[C:1]#[C-:2].[C:3][F,Cl,Br,I:4]>>[C:1]#[C+0:2][C:3].[F-,Cl-,Br-,I-:4]",
+                selectivity=ReactionSelectivity(rules=["[C]#[C][C]"]),
+            ),
             reactants_smarts=["[C]#[C-]", "[C][F,Cl,Br,I]"],
             match_explanation="Acetylide Ion + Alkyl Halide",
             description="SN2 attack of acetylide on alkyl halide to form new C-C bond.",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank", rules=[SelectivityRule(smarts="[C]#[C][C]", label="major")]
-            ),
         )
     )
 
@@ -678,8 +799,14 @@ def register_rules():
             name="Aldehyde Grignard",
             curriculum_subsubject_id="alcohols-preparation-grignard",
             reaction_smarts=[
-                "[C:1](=[O:2]).[C:3][Mg][Br] >> [C:1](-[C:3])(-[O:2]-[Mg][Br])",
-                "[O:2]-[Mg]-[Cl,Br,I].[OH3+:4] >> [O:2]",
+                SmartsEntry(
+                    smarts="[C:1](=[O:2]).[C:3][Mg][Br] >> [C:1](-[C:3])(-[O:2]-[Mg][Br])",
+                    explanation="Grignard reagent attacks the carbonyl carbon",
+                ),
+                SmartsEntry(
+                    smarts="[O:2]-[Mg]-[Cl,Br,I].[OH3+:4] >> [O:2]",
+                    explanation="Acid workup protonates the alkoxide",
+                ),
             ],
             reactants_smarts=["[C](=[O])", "[C][Mg][Cl,Br,I]"],
             auto_add=["", "[OH3+]"],
@@ -734,9 +861,18 @@ def register_rules():
             name="Dehydration (E1)",
             curriculum_subsubject_id="alcohols-activation",
             reaction_smarts=[
-                "[C:1][C:2][OH:3].[H+]>>[C:1][C:2][OH2+:3]",
-                "[C:1][C:2][OH2+:3]>>[C:1][C+:2].[OH2:3]",
-                "[C:1][C+:2]>>[C:1]=[C:2]",
+                SmartsEntry(
+                    smarts="[C:1][C:2][OH:3].[H+]>>[C:1][C:2][OH2+:3]",
+                    explanation="Protonation of the hydroxyl group",
+                ),
+                SmartsEntry(
+                    smarts="[C:1][C:2][OH2+:3]>>[C:1][C+:2].[OH2:3]",
+                    explanation="Water leaves, forming a carbocation",
+                ),
+                SmartsEntry(
+                    smarts="[C:1][C+:2]>>[C:1]=[C:2]",
+                    explanation="Elimination forms the alkene",
+                ),
             ],
             reactants_smarts=["[C][C][OH]", "[$([#1+]),$([S](=O)(=O))]"],
             match_explanation="Alcohol + Acid + Heat",
@@ -783,8 +919,14 @@ def register_rules():
             name="Oxidation",
             curriculum_subsubject_id="alcohols-oxidation",
             reaction_smarts=[
-                "[C;H2:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O",
-                "[C:1]=[O]>>[C:1](=[O])[OH]",
+                SmartsEntry(
+                    smarts="[C;H2:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O",
+                    explanation="Chromic acid oxidises the primary alcohol to an aldehyde",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]=[O]>>[C:1](=[O])[OH]",
+                    explanation="Further oxidation to carboxylic acid",
+                ),
             ],
             reactants_smarts=["[C;H2][OH]", "O[Cr](O)(=O)=O"],
             match_explanation="Alcohol + H2CRO4",
@@ -825,21 +967,22 @@ def register_rules():
             name="Epoxide Opening (Acid)",
             curriculum_subsubject_id="ethers-epoxides",
             reaction_smarts=[
-                "[C:1]1[O:2][C:3]1.[H+]>>[C:1]1[O+:2][C:3]1",
-                "[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][O+0:2]",
+                SmartsEntry(
+                    smarts="[C:1]1[O:2][C:3]1.[H+]>>[C:1]1[O+:2][C:3]1",
+                    explanation="Protonation of the epoxide oxygen",
+                ),
+                SmartsEntry(
+                    smarts="[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][O+0:2]",
+                    explanation="Nucleophilic attack at the more substituted carbon",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C;D4][O;D2]", "[C;D3][O;D2]", "[C;D2][O;D2]"],
+                    ),
+                ),
             ],
             reactants_smarts=["[C]1[O][C]1", "[H+]", "[O]"],
             match_explanation="Epoxide + Acid + Nucleophile",
             description="Ring opening at the more substituted carbon.",
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][O;D2]", label="major"),
-                    SelectivityRule(smarts="[C;D3][O;D2]", label="major"),
-                    SelectivityRule(smarts="[C;D2][O;D2]", label="minor"),
-                ],
-            ),
         )
     )
 
@@ -849,22 +992,23 @@ def register_rules():
             name="Epoxide Opening (Basic)",
             curriculum_subsubject_id="ethers-epoxides",
             reaction_smarts=[
-                "[O-,N:4].[C;H2:1]1[O:2][C:3]1>>[O+0,N+:4][C:1][C:3][O-:2]",
-                "[O-,N+:2].[H+]>>[O+0,N+0:2]",
+                SmartsEntry(
+                    smarts="[O-,N:4].[C;H2:1]1[O:2][C:3]1>>[O+0,N+:4][C:1][C:3][O-:2]",
+                    explanation="Nucleophile attacks the less substituted carbon (SN2)",
+                    selectivity=ReactionSelectivity(
+                        rules=["[C;D2][O]", "[C;D3][O]", "[C;D4][O]"],
+                    ),
+                ),
+                SmartsEntry(
+                    smarts="[O-,N+:2].[H+]>>[O+0,N+0:2]",
+                    explanation="Acid workup neutralises charges",
+                ),
             ],
             reactants_smarts=["[C]1[O][C]1", "[O-,N]"],
             match_explanation="Epoxide + Strong Nucleophile (Basic)",
             description="Attack at the less substituted carbon (Sterics).",
             auto_add=["", "[H+]"],
             conditions=[set()],
-            selectivity=ReactionSelectivity(
-                type="rank",
-                rules=[
-                    SelectivityRule(smarts="[C;D4][O:4]", label="minor"),
-                    SelectivityRule(smarts="[C;D3][O:4]", label="minor"),
-                    SelectivityRule(smarts="[C;D2][O:4]", label="major"),
-                ],
-            ),
         )
     )
 
