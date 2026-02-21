@@ -4,6 +4,7 @@ export const AVAILABLE_CONDITIONS = [
     { id: 'pd_c', label: '🔘 Pd/C' },
     { id: 'lindlar', label: '🍂 Lindlar Catalyst' },
     { id: 'cold', label: '❄️ Cold (-78°C)' },
+    { id: 'high_concentration', label: '🧪 High Concentration' },
 ] as const;
 
 export type ConditionId = typeof AVAILABLE_CONDITIONS[number]['id'];
@@ -21,10 +22,12 @@ export const QUICK_ADD_MOLECULES: Record<string, { smiles: string, label: string
     'NaBH4': { smiles: '[Na+].[BH4-]', label: '🧪 NaBH₄', isCondition: true },
     'h3o': { smiles: '[OH3+]', label: '🧪 H₃O⁺', isCondition: true },
     'LiAlH4': { smiles: '[Li+].[AlH4-]', label: '🧪 LiAlH₄', isCondition: true },
+    'NaH': { smiles: '[NaH]', label: '🧪 NaH', isCondition: true },
     'Ether': { smiles: 'O(CC)CC', label: '🧪 Ether', isCondition: true },
     'socl2': { smiles: 'ClS(=O)Cl', label: '🧪 SOCl₂', isCondition: true },
     'pbr3': { smiles: 'BrP(Br)Br', label: '🧪 PBr₃', isCondition: true },
     'pbcl': { smiles: 'ClP(Cl)Cl', label: '🧪 PCl₃', isCondition: true },
     'pcc': { smiles: '[nH+]1ccccc1.[O-][Cr](=O)(=O)Cl', label: '🧪 PCC', isCondition: true },
     'H2CrO4': { smiles: 'O[Cr](=O)(=O)O', label: '🧪 H₂CrO₄', isCondition: true },
+    'H2O2': { smiles: 'OO', label: '🧪 H₂O₂', isCondition: true },
 };

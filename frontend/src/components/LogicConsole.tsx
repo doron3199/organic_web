@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Rule, initialCurriculum, SubSubject } from '../data/curriculum'
+import { Rule, SubSubject, initialCurriculum } from '../data/curriculum'
 import CurriculumModal from './CurriculumModal'
 import './LogicConsole.css'
 
@@ -14,53 +14,40 @@ export interface LogEntry {
 
 interface LogicConsoleProps {
     mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'
-    activeRules: Rule[] // Unlocked/Learned rules
     allRules?: Rule[] // All system rules (needed for workbench to show unlearned logic)
     appliedRuleIds: string[] // Rules that matched in workbench
     ruleResults: Record<string, string> // Detailed results per rule
-    onToggleRule?: (ruleId: string) => void
+    appliedMode?: 'naming' | 'acid-comparison' | null
     isOpen: boolean
     onToggle: () => void
 }
 
-function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleResults, onToggleRule, isOpen, onToggle }: LogicConsoleProps) {
-
+function LogicConsole({ mode, allRules = [], appliedRuleIds, ruleResults, appliedMode = null, isOpen, onToggle }: LogicConsoleProps) {
     const [selectedSubSubject, setSelectedSubSubject] = useState<SubSubject | null>(null)
 
-    // Study: Show all currently unlocked rules
-    // Workbench: Show ALL applied rules (even if not unlocked)
-    // Testing: Show ALL rules passed in activeRules (which is ALL_RULES in testing mode?)
+    const findSubSubjectById = (subSubjectId: string): SubSubject | null => {
+        for (const subject of initialCurriculum) {
+            const subSubject = subject.subSubjects.find(sub => sub.id === subSubjectId)
+            if (subSubject) return subSubject
+        }
+        return null
+    }
 
-    // For workbench, we need to map appliedRuleIds to Rule objects.
-    // We try to find them in activeRules first, then in allRules.
+    const handleRuleClick = (rule: Rule) => {
+        const subSubjectId = rule.subSubjectId
+        if (!subSubjectId) return
+
+        const subSubject = findSubSubjectById(subSubjectId)
+        if (!subSubject) return
+
+        setSelectedSubSubject(subSubject)
+    }
 
     const getDisplayRules = () => {
-        if (mode === 'study') return activeRules
-        if (mode === 'testing') return activeRules
-
-        // Workbench:
-        // We want to show everything that was applied.
-        // We need a source of all rules to lookup by ID.
-        const ruleSource = allRules.length > 0 ? allRules : activeRules
-
-        return ruleSource.filter(r => appliedRuleIds.includes(r.id))
+        return allRules.filter(r => appliedRuleIds.includes(r.id))
     }
 
     const displayRules = getDisplayRules()
-
-
-
-    const handleRuleClick = (ruleId: string) => {
-        // Find the sub-subject that contains this rule (Search by ID)
-        for (const subject of initialCurriculum) {
-            for (const sub of subject.subSubjects) {
-                if (sub.rules.some(r => r.id === ruleId)) {
-                    setSelectedSubSubject(sub)
-                    return
-                }
-            }
-        }
-    }
 
     if (!isOpen) {
         return (
@@ -76,7 +63,12 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
         <div className="logic-console">
             <div className="console-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3>{mode === 'study' ? '🧠 Unlocked Rules' : mode === 'testing' ? '🛠️ Testing Rules' : '🧪 Applied Logic'}</h3>
+                    <h3>🧪 Applied Logic</h3>
+                    {mode === 'workbench' && appliedMode && (
+                        <span className="console-mode">
+                            {appliedMode === 'acid-comparison' ? 'Acid Comparison' : 'Naming'}
+                        </span>
+                    )}
                     <button className="sidebar-toggle-btn-inner" onClick={onToggle} title="Collapse Logic Console" style={{ marginLeft: 'auto' }}>
                         ▶
                     </button>
@@ -86,13 +78,7 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
             <div className="console-content">
                 <div className="rules-container">
                     {displayRules.length === 0 ? (
-                        <div className="empty-rules">
-                            {mode === 'study'
-                                ? "No rules unlocked yet."
-                                : mode === 'testing'
-                                    ? "No rules enabled."
-                                    : "No rules applied to this molecule."}
-                        </div>
+                        <div className="empty-rules">No rules applied to this molecule.</div>
                     ) : (
                         displayRules.map(rule => {
 
@@ -101,32 +87,16 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
                             return (
                                 <div
                                     key={rule.id}
-                                    className={`rule-item ${mode === 'testing' ? 'testing-item' : ''}`}
-                                    onClick={() => mode !== 'testing' && handleRuleClick(rule.id)}
-                                    style={{
-                                        ...(mode === 'testing' ? { cursor: 'default', display: 'flex', alignItems: 'flex-start', gap: '8px' } : {})
-                                    }}
+                                    className="rule-item"
+                                    onClick={() => handleRuleClick(rule)}
                                 >
-                                    {mode === 'testing' && (
-                                        <input
-                                            type="checkbox"
-                                            checked={rule.unlocked}
-                                            onChange={() => onToggleRule && onToggleRule(rule.id)}
-                                            style={{ marginTop: '0.3rem', cursor: 'pointer' }}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    )}
-
-                                    <div style={{ flex: 1 }}>
-                                        <div className="rule-header" onClick={() => mode === 'testing' && handleRuleClick(rule.id)} style={{ cursor: 'pointer' }}>
+                                    <div>
+                                        <div className="rule-header">
                                             <span className="rule-name">{rule.name}</span>
-                                            {mode === 'testing' && (
-                                                <span style={{ fontSize: '0.8rem', color: '#666' }}>ⓘ</span>
-                                            )}
                                         </div>
                                         <div className="rule-desc">{rule.description}</div>
 
-                                        {(mode === 'workbench' || mode === 'testing') && ruleResults && ruleResults[rule.id] && (
+                                        {ruleResults && ruleResults[rule.id] && (
                                             <div className="rule-result" style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#333', borderRadius: '4px', borderLeft: '3px solid #646cff' }}>
                                                 <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '0.2rem' }}>Result:</div>
                                                 <div>{ruleResults[rule.id]}</div>
@@ -140,7 +110,6 @@ function LogicConsole({ mode, activeRules, allRules = [], appliedRuleIds, ruleRe
                 </div>
             </div>
 
-            {/* Rule Detail Modal */}
             <CurriculumModal
                 topic={selectedSubSubject}
                 onClose={() => setSelectedSubSubject(null)}

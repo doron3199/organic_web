@@ -6,6 +6,7 @@ export interface Rule {
     smarts: string
     description: string
     unlocked: boolean
+    subSubjectId?: string
     errorMessage?: string
     logicType?: RuleLogicType
 }
@@ -31,13 +32,21 @@ export interface ReactionExample {
     isEquilibrium?: boolean;
 }
 
+export interface CompareExample {
+    id?: string;
+    name: string;
+    left: { smiles: string; name?: string };
+    right: { smiles: string; name?: string };
+    note?: string;
+}
+
 export interface SubSubject {
     id: string
     name: string
-    rules: Rule[]
     content: string // Markdown or HTML content
     examples: { smiles: string; name: string; customSvg?: string; customSvgUrl?: string }[]
     reactionExamples?: ReactionExample[];
+    compareExamples?: CompareExample[];
     isCompleted?: boolean
     section?: string
     widgetType?: string

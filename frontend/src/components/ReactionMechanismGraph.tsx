@@ -70,6 +70,7 @@ function getGroupColor(groupId?: string) {
 
 function StepNode({ data }: { data: StepNodeData }) {
     const { step, onSelect, onAddProduct, isSelected, interactive } = data
+    const [showExplanation, setShowExplanation] = useState(false)
 
     // Safety check for step type
     const safeType = step.step_type || 'reaction'
@@ -83,23 +84,12 @@ function StepNode({ data }: { data: StepNodeData }) {
                     ? 'auto-add'
                     : 'reaction'
 
-    // Determine label from group ID
-    let mechanismLabel = '';
-    if (step.group_id) {
-        const lowerId = step.group_id.toLowerCase();
-
-        if (lowerId.includes('sn2')) {
-            mechanismLabel = 'SN2';
-        } else if (lowerId.includes('sn1')) {
-            mechanismLabel = 'SN1';
-        } else if (lowerId.includes('e2')) {
-            mechanismLabel = 'E2';
-        } else if (lowerId.includes('e1')) {
-            mechanismLabel = 'E1';
-        } else {
-            mechanismLabel = '';
-        }
-    }
+    // Determine the display label for this step
+    const displayLabel = (() => {
+        if (step.reaction_name) return step.reaction_name
+        // Fallback to prettified step_type
+        return safeType.replace(/_/g, ' ')
+    })()
     const groupColor = getGroupColor(step.group_id)
 
     return (
@@ -120,30 +110,27 @@ function StepNode({ data }: { data: StepNodeData }) {
         >
             <Handle type="target" position={Position.Top} />
 
-            {/* Mechanism Label Badge */}
-            {mechanismLabel && (
-                <div style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: groupColor,
-                    color: '#fff',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    zIndex: 10,
-                    whiteSpace: 'nowrap'
-                }}>
-                    {mechanismLabel}
-                </div>
-            )}
-
             <div className="flow-node-header">
-
-                <span className="step-type-badge">{safeType.replace(/_/g, ' ')}</span>
+                <span className="step-type-badge">{displayLabel}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {step.step_selectivity && step.step_selectivity !== 'equal' && (
+                        <span className={`selectivity-badge ${step.step_selectivity}`}>
+                            {step.step_selectivity === 'major' ? 'Major' : 'Minor'}
+                        </span>
+                    )}
+                    {step.step_explanation && (
+                        <button
+                            className="explanation-toggle-btn"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setShowExplanation(prev => !prev)
+                            }}
+                            title={showExplanation ? 'Hide explanation' : 'Show explanation'}
+                        >
+                            ?
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flow-node-products">
@@ -171,6 +158,12 @@ function StepNode({ data }: { data: StepNodeData }) {
                     </div>
                 ))}
             </div>
+
+            {showExplanation && step.step_explanation && (
+                <div className="step-explanation-text">
+                    {step.step_explanation}
+                </div>
+            )}
 
             <Handle type="source" position={Position.Bottom} />
         </div>
@@ -242,6 +235,7 @@ export function ReactionMechanismGraph({
                     // Find the parent step to check if it's auto_add
                     const parentStep = steps.find(s => s.step_id === parentId)
                     const isAutoAddEdge = parentStep?.step_type === 'auto_add'
+                    const isMajorPath = step.is_on_major_path !== false
 
                     initialEdges.push({
                         id: `${parentId}-${step.step_id}`,
@@ -250,9 +244,10 @@ export function ReactionMechanismGraph({
                         type: 'smoothstep',
                         animated: true,
                         style: {
-                            strokeWidth: 2,
+                            strokeWidth: isMajorPath ? 3 : 1.5,
                             stroke: isAutoAddEdge ? '#22c55e' : '#6366f1',
-                            strokeDasharray: isAutoAddEdge ? '5,5' : undefined
+                            strokeDasharray: isAutoAddEdge ? '5,5' : undefined,
+                            opacity: isMajorPath ? 1 : 0.5
                         },
                         markerEnd: {
                             type: MarkerType.ArrowClosed,

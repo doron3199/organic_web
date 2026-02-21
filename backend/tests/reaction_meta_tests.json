@@ -10,6 +10,10 @@
                 "CC(C)(Br)C",
                 "CC(C)CBr",
                 "Br"
+            ],
+            "conditions": [
+                "heat",
+                "light"
             ]
         },
         {
@@ -22,6 +26,10 @@
                 "CC(C)(Cl)C",
                 "CC(C)CCl",
                 "Cl"
+            ],
+            "conditions": [
+                "heat",
+                "light"
             ]
         },
         {
@@ -148,6 +156,9 @@
             ],
             "expected_products": [
                 "CCC"
+            ],
+            "conditions": [
+                "pd_c"
             ]
         },
         {
@@ -163,12 +174,38 @@
             ]
         },
         {
-            "id": "alkene_hydroxylation",
+            "id": "alkene_hydroxylation_cyclic",
             "reactants": [
                 "C1CC=CCC1"
             ],
             "expected_products": [
-                "OC1C(O)CCCC1"
+                "O[C@H]1[C@@H](O)CCCC1"
+            ],
+            "conditionMolecules": [
+                "[O-][Mn](=O)(=O)=O"
+            ]
+        },
+        {
+            "id": "alkene_hydroxylation_cyclic_2",
+            "reactants": [
+                "C1CCC=CC1C"
+            ],
+            "expected_products": [
+                "CC1[C@H](O)[C@H](O)CCC1",
+                "CC1[C@@H](O)[C@@H](O)CCC1"
+            ],
+            "conditionMolecules": [
+                "[O-][Mn](=O)(=O)=O"
+            ]
+        },
+        {
+            "id": "alkene_hydroxylation_acyclic",
+            "reactants": [
+                "CCC=CCC"
+            ],
+            "expected_products": [
+                "CC[C@H]([C@@H](CC)O)O",
+                "CC[C@@H]([C@H](CC)O)O"
             ],
             "conditionMolecules": [
                 "[O-][Mn](=O)(=O)=O"
@@ -183,6 +220,9 @@
             "expected_products": [
                 "CC(C)=O",
                 "CC=O"
+            ],
+            "conditions": [
+                "cold"
             ]
         },
         {
@@ -260,6 +300,9 @@
             ],
             "expected_products": [
                 "CCCC"
+            ],
+            "conditions": [
+                "pd_c"
             ]
         },
         {
@@ -270,6 +313,9 @@
             ],
             "expected_products": [
                 "C/C=C\\C"
+            ],
+            "conditions": [
+                "lindlar"
             ]
         },
         {
@@ -302,373 +348,828 @@
             "expected_products": [
                 "CC#CCC"
             ]
-        }
-    ],
-    "smarts": {
-        "alkane_halogenation_br": {
-            "reactionSmarts": "[C;H1,H2,H3,H4:1].[Br][Br]>>[C:1][Br].[Br]",
-            "autoAdd": []
         },
-        "alkane_halogenation_cl": {
-            "reactionSmarts": "[C;H1,H2,H3,H4:1].[Cl][Cl]>>[C:1][Cl].[Cl]",
-            "autoAdd": []
-        },
-        "alkene_hydrohalogenation": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[F,Cl,Br,I:3]>>[C:1][C+:2].[F-,Cl-,Br-,I-:3]",
-                "[C+:1].[F-,Cl-,Br-,I-:2]>>[C+0:1][*+0:2]"
+        {
+            "id": "alcohol_prep_hydration",
+            "reactants": [
+                "CC=C",
+                "O"
             ],
-            "autoAdd": []
-        },
-        "alkene_hydration": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
-                "[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]"
+            "expected_products": [
+                "CC(O)C",
+                "CCCO"
             ],
-            "autoAdd": []
-        },
-        "alkene_alcohol_addition": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[OX2H1:3][SX4:4] >> [C+:1]-[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH:5][C:2] >> [C+0:1]-[OH+:5][C:2]",
-                "[C:1][OH1:2][C:3].[O-:4][S:5][OH:6] >>  [C:1][O+0H0:2][C:3].[O+0H:4][S:5][OH:6]"
-            ],
-            "autoAdd": []
-        },
-        "alkene_hydroboration": {
-            "reactionSmarts": [
-                "([C;H2,H1:1]=[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])[C:2]([H])",
-                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]"
-            ],
-            "autoAdd": [
-                "",
-                "[OH-].OO.O"
+            "conditionMolecules": [
+                "[OH]S(=O)(=O)[OH]"
             ]
         },
-        "alkene_halogenation": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])[C:2]([Br+0,Cl+0:3])"
+        {
+            "id": "alcohol_prep_hydroboration",
+            "reactants": [
+                "CC=C",
+                "B"
             ],
-            "autoAdd": []
-        },
-        "alkene_halohydrin": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1[C:2][Br+,Cl+:3]1.[OH2:5]>>[C:1]([O+H2:5])[C:2]([Br+0,Cl+0:3])",
-                "[C:1]([O+H2:5])[C:2]([Br,Cl:3]).[O:6]>>[C:1]([O+0H1:5])[C:2]([Br,Cl:3]).[O+:6]",
-                "[OH3:8].[Br-,Cl-:7]>>[O+0H2:8].[Br+0,Cl+0:7]"
+            "expected_products": [
+                "CCCO"
             ],
-            "autoAdd": [
-                "",
-                "",
+            "conditionMolecules": [
+                "[OH-]",
                 "O",
-                ""
+                "OO"
             ]
         },
-        "alkene_hydrogenation": {
-            "reactionSmarts": "[C:1]=[C:2].[HH]>>[C:1][C:2]",
-            "autoAdd": []
-        },
-        "alkene_epoxidation": {
-            "reactionSmarts": "[C:1]=[C:2].[CX3:3](=[OX1:4])[OX2:5][OX2H1:6] >> [C:1]1[OX2:6][C:2]1.[CX3:3](=[OX1:4])[OX2H1:5]",
-            "autoAdd": []
-        },
-        "alkene_ozonolysis": {
-            "reactionSmarts": "[C:1]=[C:2].[O-][O+]=O>>[C:1]=[O].[C:2]=[O]",
-            "autoAdd": []
-        },
-        "alkene_hydroxylation": {
-            "reactionSmarts": [
-                "[C:1]=[C:2].[O-][Mn](=O)(=O)=O>>[C:1]1[O][Mn](=O)([O-])[O][C:2]1",
-                "[C:1]1[O][Mn](=O)([O-])[O][C:2]1.[OH2:3]>>[C:1]([OH])[C:2]([OH])"
+        {
+            "id": "alcohol_prep_hydrolysis_sn1",
+            "reactants": [
+                "CC(C)(Br)C",
+                "O"
             ],
-            "autoAdd": [
-                "",
-                "O.O"
+            "expected_products": [
+                "CC(C)(O)C",
+                "Br"
             ]
         },
-        "alkyne_hydrohalogenation_1eq": {
-            "reactionSmarts": [
-                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F,Cl,Br,I:3]",
-                "[C+:1]=[C:2].[F,Cl,Br,I:3]>>[C+0:1]=[C:2]([F,Cl,Br,I:3])"
+        {
+            "id": "alcohol_prep_red_aldehyde",
+            "reactants": [
+                "CCC=O"
             ],
-            "autoAdd": []
-        },
-        "alkyne_hydrohalogenation_2eq": {
-            "reactionSmarts": [
-                "[C:1]#[C:2].[F,Cl,Br,I:3]>>[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]",
-                "[C+:1]=[C:2].[F-,Cl-,Br-,I-:3]>>[C+0:1]=[C:2]([F+0,Cl+0,Br+0,I+0:3])"
+            "expected_products": [
+                "CCCO"
             ],
-            "autoAdd": []
-        },
-        "alkyne_halogenation_1eq": {
-            "reactionSmarts": [
-                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])"
-            ],
-            "autoAdd": []
-        },
-        "alkyne_halogenation_2eq": {
-            "reactionSmarts": [
-                "[C:1]#[C:2].[Br,Cl:3][Br,Cl:4]>>[C:1]1=[C:2][Br+,Cl+:3]1.[Br-,Cl-:4]",
-                "[C:1]1=[C:2][Br,Cl+:3]1.[Br-,Cl-:4]>>[C:1]([Br+0,Cl+0:4])=[C:2]([Br+0,Cl+0:3])"
-            ],
-            "autoAdd": []
-        },
-        "alkyne_hydration_acid": {
-            "reactionSmarts": [
-                "[C:1]#[C:2].[OX2H1:3][SX4:4] >> [C+:1]=[C:2].[O-H0:3][SX4:4]",
-                "[C+:1].[OH2:5] >> [C+0:1]-[OH2+:5]",
-                "[C:1]-[OH2+:2].[O-:3][S:4][OH:5] >> [C:1]-[O+0H:2].[O+0H:3][S:4][OH:5]",
-                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]"
-            ],
-            "autoAdd": []
-        },
-        "alkyne_hydroboration": {
-            "reactionSmarts": [
-                "([C;H2,H1:1]#[C;H1,H0:2]).[BH3:3]>>[C:1]([H])([BH2:3])=[C:2]([H])",
-                "[C:1][BH2:2].[OH-:3].[OH2:5].[O:6][O:7]>>[C:1][OH].[BH2:2][O+0H1:3]",
-                "[C:1]=[C:2]-[OH1:3] >> [C:1]-[C:2]=[OH0:3]"
-            ],
-            "autoAdd": [
-                "",
-                "[OH-].OO.O"
-            ]
-        },
-        "alkyne_reduction_complete": {
-            "reactionSmarts": "[C:1]#[C:2].[HH].[HH]>>[C:1][C:2]",
-            "autoAdd": []
-        },
-        "alkyne_reduction_cis": {
-            "reactionSmarts": "[#6:3][#6:1]#[#6:2][#6:4].[HH]>>[#6:3]/[#6:1]=[#6:2]\\[#6:4]",
-            "autoAdd": []
-        },
-        "alkyne_deprotonation": {
-            "reactionSmarts": "[C:1]#[C;H1:2].[NH2-]>>[C:1]#[C-:2].[NH3]",
-            "autoAdd": []
-        },
-        "acetylide_alkylation": {
-            "reactionSmarts": "[C:1]#[C-:2].[C:3][F,Cl,Br,I:4]>>[C:1]#[C+0:2][C:3].[F-,Cl-,Br-,I-:4]",
-            "autoAdd": []
-        },
-        "acid_to_acyl_chloride": {
-            "reactionSmarts": "[C:1](=[O:2])[OH]>>[C:1](=[O:2])[Cl]",
-            "autoAdd": []
-        },
-        "acyl_chloride_hydrolysis": {
-            "reactionSmarts": "[C:1](=[O:2])[Cl].[OH2:3]>>[C:1](=[O:2])[OH:3]",
-            "autoAdd": []
-        },
-        "acyl_chloride_alcoholysis": {
-            "reactionSmarts": "[C:1](=[O:2])[Cl].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3]",
-            "autoAdd": []
-        },
-        "acyl_chloride_aminolysis": {
-            "reactionSmarts": "[C:1](=[O:2])[Cl].[N;H2,H1:3]>>[C:1](=[O:2])[N:3]",
-            "autoAdd": []
-        },
-        "fischer_esterification": {
-            "reactionSmarts": "[C:1](=[O:2])[OH].[C:3][OH:4]>>[C:1](=[O:2])[O:4][C:3]",
-            "autoAdd": []
-        },
-        "saponification": {
-            "reactionSmarts": "[C:1](=[O:2])[O][C:3]>>[C:1](=[O:2])[O-].[C:3][OH]",
-            "autoAdd": []
-        },
-        "benzene_bromination": {
-            "reactionSmarts": [
-                "[Br][Br].[Fe](Br)(Br)Br>>[Br][Br+][Fe-](Br)(Br)Br",
-                "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[Br][Br+][Fe-](Br)(Br)Br>>[CH:1]1(Br)[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1.[Fe-](Br)(Br)(Br)Br",
-                "[CH]1(Br)[C+][CH]=[CH][CH]=[CH]1>>[C]1(Br)[C]=[CH][C+][CH]=[CH]1",
-                "[C]1(Br)[C]=[CH][C+][CH]=[CH]1>>[C]1(Br)[CH]=[CH][CH]=[CH][C+]1",
-                "[C]1(Br)[CH]=[CH][CH]=[CH][C+]1.[N]>>[c]1(Br)[cH][cH][cH][cH][cH]1.[N+]",
-                "[N+].[Fe-](Br)(Br)(Br)Br>>[N].Br.[Fe](Br)(Br)Br"
-            ],
-            "autoAdd": [
-                "",
-                "",
-                "",
-                "",
-                "N"
-            ]
-        },
-        "benzene_chlorination": {
-            "reactionSmarts": [
-                "[Cl][Cl].[Fe](Cl)(Cl)Cl>>[Cl][Cl+][Fe-](Cl)(Cl)Cl",
-                "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[Cl][Cl+][Fe-](Cl)(Cl)Cl>>[CH:1]1(Cl)[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1.[Fe-](Cl)(Cl)(Cl)Cl",
-                "[CH]1(Cl)[C+][CH]=[CH][CH]=[CH]1>>[C]1(Cl)[C]=[CH][C+][CH]=[CH]1",
-                "[C]1(Cl)[C]=[CH][C+][CH]=[CH]1>>[C]1(Cl)[CH]=[CH][CH]=[CH][C+]1",
-                "[C]1(Cl)[CH]=[CH][CH]=[CH][C+]1.[N]>>[c]1(Cl)[cH][cH][cH][cH][cH]1.[N+]",
-                "[N+].[Fe-](Cl)(Cl)(Cl)Cl>>[N].Cl.[Fe](Cl)(Cl)Cl"
-            ],
-            "autoAdd": [
-                "",
-                "",
-                "",
-                "",
-                "N"
-            ]
-        },
-        "benzene_nitration": {
-            "reactionSmarts": [
-                "[N+](=O)([O-])[OH].[S](=O)(=O)([OH])[OH]>>[N+](=O)([O-])[O+H2].[S](=O)(=O)([O-])[OH]",
-                "[N+](=O)([O-])[OH2].[S](=O)(=O)([O-])[OH]>>[N+](=O)=O.[S](=O)(=O)([O-])[OH].[OH2]",
-                "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[N+](=O)=O>>[CH:1]1([N+](=O)[O-])[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1",
-                "[CH]1([N+](=O)[O-])[C+][CH]=[CH][CH]=[CH]1>>[C]1([N+](=O)[O-])[C]=[CH][C+][CH]=[CH]1",
-                "[C]1([N+](=O)[O-])[C]=[CH][C+][CH]=[CH]1>>[C]1([N+](=O)[O-])[CH]=[CH][CH]=[CH][C+]1",
-                "[C]1([N+](=O)[O-])[CH]=[CH][CH]=[CH][C+]1.[S](=O)(=O)([O-])[OH]>>[c]1([N+](=O)[O-])[cH][cH][cH][cH][cH]1.[S](=O)(=O)([OH])[OH]"
-            ],
-            "autoAdd": []
-        },
-        "benzene_sulfonation": {
-            "reactionSmarts": [
-                "[S](=O)(=O)([OH])[OH].[S](=O)(=O)([OH])[OH]>>[S](=O)(=O)([OH])[O+H2].[S](=O)(=O)([OH])[O-]",
-                "[S](=O)(=O)([OH])[O+H2]>>[S+](=O)(=O)([OH]).[OH2]",
-                "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1.[S+](=O)(=O)([OH])>>[CH:1]1([S](=O)(=O)([OH]))[C+:2][CH:3]=[CH:4][CH:5]=[CH:6]1",
-                "[CH]1([S](=O)(=O)([OH]))[C+][CH]=[CH][CH]=[CH]1>>[C]1([S](=O)(=O)([OH]))[C]=[CH][C+][CH]=[CH]1",
-                "[C]1([S](=O)(=O)([OH]))[C]=[CH][C+][CH]=[CH]1>>[C]1([S](=O)(=O)([OH]))[CH]=[CH][CH]=[CH][C+]1",
-                "[C]1([S](=O)(=O)([OH]))[CH]=[CH][CH]=[CH][C+]1.[S](=O)(=O)([O-])[OH]>>[c]1([S](=O)(=O)([OH]))[cH][cH][cH][cH][cH]1.[S](=O)(=O)([OH])[OH]"
-            ],
-            "autoAdd": []
-        },
-        "friedel_crafts_alkylation": {
-            "reactionSmarts": [
-                "[C:1][Cl].[Al](Cl)(Cl)Cl>>[C:1][Cl+][Al-](Cl)(Cl)Cl",
-                "[C:1][Cl+][Al-](Cl)(Cl)Cl>>[C+:1].[Al-](Cl)(Cl)(Cl)Cl",
-                "[cH:2]1[cH:3][cH:4][cH:5][cH:6][cH:7]1.[C+:1]>>[CH:2]1([C+0:1])[C+:3][CH:4]=[CH:5][CH:6]=[CH:7]1",
-                "[CH]1([C:1])[C+][CH]=[CH][CH]=[CH]1>>[CH]1([C:1])[CH]=[CH][CH+][CH]=[CH]1",
-                "[CH]1([C:1])[CH]=[CH][CH+][CH]=[CH]1>>[CH]1([C:1])[CH]=[CH][CH]=[CH][CH+]1",
-                "[CH]1([C:1])[CH]=[CH][CH]=[CH][CH+]1.[Al-](Cl)(Cl)(Cl)Cl>>[c]1([C:1])[cH][cH][cH][cH][cH]1.[Al](Cl)(Cl)Cl.Cl"
-            ],
-            "autoAdd": []
-        },
-        "friedel_crafts_acylation": {
-            "reactionSmarts": [
-                "[C:1](=[O:2])[Cl].[Al](Cl)(Cl)Cl>>[C:1](=[O:2])[Cl+][Al-](Cl)(Cl)Cl",
-                "[C:1](=[O:2])[Cl+][Al-](Cl)(Cl)Cl>>[C+:1]=[O:2].[Al-](Cl)(Cl)(Cl)Cl",
-                "[cH:3]1[cH:4][cH:5][cH:6][cH:7][cH:8]1.[C+:1]=[O:2]>>[CH:3]1([C+0:1]=[O:2])[C+:4][CH:5]=[CH:6][CH:7]=[CH:8]1",
-                "[CH]1([C:1]=[O:2])[C+][CH]=[CH][CH]=[CH]1>>[CH]1([C:1]=[O:2])[CH]=[CH][CH+][CH]=[CH]1",
-                "[CH]1([C:1]=[O:2])[CH]=[CH][CH+][CH]=[CH]1>>[CH]1([C:1]=[O:2])[CH]=[CH][CH]=[CH][CH+]1",
-                "[CH]1([C:1]=[O:2])[CH]=[CH][CH]=[CH][CH+]1.[Al-](Cl)(Cl)(Cl)Cl>>[c]1([C:1]=[O:2])[cH][cH][cH][cH][cH]1.[Al](Cl)(Cl)Cl.Cl"
-            ],
-            "autoAdd": []
-        },
-        "intramolecular_friedel_crafts_acylation_5": {
-            "reactionSmarts": "[c;H1:1]:[c:2]-[C:3]-[C:4]-[C:5](=[O:6])[Cl].[Al](Cl)(Cl)Cl>>[c:1]1:[c:2]-[C:3]-[C:4]-[C:5]1=[O:6].[Cl].[Al](Cl)(Cl)Cl",
-            "autoAdd": []
-        },
-        "intramolecular_friedel_crafts_acylation_6": {
-            "reactionSmarts": "[c;H1:1]:[c:2]-[C:3]-[C:4]-[C:7]-[C:5](=[O:6])[Cl].[Al](Cl)(Cl)Cl>>[c:1]1:[c:2]-[C:3]-[C:4]-[C:7]-[C:5]1=[O:6].[Cl].[Al](Cl)(Cl)Cl",
-            "autoAdd": []
-        },
-        "reduction_of_aldehyde_and_ketone_with_hydride_ion": {
-            "reactionSmarts": [
-                "[C:1](=[O:2]).[Na+].[BH4-].[OH3+]>>[C:1]([O:2])[H]"
-            ],
-            "autoAdd": []
-        },
-        "ester_reduction_lialh4": {
-            "reactionSmarts": [
-                "[CX3:1](=[OX1:2])[OX2:3][#6:4].[Li+].[AlH4-].[OH3+]>>[C:1][OH:2].[#6:4][OH:3]"
-            ],
-            "autoAdd": []
-        },
-        "carboxylic_acids_with_hydride_ion": {
-            "reactionSmarts": [
-                "[CX3:1](=[OX1:2])[OX2:3].[Li+].[AlH4-].[OH3+]>>[C:1][OH:2]"
-            ],
-            "autoAdd": []
-        },
-        "grignard_formation": {
-            "reactionSmarts": "[C:1][Cl,Br,I:2].[Mg].[C][C][O][C][C] >> [C:1][Mg][Cl,Br,I:2]",
-            "autoAdd": []
-        },
-        "grignard_reaction_with_aldehyde": {
-            "reactionSmarts": [
-                "[C:1](=[O:2]).[C:3][Mg][Cl,Br,I] >> [C:1](-[C:3])(-[O:2]-[Mg]-[Cl,Br,I])",
-                "[O:2]-[Mg]-[Cl,Br,I].[OH3+:4] >> [O:2]"
-            ],
-            "autoAdd": [
-                "",
+            "conditionMolecules": [
+                "[Na+]",
+                "[BH4-]",
                 "[OH3+]"
             ]
         },
-        "alcohol_activation_socl2": {
-            "reactionSmarts": "[C:1][OH].[S](=O)([Cl])[Cl] >> [C:1][Cl]",
-            "autoAdd": []
-        },
-        "alcohol_activation_pbr3": {
-            "reactionSmarts": "[C:1][OH].[P](Br)(Br)Br >> [C:1][Br]",
-            "autoAdd": []
-        },
-        "alcohol_activation_pbcl": {
-            "reactionSmarts": "[C:1][OH].[P](Cl)(Cl)Cl >> [C:1][Cl]",
-            "autoAdd": []
-        },
-        "alcohol_dehydration": {
-            "reactionSmarts": [
-                "[C:1][C:2][OH:3].[H+]>>[C:1][C:2][OH2+:3]",
-                "[C:1][C:2][OH2+:3]>>[C:1][C+:2].[OH2:3]",
-                "[C:1][C+:2]>>[C:1]=[C:2]"
+        {
+            "id": "alcohol_prep_red_ketone",
+            "reactants": [
+                "CC(=O)C"
             ],
-            "autoAdd": []
-        },
-        "alcohol_oxidation_pcc": {
-            "reactionSmarts": "[C;H2:1][OH].[nH+]1ccccc1.[O-][Cr](Cl)(=O)=O>>[C:1]=[O]",
-            "autoAdd": []
-        },
-        "alcohol_oxidation_jones": {
-            "reactionSmarts": "[C;H2:1][OH]>>[C:1](=[O])[OH]",
-            "autoAdd": []
-        },
-        "alcohol_oxidation_h2cro4": {
-            "reactionSmarts": [
-                "[C;H2:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O",
-                "[C:1]=[O]>>[C:1](=[O])[OH]"
+            "expected_products": [
+                "CC(O)C"
             ],
-            "autoAdd": []
-        },
-        "alcohol_oxidation_h2cro4_2": {
-            "reactionSmarts": "[C;H1:1][OH].O[Cr](O)(=O)=O>>[C:1]=[O].O[Cr](O)(=O)=O",
-            "autoAdd": []
-        },
-        "williamson_ether_synthesis": {
-            "reactionSmarts": "[C:1][O-].[C:2][F,Cl,Br,I]>>[C:1][O][C:2].[F-,Cl-,Br-,I-]",
-            "autoAdd": []
-        },
-        "epoxide_creation": {
-            "reactionSmarts": [
-                "[O:1][C:2][C:3][Cl,Br,I:4].[Na]>>[O-:1][C:2][C:3][Cl,Br,I:4]",
-                "[O-:1][C:2][C:3][Cl,Br,I:4]>>[O+0:1]1[C:2][C:3]1"
-            ],
-            "autoAdd": []
-        },
-        "epoxide_opening_acid": {
-            "reactionSmarts": [
-                "[C:1]1[O:2][C:3]1.[H+]>>[C:1]1[O+:2][C:3]1",
-                "[C:1]1[O+:2][C:3]1.[O:4]>>[C:1]([O:4])[C:3][O+0:2]"
-            ],
-            "autoAdd": []
-        },
-        "epoxide_opening_basic": {
-            "reactionSmarts": [
-                "[O-,N:4].[C;H2:1]1[O:2][C:3]1>>[O+0,N+:4][C:1][C:3][O-:2]",
-                "[O-,N+:2].[H+]>>[O+0,N+0:2]"
-            ],
-            "autoAdd": [
-                "",
-                "[H+]"
+            "conditionMolecules": [
+                "[Na+]",
+                "[BH4-]",
+                "[OH3+]"
             ]
         },
-        "thiol_oxidation_disulfide": {
-            "reactionSmarts": "[S;H1:1].[S;H1:2]>>[S:1][S:2]",
-            "autoAdd": []
+        {
+            "id": "alcohol_prep_red_acid",
+            "reactants": [
+                "CCC(=O)OC",
+                "[Li+]",
+                "[AlH4-]",
+                "[Li+]",
+                "[AlH4-]"
+            ],
+            "expected_products": [
+                "CCCO",
+                "CO"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
         },
-        "amine_protonation": {
-            "reactionSmarts": "[N;H3,H2,H1:1].[F,Cl,Br,I:2]>>[N+:1].[F,Cl,Br,I-:2]",
-            "autoAdd": []
+        {
+            "id": "carboxylic_Acids_with_hydride_ion",
+            "reactants": [
+                "CCC(=O)O",
+                "[Li+]",
+                "[AlH4-]"
+            ],
+            "expected_products": [
+                "CCCO"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
+        },
+        {
+            "id": "grignard_formation",
+            "reactants": [
+                "CCBr",
+                "[Mg]"
+            ],
+            "expected_products": [
+                "CC[Mg]Br"
+            ],
+            "conditionMolecules": [
+                "O(CC)CC"
+            ]
+        },
+        {
+            "id": "alcohol_prep_grignard_formal",
+            "reactants": [
+                "C=O",
+                "C[Mg]Br"
+            ],
+            "expected_products": [
+                "CCO"
+            ]
+        },
+        {
+            "id": "alcohol_prep_grignard_aldehyde",
+            "reactants": [
+                "CC=O",
+                "C[Mg]Br"
+            ],
+            "expected_products": [
+                "CC(O)C"
+            ]
+        },
+        {
+            "id": "alcohol_prep_grignard_ketone",
+            "reactants": [
+                "CC(=O)C",
+                "C[Mg]Br"
+            ],
+            "expected_products": [
+                "CC(C)(O)C"
+            ]
+        },
+        {
+            "id": "alcohol_activation_hx_sn1",
+            "reactants": [
+                "CC(C)(O)C",
+                "Br"
+            ],
+            "expected_products": [
+                "CC(C)(Br)C",
+                "O"
+            ]
+        },
+        {
+            "id": "alcohol_activation_hx_sn2",
+            "reactants": [
+                "CCO",
+                "Br"
+            ],
+            "expected_products": [
+                "CCBr",
+                "O"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "alcohol_activation_socl2",
+            "reactants": [
+                "CCO"
+            ],
+            "expected_products": [
+                "CCCl"
+            ],
+            "conditionMolecules": [
+                "ClS(=O)Cl"
+            ]
+        },
+        {
+            "id": "alcohol_activation_pbcl",
+            "reactants": [
+                "CCO"
+            ],
+            "expected_products": [
+                "CCCl"
+            ],
+            "conditionMolecules": [
+                "ClP(Cl)Cl"
+            ]
+        },
+        {
+            "id": "alcohol_activation_pbr3",
+            "reactants": [
+                "CCO"
+            ],
+            "expected_products": [
+                "CCBr"
+            ],
+            "conditionMolecules": [
+                "BrP(Br)Br"
+            ]
+        },
+        {
+            "id": "alcohol_dehydration_cyclohexanol",
+            "reactants": [
+                "C1CCCCC1O"
+            ],
+            "expected_products": [
+                "C1=CCCCC1",
+                "O"
+            ],
+            "conditionMolecules": [
+                "[OH]S(=O)(=O)[OH]"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "fc_acylation_isobutyryl",
+            "reactants": [
+                "c1ccccc1",
+                "CC(C)C(=O)Cl"
+            ],
+            "expected_products": [
+                "CC(C)C(=O)c1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[Al](Cl)(Cl)Cl"
+            ]
+        },
+        {
+            "id": "alcohol_oxidation_pcc",
+            "reactants": [
+                "CCCO"
+            ],
+            "expected_products": [
+                "CCC=O"
+            ],
+            "conditionMolecules": [
+                "[nH+]1ccccc1",
+                "[O-][Cr](=O)(=O)Cl"
+            ]
+        },
+        {
+            "id": "alcohol_oxidation_jones",
+            "reactants": [
+                "CCCO"
+            ],
+            "expected_products": [
+                "CCC(=O)O"
+            ],
+            "conditionMolecules": [
+                "O[Cr](=O)(=O)O"
+            ]
+        },
+        {
+            "id": "alcohol_oxidation_secondary",
+            "reactants": [
+                "CCC(O)C"
+            ],
+            "expected_products": [
+                "CCC(=O)C"
+            ],
+            "conditionMolecules": [
+                "O[Cr](=O)(=O)O"
+            ]
+        },
+        {
+            "id": "alcohol_dehydration_ether",
+            "reactants": [
+                "CC=C",
+                "BrBr",
+                "O"
+            ],
+            "expected_products": [
+                "CC(CO)Br",
+                "CC(CBr)O"
+            ]
+        },
+        {
+            "id": "williamson_ether_synthesis",
+            "reactants": [
+                "CC[O-]",
+                "CCI"
+            ],
+            "expected_products": [
+                "CCOCC"
+            ]
+        },
+        {
+            "id": "alkene_alcohol_addition",
+            "reactants": [
+                "CC=C",
+                "CO"
+            ],
+            "expected_products": [
+                "CC(OC)C"
+            ],
+            "conditionMolecules": [
+                "[OH]S(=O)(=O)[OH]"
+            ]
+        },
+        {
+            "id": "ether_formation_solvolysis",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "CO"
+            ],
+            "expected_products": [
+                "CCC(C)(OC)C",
+                "Br"
+            ]
+        },
+        {
+            "id": "intramolecular_ether_5",
+            "reactants": [
+                "OCCCCBr",
+                "[NaH]"
+            ],
+            "expected_products": [
+                "C1CCOC1",
+                "[Br-]"
+            ]
+        },
+        {
+            "id": "epoxide_prep_halohydrin",
+            "reactants": [
+                "ClC1CCCCC1O",
+                "[NaH]"
+            ],
+            "expected_products": [
+                "C1CCC2OC2C1"
+            ]
+        },
+        {
+            "id": "epoxide_opening_acid",
+            "reactants": [
+                "C1OC1C",
+                "CO",
+                "[H+]"
+            ],
+            "expected_products": [
+                "CC(OC)CO",
+                "CC(O)COC"
+            ]
+        },
+        {
+            "id": "epoxide_opening_basic",
+            "reactants": [
+                "C1OC1C",
+                "[O-]C",
+                "[Na+]"
+            ],
+            "expected_products": [
+                "CC(O)COC"
+            ]
+        },
+        {
+            "id": "thiol_sn2_example",
+            "reactants": [
+                "C[S-]",
+                "CCBr",
+                "CO"
+            ],
+            "expected_products": [
+                "CCSC",
+                "[Br-]"
+            ]
+        },
+        {
+            "id": "sulfide_sn2_example",
+            "reactants": [
+                "CSC",
+                "CI"
+            ],
+            "expected_products": [
+                "C[S+](C)C",
+                "[I-]"
+            ]
+        },
+        {
+            "id": "cysteine_oxidation",
+            "reactants": [
+                "NC(CS)C(=O)O",
+                "NC(CS)C(=O)O"
+            ],
+            "expected_products": [
+                "NC(C(=O)O)CSSCC(N)C(=O)O"
+            ]
+        },
+        {
+            "id": "thiol_oxidation_general",
+            "reactants": [
+                "CCS",
+                "CCS"
+            ],
+            "expected_products": [
+                "CCSSCC"
+            ]
+        },
+        {
+            "id": "amine_protonation_example",
+            "reactants": [
+                "CCCN",
+                "Br"
+            ],
+            "expected_products": [
+                "CCC[NH3+]",
+                "[Br-]"
+            ]
+        },
+        {
+            "id": "amine_alkylation_example",
+            "reactants": [
+                "CN",
+                "CCBr"
+            ],
+            "expected_products": [
+                "CC[NH2+](C)",
+                "[Br-]"
+            ]
+        },
+        {
+            "id": "amine_epoxide_opening",
+            "reactants": [
+                "C1OC1C",
+                "CN"
+            ],
+            "expected_products": [
+                "CC(O)CN(C)"
+            ]
+        },
+        {
+            "id": "benzene_bromination",
+            "reactants": [
+                "c1ccccc1",
+                "BrBr"
+            ],
+            "expected_products": [
+                "Brc1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[Fe](Br)(Br)Br"
+            ]
+        },
+        {
+            "id": "benzene_nitration",
+            "reactants": [
+                "c1ccccc1",
+                "[N+](=O)([O-])O"
+            ],
+            "expected_products": [
+                "[N+](=O)([O-])c1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[OH]S(=O)(=O)[OH]"
+            ]
+        },
+        {
+            "id": "benzene_sulfonation",
+            "reactants": [
+                "c1ccccc1",
+                "OS(=O)(=O)O"
+            ],
+            "expected_products": [
+                "OS(=O)(=O)c1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[OH]S(=O)(=O)[OH]"
+            ]
+        },
+        {
+            "id": "friedel_crafts_alkylation",
+            "reactants": [
+                "c1ccccc1",
+                "CC(Cl)C"
+            ],
+            "expected_products": [
+                "CC(c1ccccc1)C"
+            ],
+            "conditionMolecules": [
+                "[Al](Cl)(Cl)Cl"
+            ]
+        },
+        {
+            "id": "friedel_crafts_acylation",
+            "reactants": [
+                "c1ccccc1",
+                "CC(=O)Cl"
+            ],
+            "expected_products": [
+                "CC(=O)c1ccccc1"
+            ],
+            "conditionMolecules": [
+                "[Al](Cl)(Cl)Cl"
+            ]
+        },
+        {
+            "id": "intramolecular_friedel_crafts_acylation_5",
+            "reactants": [
+                "ClC(=O)CCc1ccccc1"
+            ],
+            "expected_products": [
+                "O=C1CCc2ccccc21"
+            ],
+            "conditionMolecules": [
+                "[Al](Cl)(Cl)Cl"
+            ]
+        },
+        {
+            "id": "sn2_reaction",
+            "reactants": [
+                "CC[C@]([H])(C)Br",
+                "[OH-]"
+            ],
+            "expected_products": [
+                "CC[C@H](O)C"
+            ]
+        },
+        {
+            "id": "sn1_reaction",
+            "reactants": [
+                "C(C)C(CCC)(Cl)C",
+                "O"
+            ],
+            "expected_products": [
+                "CCC[C@](CC)(O)C",
+                "CCC[C@@](CC)(O)C"
+            ]
+        },
+        {
+            "id": "e2_reaction",
+            "reactants": [
+                "CC(Br)C",
+                "[OH-]"
+            ],
+            "expected_products": [
+                "CC=C"
+            ]
+        },
+        {
+            "id": "e1_reaction",
+            "reactants": [
+                "CC(C)(Br)C",
+                "O"
+            ],
+            "expected_products": [
+                "CC(C)=C",
+                "CC(C)(O)C"
+            ]
+        },
+        {
+            "id": "intramolecular_substitution",
+            "reactants": [
+                "[O-]CCCCCCl"
+            ],
+            "expected_products": [
+                "C1CCOCC1"
+            ]
+        },
+        {
+            "id": "carboxylic_prep_oxidation",
+            "reactants": [
+                "CCCO"
+            ],
+            "expected_products": [
+                "CCC(=O)O"
+            ],
+            "conditionMolecules": [
+                "O[Cr](=O)(=O)O"
+            ]
+        },
+        {
+            "id": "carboxylic_prep_ozonolysis",
+            "reactants": [
+                "CC=CC"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ],
+            "conditionMolecules": [
+                "O",
+                "[O-][O+]=O",
+                "OO"
+            ],
+            "conditions": [
+                "cold"
+            ]
+        },
+        {
+            "id": "carboxylic_prep_grignard",
+            "reactants": [
+                "CC[Mg]Br",
+                "O=C=O"
+            ],
+            "expected_products": [
+                "CCC(=O)O"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
+        },
+        {
+            "id": "ester_acid_hydrolysis",
+            "reactants": [
+                "CC(=O)OCC",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CCO"
+            ]
+        },
+        {
+            "id": "ester_transesterification",
+            "reactants": [
+                "CC(=O)OC",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "CO"
+            ]
+        },
+        {
+            "id": "ester_aminolysis",
+            "reactants": [
+                "CC(=O)OCC",
+                "CN"
+            ],
+            "expected_products": [
+                "CC(=O)NC",
+                "CCO"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "ester_grignard",
+            "reactants": [
+                "CC(=O)OCC",
+                "C[Mg]Br",
+                "C[Mg]Br"
+            ],
+            "expected_products": [
+                "CC(C)(C)O",
+                "CCO"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ]
+        },
+        {
+            "id": "acyl_chloride_socl2",
+            "reactants": [
+                "CC(=O)O"
+            ],
+            "expected_products": [
+                "CC(=O)Cl"
+            ],
+            "conditionMolecules": [
+                "ClS(=O)Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_pcl3",
+            "reactants": [
+                "CCC(=O)O"
+            ],
+            "expected_products": [
+                "CCC(=O)Cl"
+            ],
+            "conditionMolecules": [
+                "ClP(Cl)Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_alcohol",
+            "reactants": [
+                "CC(=O)Cl",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_water",
+            "reactants": [
+                "CC(=O)Cl",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "Cl"
+            ]
+        },
+        {
+            "id": "acyl_chloride_amine",
+            "reactants": [
+                "CC(=O)Cl",
+                "CCN",
+                "CCN"
+            ],
+            "expected_products": [
+                "CC(=O)NCC",
+                "CC[NH3+]",
+                "[Cl-]"
+            ]
+        },
+        {
+            "id": "amide_acid_hydrolysis",
+            "reactants": [
+                "CC(=O)N",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "N"
+            ],
+            "conditionMolecules": [
+                "[OH3+]"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "amide_basic_hydrolysis",
+            "reactants": [
+                "CC(=O)N",
+                "O",
+                "[OH-]"
+            ],
+            "expected_products": [
+                "CC(=O)[O-]",
+                "N"
+            ]
+        },
+        {
+            "id": "amide_alcoholysis",
+            "reactants": [
+                "CC(=O)N",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "N"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "anhydride_dehydration",
+            "reactants": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ],
+            "expected_products": [
+                "CC(=O)OC(=O)C",
+                "O"
+            ],
+            "conditions": [
+                "heat"
+            ]
+        },
+        {
+            "id": "anhydride_mixed",
+            "reactants": [
+                "CC(=O)O",
+                "CCC(=O)Cl"
+            ],
+            "expected_products": [
+                "CC(=O)OC(=O)CC",
+                "Cl"
+            ],
+            "conditionMolecules": [
+                "[OH-]"
+            ]
+        },
+        {
+            "id": "anhydride_alcohol",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "CCO"
+            ],
+            "expected_products": [
+                "CC(=O)OCC",
+                "CC(=O)O"
+            ]
+        },
+        {
+            "id": "anhydride_water",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "O"
+            ],
+            "expected_products": [
+                "CC(=O)O",
+                "CC(=O)O"
+            ]
+        },
+        {
+            "id": "anhydride_amine",
+            "reactants": [
+                "CC(=O)OC(=O)C",
+                "CCN",
+                "CCN"
+            ],
+            "expected_products": [
+                "CC(=O)NCC",
+                "CC(=O)[O-]",
+                "CC[NH3+]"
+            ]
         }
-    }
+    ],
+    "smarts": {}
 }

@@ -28,24 +28,6 @@ If the double bond is not in the first position, you must use a number to say wh
                 { smiles: 'CC=C', name: 'Propene' },
                 { smiles: 'CC=CC', name: 'But-2-ene' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain_alkene',
-                    name: 'Parent Chain',
-                    smarts: '',
-                    description: 'The parent chain MUST contain the double bond, even if shorter than other chains.',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule_numbering_alkene',
-                    name: 'Lowest Numbering',
-                    smarts: '',
-                    description: 'Number the chain to give the Double Bond the lowest possible number.',
-                    unlocked: true,
-                    logicType: 'lowest_numbering'
-                }
-            ]
         },
 
         {
@@ -77,16 +59,6 @@ In a ring:
                 { smiles: 'CC1CCCC=C1', name: '3-Methylcyclohexene' },
                 { smiles: 'C/C(C)=C/CC', name: '2-Methylpent-2-ene' }
             ],
-            rules: [
-                {
-                    id: 'rule_polyenes',
-                    name: 'Polyenes',
-                    smarts: '',
-                    description: 'Use diene/triene suffixes and locate all bonds.',
-                    unlocked: true,
-                    logicType: 'check_longest_chain'
-                }
-            ]
         },
         {
             id: 'alkenes-cis-trans',
@@ -124,7 +96,6 @@ In cyclic alkenes, the double bond is **always** in the **cis** configuration fo
                     customSvgUrl: '/assets/trans_cyclooctane.svg'
                 }
             ],
-            rules: []
         },
         {
             id: 'alkenes-e-z',
@@ -150,7 +121,6 @@ Once you have identified the High Priority group on Carbon A and Carbon B:
                 { smiles: 'F/C(Br)=C(/I)Cl', name: '(Z)-2-Bromo-1-chloro-2-fluoro-1-iodoethene' },
                 { smiles: 'F/C(Br)=C(\\Cl)I', name: '(E)-2-Bromo-1-chloro-2-fluoro-1-iodoethene' }
             ],
-            rules: []
         },
         {
             id: 'alkenes-hydrohalogenation',
@@ -228,7 +198,6 @@ The stability of the carbocation intermediate determines the major product. **Hy
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-hydration',
@@ -260,7 +229,6 @@ Like hydrohalogenation, this reaction follows **Markovnikov's Rule** and involve
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-alcohol-addition',
@@ -291,7 +259,6 @@ Alcohols (R-OH) can add to alkenes in the presence of an acid catalyst to form *
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-rearrangements',
@@ -326,7 +293,6 @@ Tertiary (3°) > Secondary (2°) > Primary (1°).
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-hydroboration',
@@ -361,7 +327,6 @@ A two-step method to convert an alkene into an alcohol with **Anti-Markovnikov**
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-halogenation',
@@ -389,7 +354,6 @@ Addition of Cl₂ or Br₂ to form vicinal dihalides.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-halohydrin',
@@ -427,7 +391,6 @@ If the halogenation reaction is done in **water**, water competes with the halid
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-hydrogenation',
@@ -454,7 +417,6 @@ Addition of H₂ across a double bond to form an alkane.
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-epoxidation',
@@ -462,7 +424,11 @@ Addition of H₂ across a double bond to form an alkane.
             name: 'Epoxidation',
             content: `
 ### Epoxidation
-Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-membered cyclic ether). The mechanism is concerted, meaning bonds break and form at the same time.
+Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-membered cyclic ether).
+
+- **Mechanism**: Concerted — bonds break and form simultaneously. The oxygen is delivered to one face of the double bond in a single step.
+- **Stereochemistry**: **Syn addition** — the oxygen bridge is added to a single face of the alkene. If the starting alkene is *cis*, the substituents remain *cis* in the epoxide; if *trans*, they remain *trans*. The geometry of the alkene is **retained** in the product.
+- **Byproduct**: A carboxylic acid is formed from the peroxyacid.
 
 | Alkene | | Peroxyacid | | Epoxide | | Carboxylic Acid |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -482,7 +448,6 @@ Reaction with a peroxyacid (like **mCPBA**) to form an **epoxide** (a three-memb
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-hydroxylation',
@@ -496,18 +461,39 @@ Addition of two OH groups across the double bond to form a **cis-diol**.
             `,
             reactionExamples: [
                 {
-                    id: 'alkene_hydroxylation',
+                    id: 'alkene_hydroxylation_cyclic',
                     reactants: [
                         { smiles: 'C1CC=CCC1', name: 'Cyclohexene' }
                     ],
                     products: [
-                        { smiles: 'OC1C(O)CCCC1', name: '1,2-DiMethylCycloHexane', selectivity: 'major' }
+                        { smiles: 'O[C@H]1[C@@H](O)CCCC1', name: '1,2-DiMethylCycloHexane', selectivity: 'major' },
+                    ],
+                    conditions: 'KMnO₄'
+                },
+                {
+                    id: 'alkene_hydroxylation_cyclic_2',
+                    reactants: [
+                        { smiles: 'C1CCC=CC1C', name: 'Methylcyclohexene' }
+                    ],
+                    products: [
+                        { smiles: 'CC1[C@H](O)[C@H](O)CCC1', name: '', selectivity: 'equal' },
+                        { smiles: 'CC1[C@@H](O)[C@@H](O)CCC1', name: '', selectivity: 'equal' },
+                    ],
+                    conditions: 'KMnO₄'
+                },
+                {
+                    id: 'alkene_hydroxylation_acyclic',
+                    reactants: [
+                        { smiles: 'CCC=CCC', name: '2-Hexene' }
+                    ],
+                    products: [
+                        { smiles: 'CC[C@H]([C@@H](CC)O)O', name: '', selectivity: 'equal' },
+                        { smiles: 'CC[C@@H]([C@H](CC)O)O', name: '', selectivity: 'equal' },
                     ],
                     conditions: 'KMnO₄'
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'alkenes-ozonolysis',
@@ -537,7 +523,6 @@ A powerful reaction that **cleaves** the C=C double bond completely.
                 }
             ],
             examples: [],
-            rules: []
         }
     ]
 }

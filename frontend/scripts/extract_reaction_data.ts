@@ -3,18 +3,60 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // @ts-ignore
-import { reactionRules } from '../src/services/reaction_definitions';
+// {reactionRules} import removed
+// import { reactionRules } from '../src/services/reaction_definitions';
 // @ts-ignore
-import { QUICK_ADD_MOLECULES } from '../src/services/conditions';
+// @ts-ignore
+import { QUICK_ADD_MOLECULES, AVAILABLE_CONDITIONS } from '../src/services/conditions';
 // @ts-ignore
 import { alkanes } from '../src/data/curriculum/subjects/alkanes';
 // @ts-ignore
 import { alkenes } from '../src/data/curriculum/subjects/alkenes';
 // @ts-ignore
 import { alkynes } from '../src/data/curriculum/subjects/alkynes';
+// @ts-ignore
+import { alcohols } from '../src/data/curriculum/subjects/alcohols';
+// @ts-ignore
+import { aromatics } from '../src/data/curriculum/subjects/aromatics';
+// @ts-ignore
+import { substitutionElimination } from '../src/data/curriculum/subjects/substitution_elimination';
+// @ts-ignore
+import { carboxylicAcids } from '../src/data/curriculum/subjects/carboxylic_acids';
 
 // Aggregate all subjects
-const subjects = [alkanes, alkenes, alkynes];
+const subjects = [
+    alkanes,
+    alkenes,
+    alkynes,
+    alcohols,
+    aromatics,
+    substitutionElimination,
+    carboxylicAcids
+];
+
+// Helper to extract condition IDs (e.g. 'heat', 'light') from text
+function getConditionsList(conditions: string | undefined): string[] {
+    if (!conditions) return [];
+
+    const found: string[] = [];
+    const condLower = conditions.toLowerCase();
+
+    AVAILABLE_CONDITIONS.forEach((cond: any) => {
+        // Check for ID match or Label match
+        // Simple heuristic: check if label (minus emoji) or id is present
+        const labelPlain = cond.label.replace(/^[^\w\d\s]+/, '').trim().toLowerCase();
+
+        if (condLower.includes(cond.id) || condLower.includes(labelPlain)) {
+            found.push(cond.id);
+        }
+
+        // Special mappings/synonyms
+        if (cond.id === 'light' && (condLower.includes('hv') || conditions.includes('ν'))) found.push('light');
+        if (cond.id === 'heat' && (condLower.includes('delta') || conditions.includes('Δ'))) found.push('heat');
+    });
+
+    return [...new Set(found)];
+}
 
 // Helper function to parse conditions and extract quick-add molecules
 // Adds molecules that are either isCondition: true (actual reactants like mCPBA/KMnO4/O3)
@@ -33,7 +75,12 @@ function getConditionMolecules(conditions: string | undefined): string[] {
         const labelMatch = conditions.includes(labelPlain) || conditions.includes(molecule.label);
 
         if (keyMatch || labelMatch) {
-            molecules.push(molecule.smiles);
+            // Split by dot and add each part
+            molecule.smiles.split('.').forEach((s: string) => {
+                if (!molecules.includes(s)) {
+                    molecules.push(s);
+                }
+            });
         }
     });
 
@@ -57,25 +104,22 @@ subjects.forEach(subject => {
     }
 });
 
-// Map rules to simplified object with reactionSmarts and autoAdd
+// reactionRules import removed as it is now handled by the backend
+// const smarts logic referenced below will be removed/emptied
+
+// Map rules to simplified object with reactionSmarts and autoAdd - REMOVED (Handled in Python)
 const smarts: Record<string, any> = {};
-reactionRules.forEach((rule: any) => {
-    if (rule.reactionSmarts) {
-        smarts[rule.id] = {
-            reactionSmarts: rule.reactionSmarts,
-            autoAdd: rule.autoAdd || []
-        };
-    }
-});
 
 const output = {
     examples: examples.map(ex => {
         const conditionMolecules = getConditionMolecules(ex.conditions);
+        const conditionsList = getConditionsList(ex.conditions);
         return {
             id: ex.id,
-            reactants: ex.reactants.map((r: any) => r.smiles),
-            expected_products: ex.products.map((p: any) => p.smiles),
-            conditionMolecules: conditionMolecules.length > 0 ? conditionMolecules : undefined
+            reactants: ex.reactants.flatMap((r: any) => r.smiles.split('.')),
+            expected_products: ex.products.flatMap((p: any) => p.smiles.split('.')),
+            conditionMolecules: conditionMolecules.length > 0 ? conditionMolecules : undefined,
+            conditions: conditionsList.length > 0 ? conditionsList : undefined
         };
     }),
     smarts: smarts

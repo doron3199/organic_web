@@ -20,6 +20,11 @@ const ReactionPredictor: React.FC = () => {
     const [size, setSize] = useState<ReagentSize>('small');
     const [temp, setTemp] = useState<Temp>('low');
 
+    // ==================================================================================
+    // ** IMPORTANT: This logic is mirrored in the backend predict_mechanism function **
+    // ** (backend/engine/substitution_elimination.py)                                **
+    // ** When changing selectivity rules here, update the backend too!               **
+    // ==================================================================================
     const predict = (): Prediction => {
         // 1. Methyl Haloalkane
         if (substrate === 'methyl') {

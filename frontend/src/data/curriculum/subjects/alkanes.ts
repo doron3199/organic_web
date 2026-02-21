@@ -40,24 +40,6 @@ Below are simple straight-chain alkanes. Notice how the name changes with length
                 { smiles: 'CCCCC', name: 'Pentane (5 Carbons)' },
                 { smiles: 'CCCCCCC', name: 'Heptane (7 Carbons)' }
             ],
-            rules: [
-                {
-                    id: 'rule-longest-chain',
-                    name: 'Longest Chain Rule',
-                    smarts: '[C][C]', // used for general pattern but logicType drives the algorithm
-                    description: 'Identify the longest continuous carbon chain.',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'validate_longest_chain',
-                    name: 'Check: Longest Chain',
-                    smarts: '',
-                    description: 'Validate that the root name matches the longest chain length.',
-                    unlocked: true,
-                    logicType: 'check_longest_chain'
-                }
-            ]
         },
         {
             id: 'alkanes-step2-substituents',
@@ -88,24 +70,6 @@ The branch name is added as a prefix to the parent name.
                 { smiles: 'CCC(CC)CCC', name: '3-Ethylhexane' },
                 { smiles: 'CC(Cl)CCC', name: '2-Chloropentane' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain',
-                    name: 'Longest Chain Rule',
-                    smarts: '[C][C]',
-                    description: 'Identify the longest continuous carbon chain.',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule-identify-substituents',
-                    name: 'Identify Substituents',
-                    smarts: '',
-                    description: 'Identify alkyl and halogen substituents.',
-                    unlocked: true,
-                    logicType: 'identify_substituents'
-                },
-            ]
         },
         {
             id: 'alkanes-step3-numbering',
@@ -125,41 +89,6 @@ Number the carbon atoms in the parent chain starting from the end **closest** to
                 { smiles: 'CCCC(C)CC', name: '3-Methylhexane' },
                 { smiles: 'CC(Br)CCCC', name: '2-Bromohexane' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain',
-                    name: 'Longest Chain Rule',
-                    smarts: '[C][C]',
-                    description: 'Identify the longest continuous carbon chain.',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule_identify_substituents',
-                    name: 'Identify Substituents',
-                    smarts: '[C]([C])[C]',
-                    description: 'Identify branches attached to the main chain.',
-                    unlocked: true,
-                    logicType: 'identify_substituents'
-                },
-
-                {
-                    id: 'rule-lowest-numbering',
-                    name: 'Lowest Numbering',
-                    smarts: 'custom_numbering_logic',
-                    description: 'Number the chain to give substituents (alkyls & halogens) the lowest possible numbers.',
-                    unlocked: true,
-                    logicType: 'lowest_numbering'
-                },
-                {
-                    id: 'validate_lowest_locants',
-                    name: 'Check: Lowest Locants',
-                    smarts: '',
-                    description: 'Validate that the numbering used gives the lowest possible locants.',
-                    unlocked: true,
-                    logicType: 'check_lowest_locants'
-                }
-            ]
         },
         {
             id: 'alkanes-step4-alphabetical',
@@ -184,41 +113,6 @@ When a molecule has more than one type of substituent, list them **alphabeticall
                 { smiles: 'CC(C)C(C)C(CC)CCC', name: '4-Ethyl-2,3-dimethylheptane' },
                 { smiles: 'CC(Cl)C(Br)CC', name: '3-Bromo-2-chloropentane' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain',
-                    name: 'Longest Chain',
-                    smarts: '',
-                    description: '',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule_subs',
-                    name: 'Substituents',
-                    smarts: '',
-                    description: '',
-                    unlocked: true,
-                    logicType: 'identify_substituents'
-                },
-
-                {
-                    id: 'rule-alphabetical-order',
-                    name: 'Alphabetical Order',
-                    smarts: '',
-                    description: 'List substituents in alphabetical order.',
-                    unlocked: true,
-                    logicType: 'alphabetical_order'
-                },
-                {
-                    id: 'validate_alphabetical',
-                    name: 'Check: Alphabetical Order',
-                    smarts: '',
-                    description: 'Validate substituents are listed alphabetically.',
-                    unlocked: true,
-                    logicType: 'check_alphabetical'
-                }
-            ]
         },
         {
             id: 'alkanes-step5-cyclo',
@@ -245,73 +139,6 @@ Carbon chains can form rings! These are called **cycloalkanes**.
                 { smiles: 'IC1CCCCC1', name: 'Iodocyclohexane' },
                 { smiles: 'CCC1CCCC(C)C1', name: '1-Ethyl-3-methylcyclohexane' }
             ],
-            rules: [
-                {
-                    id: 'rule_longest_chain',
-                    name: 'Longest Chain',
-                    smarts: '',
-                    description: 'Identify the longest continuous carbon chain (or ring).',
-                    unlocked: true,
-                    logicType: 'longest_chain'
-                },
-                {
-                    id: 'rule_subs',
-                    name: 'Substituents',
-                    smarts: '',
-                    description: 'Identify substituents attached to the ring.',
-                    unlocked: true,
-                    logicType: 'identify_substituents'
-                },
-
-                {
-                    id: 'rule_numbering',
-                    name: 'Numbering',
-                    smarts: '',
-                    description: 'Number the ring to give substituents lowest locants.',
-                    unlocked: true,
-                    logicType: 'lowest_numbering'
-                },
-                {
-                    id: 'rule_alphabetical',
-                    name: 'Alphabetical Order',
-                    smarts: '',
-                    description: 'Sort substituents alphabetically (ignoring prefixes like di-, tri-).',
-                    unlocked: true,
-                    logicType: 'alphabetical_order'
-                },
-                {
-                    id: 'validate_longest_chain',
-                    name: 'Check: Parent Structure',
-                    smarts: '',
-                    description: 'Validate parent ring size and name.',
-                    unlocked: true,
-                    logicType: 'check_longest_chain'
-                },
-                {
-                    id: 'validate_lowest_locants',
-                    name: 'Check: Lowest Locants',
-                    smarts: '',
-                    description: 'Validate that the numbering used gives the lowest possible locants.',
-                    unlocked: true,
-                    logicType: 'check_lowest_locants'
-                },
-                {
-                    id: 'validate_alphabetical',
-                    name: 'Check: Alphabetical Order',
-                    smarts: '',
-                    description: 'Validate substituents are listed alphabetically.',
-                    unlocked: true,
-                    logicType: 'check_alphabetical'
-                },
-                {
-                    id: 'rule-cyclo-naming',
-                    name: 'Cyclo Naming',
-                    smarts: '',
-                    description: 'Apply rules for cyclic compounds.',
-                    unlocked: true,
-                    logicType: 'check_cyclo_naming'
-                }
-            ]
         },
         {
             id: 'alkanes-reactions',
@@ -375,7 +202,6 @@ The stability of alkyl radicals is crucial for determining the major product in 
                 }
             ],
             examples: [],
-            rules: []
         }
     ]
 }

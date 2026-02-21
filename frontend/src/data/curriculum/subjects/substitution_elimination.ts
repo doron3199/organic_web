@@ -16,7 +16,6 @@ export const substitutionElimination: Subject = {
 *   **Elimination Reaction**: The electronegative group is removed along with a hydrogen atom from an adjacent carbon, resulting in the formation of a double bond (alkene).
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'sn2-reaction',
@@ -28,7 +27,7 @@ export const substitutionElimination: Subject = {
 **Mechanism and Characteristics:**
 *   **Mechanism**: This is a one-step reaction where the bond to the leaving group breaks at the same time the bond to the nucleophile forms.
 *   **Back-Side Attack**: The nucleophile approaches the back side of the tetrahedral carbon. As the nucleophile approaches, the Carbon-Hydrogen bonds move away, and in the transition state, the carbon is pentacoordinate (partially bonded to five atoms) with the bonds in a planar arrangement.
-*   **Stereochemistry**: The product has an inverted configuration relative to the reactant (similar to an umbrella turning inside out).
+*   **Stereochemistry (Walden Inversion)**: The nucleophile attacks from the **back side** of the carbon, causing complete **inversion** of configuration (R → S, S → R). If the starting material is a single enantiomer, only one enantiomer of the product is formed.
 *   **Kinetics**: It is a bimolecular reaction, meaning the rate depends on the concentration of both the alkyl halide and the nucleophile.
 
 **Reactivity and Conditions:**
@@ -44,17 +43,16 @@ export const substitutionElimination: Subject = {
                 {
                     id: 'sn2_reaction',
                     reactants: [
-                        { smiles: 'CCCBr', name: '1-Bromopropane' },
+                        { smiles: 'CC[C@]([H])(C)Br', name: '2-Bromopropane' },
                         { smiles: '[OH-]', name: 'Hydroxide' }
                     ],
                     products: [
-                        { smiles: 'CCCO', name: 'Propan-1-ol', selectivity: 'major', yield: 100 }
+                        { smiles: 'CC[C@H](O)C', name: 'Propan-1-ol', selectivity: 'major', yield: 100 }
                     ],
                     conditions: ''
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'sn1-reaction',
@@ -68,7 +66,7 @@ export const substitutionElimination: Subject = {
     1.  **Slow Step**: The leaving group departs, breaking the Carbon-Halogen bond and forming a carbocation.
     2.  **Fast Step**: The nucleophile adds to the carbocation.
 *   **Solvolysis**: Most Sɴ1 reactions are solvolysis reactions where the solvent acts as the nucleophile (e.g., water or alcohol).
-*   **Stereochemistry**: Because the carbocation intermediate allows attack from either side, the product is formed as a pair of enantiomers (both inverted and retained configurations), resulting in racemization.
+*   **Stereochemistry (Racemization)**: The planar carbocation intermediate can be attacked by the nucleophile from **both faces**. This produces a **racemic mixture** — equal amounts of R and S enantiomers. If the starting material is a single enantiomer, the product is a 50/50 mixture of both enantiomers.
 
 **Reactivity and Conditions:**
 *   **Alkyl Halide Reactivity**: Tertiary > Secondary. Primary alkyl halides generally do not undergo Sɴ1 reactions. The rate depends on the stability of the carbocation formed.
@@ -83,17 +81,17 @@ export const substitutionElimination: Subject = {
                 {
                     id: 'sn1_reaction',
                     reactants: [
-                        { smiles: 'CC(C)(Cl)C', name: 'tert-Butyl chloride' },
+                        { smiles: 'C(C)C(CCC)(Cl)C', name: '' },
                         { smiles: 'O', name: 'Water' }
                     ],
                     products: [
-                        { smiles: 'CC(C)(O)C', name: 'tert-Butyl alcohol', selectivity: 'major', yield: 100 }
+                        { smiles: 'CCC[C@](CC)(O)C', name: '', selectivity: 'equal', yield: 50 },
+                        { smiles: 'CCC[C@@](CC)(O)C', name: '', selectivity: 'equal', yield: 50 }
                     ],
                     conditions: 'solvolysis'
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'e2-reaction',
@@ -132,7 +130,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'e1-reaction',
@@ -169,7 +166,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'intramolecular-substitution',
@@ -202,7 +198,6 @@ export const substitutionElimination: Subject = {
                 }
             ],
             examples: [],
-            rules: []
         },
         {
             id: 'substitution-elimination-summary',
@@ -236,7 +231,6 @@ export const substitutionElimination: Subject = {
 *   In synthesis design (Retrosynthetic Analysis), one works backward from the target molecule to identify the necessary alkyl halide and nucleophile.
             `,
             examples: [],
-            rules: []
         },
         {
             id: 'interactive-prediction',
@@ -248,7 +242,6 @@ export const substitutionElimination: Subject = {
 Use the tool below to predict whether an Sɴ1, Sɴ2, E1, or E2 reaction will occur based on the substrate and conditions.
             `,
             examples: [],
-            rules: [],
             widgetType: 'sn_e_predictor'
         }
     ]

@@ -1,5 +1,5 @@
 import { rdkitService } from './rdkit'
-import { SubSubject } from '../data/curriculum'
+import { Rule } from '../data/curriculum'
 import { LogEntry } from '../components/LogicConsole'
 import { GraphUtils, MoleculeGraph } from './GraphUtils'
 import Graph from 'graphology'
@@ -33,7 +33,7 @@ export interface FunctionalGroup {
 
 interface AnalysisContext {
     smiles: string
-    currentSubSubject: SubSubject
+    currentRules: Rule[]
 
 
     // Output State
@@ -104,7 +104,7 @@ export class LogicEngine {
 
     static analyzeMolecule(
         smiles: string,
-        currentSubSubject: SubSubject
+        currentRules: Rule[]
     ): AnalysisResult {
         // Molecule Bank Check
         if (MOLECULE_BANK[smiles]) {
@@ -117,7 +117,7 @@ export class LogicEngine {
             }
         }
 
-        const ctx = this.initializeContext(smiles, currentSubSubject)
+        const ctx = this.initializeContext(smiles, currentRules)
 
         this.log(ctx, 'Initialization', `Analyzing: ${smiles}`, 'success')
 
@@ -138,10 +138,10 @@ export class LogicEngine {
         return this.buildResult(ctx)
     }
 
-    private static initializeContext(smiles: string, sub: SubSubject): AnalysisContext {
+    private static initializeContext(smiles: string, rules: Rule[]): AnalysisContext {
         return {
             smiles,
-            currentSubSubject: sub,
+            currentRules: rules,
 
             logs: [],
             appliedRuleIds: [],
@@ -408,9 +408,9 @@ export class LogicEngine {
 
     private static determineParentStructure(ctx: AnalysisContext): boolean {
         // --- Step A: Longest Chain / Parent Structure ---
-        const chainRule = ctx.currentSubSubject.rules.find(r => r.logicType === 'longest_chain')
+        const chainRule = ctx.currentRules.find(r => r.logicType === 'longest_chain')
         // Also look for aromatic naming rule
-        const aromaticRule = ctx.currentSubSubject.rules.find(r => r.logicType === 'check_aromatic_naming')
+        const aromaticRule = ctx.currentRules.find(r => r.logicType === 'check_aromatic_naming')
 
         if ((chainRule && chainRule.unlocked) || (aromaticRule && aromaticRule.unlocked)) {
             const activeRule = (aromaticRule && aromaticRule.unlocked) ? aromaticRule : chainRule!
@@ -721,7 +721,7 @@ export class LogicEngine {
         if (validGroups.length === 0) return rootText
 
         const type = validGroups[0].type
-        const rules = ctx.currentSubSubject.rules
+        const rules = ctx.currentRules
         let updatedRoot = rootText
 
         const suffixRules: Record<string, { logic: string, suffix: string, implicitLocant?: boolean }> = {
@@ -988,7 +988,7 @@ export class LogicEngine {
     private static validateSubstituentRules(ctx: AnalysisContext, subIds: number[]): boolean {
         if (subIds.length === 0) return true
 
-        const rules = ctx.currentSubSubject.rules
+        const rules = ctx.currentRules
         const subRule = rules.find(r => r.logicType === 'identify_substituents')
 
         // Single check: if we have atoms outside the main chain, the 'identify_substituents' rule MUST be unlocked
@@ -1391,7 +1391,7 @@ export class LogicEngine {
         return branch[0] // Should not happen
     }
     private static determineNumbering(ctx: AnalysisContext): number[] {
-        const rules = ctx.currentSubSubject.rules
+        const rules = ctx.currentRules
         const numRule = rules.find(r => r.logicType === 'lowest_numbering') || rules.find(r => r.logicType === 'check_lowest_locants')
 
         // Default: 1-based index from 0-based connection index (Raw left-to-right)
@@ -1718,7 +1718,7 @@ export class LogicEngine {
     }
 
     private static finalizeSubstituentGroups(ctx: AnalysisContext): void {
-        const rules = ctx.currentSubSubject.rules
+        const rules = ctx.currentRules
 
         // 5. Group by Name & Naming Parts
         const map = new Map<string, { locants: number[], atomIds: number[] }>()

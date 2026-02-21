@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 
@@ -10,11 +9,6 @@ def sync():
     project_root = os.path.dirname(os.path.dirname(script_dir))
 
     frontend_dir = os.path.join(project_root, "frontend")
-
-    # Destination: backend/reaction_meta_tests.json
-    out_path = os.path.join(
-        project_root, "backend", "tests", "reaction_meta_tests.json"
-    )
 
     print("Syncing reactions using npx tsx...")
 
@@ -31,24 +25,25 @@ def sync():
         print(f"Running command: {' '.join(cmd)} in {frontend_dir}")
         subprocess.run(cmd, cwd=frontend_dir, check=True, shell=is_windows)
 
-        extracted_json_path = os.path.join(frontend_dir, "reaction_data_extracted.json")
-        # Check if file exists
-        if os.path.exists(extracted_json_path):
-            with open(extracted_json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        # Move the extracted file to backend/tests/reaction_meta_tests.json
+        src = os.path.join(frontend_dir, "reaction_data_extracted.json")
+        dst = os.path.join(script_dir, "reaction_meta_tests.json")
 
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
+        import shutil
 
-            print(f"Successfully synced {len(data['examples'])} examples to {out_path}")
+        if os.path.exists(src):
+            # Explicitly remove destination if it exists to ensure overwrite
+            if os.path.exists(dst):
+                try:
+                    os.remove(dst)
+                    print(f"Removed existing destination: {dst}")
+                except OSError as e:
+                    print(f"Error removing {dst}: {e}")
 
-            # Clean up
-            try:
-                os.remove(extracted_json_path)
-            except OSError:
-                pass
+            shutil.move(src, dst)
+            print(f"Moved {src} to {dst}")
         else:
-            print(f"Error: Extracted JSON file not found at {extracted_json_path}")
+            print(f"Error: Extracted file not found at {src}")
 
     except subprocess.CalledProcessError as e:
         print(f"Error running extraction command: {e}")
