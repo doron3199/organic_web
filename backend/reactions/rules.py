@@ -319,6 +319,23 @@ def register_rules():
 
     registry.register(
         ReactionRule(
+            id="alkene_oxidative_ozonolysis",
+            name="Ozonolysis (Oxidative)",
+            rank=21,
+            curriculum_subsubject_id="carboxylic-prep-ozonolysis",
+            reaction_smarts=SmartsEntry(
+                smarts="[C:1]=[C:2].[O-][O+]=O.[OH][OH]>>[C:1](=O)O.[C:2](=O)O",
+                explanation="Ozone cleaves the C=C double bond under oxidative conditions (H₂O₂); hydrogens on double-bond carbons become OH, yielding carboxylic acids instead of aldehydes.",
+            ),
+            reactants_smarts=["[C]=[C]", "[O-][O+]=O", "[OH][OH]"],
+            match_explanation="Alkene + O₃ + H₂O₂ (Oxidative Ozonolysis)",
+            description="Oxidative cleavage of double bond to form Carboxylic Acids.",
+            conditions=[set(["cold"])],
+        )
+    )
+
+    registry.register(
+        ReactionRule(
             id="alkene_hydroxylation",
             name="Syn-Hydroxylation",
             rank=20,

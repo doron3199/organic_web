@@ -29,4 +29,5 @@ export const QUICK_ADD_MOLECULES: Record<string, { smiles: string, label: string
     'pbcl': { smiles: 'ClP(Cl)Cl', label: '🧪 PCl₃', isCondition: true },
     'pcc': { smiles: '[nH+]1ccccc1.[O-][Cr](=O)(=O)Cl', label: '🧪 PCC', isCondition: true },
     'H2CrO4': { smiles: 'O[Cr](=O)(=O)O', label: '🧪 H₂CrO₄', isCondition: true },
+    'H2O2': { smiles: 'OO', label: '🧪 H₂O₂', isCondition: true },
 };

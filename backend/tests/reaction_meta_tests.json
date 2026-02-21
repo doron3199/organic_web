@@ -374,7 +374,8 @@
             ],
             "conditionMolecules": [
                 "[OH-]",
-                "O"
+                "O",
+                "OO"
             ]
         },
         {

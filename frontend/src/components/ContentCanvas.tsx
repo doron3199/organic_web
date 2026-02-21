@@ -61,10 +61,16 @@ function ContentCanvas({
         // Dynamically check for Quick Add Molecules/Reagents in conditions string
         // This avoids hardcoding specific reagents like KMnO4 or H2SO4
         Object.entries(QUICK_ADD_MOLECULES).forEach(([key, molecule]) => {
-            // Check against key (usually simpler, e.g. 'kmno4')
-            const keyMatch = condLower.includes(key.toLowerCase());
-            // Check against label (e.g. 'H₂SO₄' or 'KMnO₄') - strip emoji if needed or just specific substring
-            const labelMatch = conditions.includes(molecule.label.replace(/^[^\w\d\s]+/, '').trim()) || conditions.includes(molecule.label);
+            // Use word-boundary matching to prevent partial matches (e.g. 'h2o' in 'h2o2')
+            const keyEscaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const keyRegex = new RegExp(`(?<![\\w₀₁₂₃₄₅₆₇₈₉])${keyEscaped}(?![\\w₀₁₂₃₄₅₆₇₈₉])`, 'i')
+            const keyMatch = keyRegex.test(conditions)
+
+            // Check against label - strip emoji prefix, then use word-boundary matching
+            const labelText = molecule.label.replace(/^[^\w\d\s]+/, '').trim()
+            const labelEscaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const labelRegex = new RegExp(`(?<![\\w₀₁₂₃₄₅₆₇₈₉])${labelEscaped}(?![\\w₀₁₂₃₄₅₆₇₈₉])`, 'i')
+            const labelMatch = labelRegex.test(conditions)
 
             if (keyMatch || labelMatch) {
                 // Avoid double adding if multiple checks match the same thing, but usually safe
