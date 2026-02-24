@@ -40,7 +40,7 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
         autoAdd?: (string | Record<string, never>)[],
         rank?: number,
         mechanism?: string,  // logic engine mechanism (e.g. "SN2")
-        perMechanism?: { mechanism: string, selectivity: string, organic: string[], inorganic: string[] }[],
+        perMechanism?: { mechanism: string, selectivity: string, organic: string[], inorganic: string[], product_selectivity?: { smiles: string, selectivity: string, note: string }[] }[],
         stepExplanations?: string[]
     }[]>([])
     const [isRunning, setIsRunning] = useState(false)
@@ -410,19 +410,30 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                                 </div>
                                                 <div className="products-layout-container">
                                                     <div className="products-grid main-organic">
-                                                        {mechData.organic.map((smi, idx) => (
-                                                            <div key={idx} className="product-card">
-                                                                <div className="product-img">
-                                                                    <MoleculeViewer smiles={smi} width={140} height={100} readOnly={true} />
+                                                        {mechData.organic.map((smi, idx) => {
+                                                            const prodSel = mechData.product_selectivity?.find(ps => ps.smiles === smi)
+                                                            return (
+                                                                <div key={idx} className="product-card">
+                                                                    <div className="product-img">
+                                                                        <MoleculeViewer smiles={smi} width={140} height={100} readOnly={true} />
+                                                                    </div>
+                                                                    <button
+                                                                        className="btn-small"
+                                                                        onClick={() => handleAddToEditor(smi)}
+                                                                    >
+                                                                        Add to Editor
+                                                                    </button>
+                                                                    {prodSel && (
+                                                                        <div title={prodSel.note || ''}>
+                                                                            <SelectivityChart
+                                                                                type={prodSel.selectivity as any}
+                                                                                label={prodSel.selectivity === 'major' ? 'Major' : 'Minor'}
+                                                                            />
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                                <button
-                                                                    className="btn-small"
-                                                                    onClick={() => handleAddToEditor(smi)}
-                                                                >
-                                                                    Add to Editor
-                                                                </button>
-                                                            </div>
-                                                        ))}
+                                                            )
+                                                        })}
                                                     </div>
                                                     {mechData.inorganic.length > 0 && (
                                                         <div className="byproducts-sidebar">
@@ -445,35 +456,50 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                                     /* Standard single-row display */
                                     <div className="products-layout-container">
                                         <div className="products-grid main-organic">
-                                            {res.products.map((prod, idx) => (
-                                                <div key={idx} className="product-card">
-                                                    <div className="product-img">
-                                                        <MoleculeViewer smiles={prod.smiles} width={140} height={100} readOnly={true} />
-                                                    </div>
-                                                    <button
-                                                        className="btn-small"
-                                                        onClick={() => handleAddToEditor(prod.smiles)}
-                                                    >
-                                                        Add to Editor
-                                                    </button>
-                                                    {prod.nextStep && (
+                                            {res.products.map((prod, idx) => {
+                                                // Look up elimination product selectivity from perMechanism
+                                                const elimSel = res.perMechanism
+                                                    ?.flatMap(pm => pm.product_selectivity || [])
+                                                    ?.find(ps => ps.smiles === prod.smiles)
+                                                return (
+                                                    <div key={idx} className="product-card">
+                                                        <div className="product-img">
+                                                            <MoleculeViewer smiles={prod.smiles} width={140} height={100} readOnly={true} />
+                                                        </div>
                                                         <button
-                                                            className="btn-small btn-continue"
-                                                            style={{ marginTop: '4px', backgroundColor: '#1565c0', color: 'white', border: '1px solid #0d47a1' }}
-                                                            onClick={() => handleContinueReaction(prod.nextStep!.requiredReactants)}
-                                                            title={`Apply next reaction: ${prod.nextStep.ruleName}`}
+                                                            className="btn-small"
+                                                            onClick={() => handleAddToEditor(prod.smiles)}
                                                         >
-                                                            Continue &rarr;
+                                                            Add to Editor
                                                         </button>
-                                                    )}
-                                                    {!['elimination_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(res.reactionId) && (
-                                                        <SelectivityChart
-                                                            type={prod.selectivity as any}
-                                                            label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
-                                                        />
-                                                    )}
-                                                </div>
-                                            ))}
+                                                        {prod.nextStep && (
+                                                            <button
+                                                                className="btn-small btn-continue"
+                                                                style={{ marginTop: '4px', backgroundColor: '#1565c0', color: 'white', border: '1px solid #0d47a1' }}
+                                                                onClick={() => handleContinueReaction(prod.nextStep!.requiredReactants)}
+                                                                title={`Apply next reaction: ${prod.nextStep.ruleName}`}
+                                                            >
+                                                                Continue &rarr;
+                                                            </button>
+                                                        )}
+                                                        {elimSel ? (
+                                                            <div title={elimSel.note || ''}>
+                                                                <SelectivityChart
+                                                                    type={elimSel.selectivity as any}
+                                                                    label={elimSel.selectivity === 'major' ? 'Major' : 'Minor'}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            !['elimination_substitution', 'sn1_reaction', 'sn2_reaction', 'e1_reaction', 'e2_reaction'].includes(res.reactionId) && (
+                                                                <SelectivityChart
+                                                                    type={prod.selectivity as any}
+                                                                    label={prod.selectivity === 'major' ? 'Major' : prod.selectivity === 'minor' ? 'Minor' : 'Mixture'}
+                                                                />
+                                                            )
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
 
                                         {res.byproducts.length > 0 && (

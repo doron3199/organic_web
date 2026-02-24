@@ -2,6 +2,7 @@ import logging
 
 from rdkit import Chem
 
+
 from engine.reaction_logic import run_reaction
 from engine.stereo import apply_sn2_inversion, apply_sn1_racemization
 
@@ -289,6 +290,182 @@ TRANSFORMS = {
         "[C:1]-[C:2][O+H2:3].[O:4].[S](=O)(=O)([OH])[O-]>>[C:1]=[C:2].[O+0:3].[O+:4].[S](=O)(=O)([OH])[O-]",
     ],
 }
+
+
+# --- ELIMINATION SELECTIVITY ---
+
+
+def _get_alkene_substitution_degree(mol):
+    """
+    Count the degree of substitution of the most substituted C=C double bond
+    in `mol`. Returns an integer 0-4 (number of non-H substituents on the
+    two doubly-bonded carbons, excluding the bond to each other).
+    Returns -1 if no C=C is found.
+    """
+    if mol is None:
+        return -1
+    best = -1
+    for bond in mol.GetBonds():
+        if (
+            bond.GetBondTypeAsDouble() == 2.0
+            and bond.GetBeginAtom().GetAtomicNum() == 6
+            and bond.GetEndAtom().GetAtomicNum() == 6
+        ):
+            a1 = bond.GetBeginAtom()
+            a2 = bond.GetEndAtom()
+            # Count non-H neighbors excluding the partner
+            deg = 0
+            for nbr in a1.GetNeighbors():
+                if nbr.GetIdx() != a2.GetIdx() and nbr.GetAtomicNum() != 1:
+                    deg += 1
+            for nbr in a2.GetNeighbors():
+                if nbr.GetIdx() != a1.GetIdx() and nbr.GetAtomicNum() != 1:
+                    deg += 1
+            if deg > best:
+                best = deg
+    return best
+
+
+def _get_ez_label(smi):
+    """
+    Return 'E', 'Z', or None for a SMILES string based on its
+    double-bond stereochemistry.
+    """
+    mol = Chem.MolFromSmiles(smi)
+    if mol is None:
+        return None
+    # Check bond stereo info
+    for bond in mol.GetBonds():
+        if (
+            bond.GetBondTypeAsDouble() == 2.0
+            and bond.GetStereo() != Chem.BondStereo.STEREONONE
+        ):
+            st = bond.GetStereo()
+            if st in (Chem.BondStereo.STEREOTRANS, Chem.BondStereo.STEREOE):
+                return "E"
+            elif st in (Chem.BondStereo.STEREOCIS, Chem.BondStereo.STEREOZ):
+                return "Z"
+    return None
+
+
+def _apply_elimination_selectivity(organic_products, is_bulky_base=False):
+    """
+    Given a list of organic product SMILES from an elimination reaction,
+    apply Zaitsev's Rule (or Hofmann exception) and E/Z preference.
+
+    Returns a list of dicts:
+        [{"smiles": ..., "selectivity": "major"/"minor", "note": "..."}]
+
+    Rules:
+        - Zaitsev (normal base): most substituted alkene = major
+        - Hofmann (bulky base): least substituted alkene = major
+        - E > Z when both stereoisomers are present
+    """
+    if not organic_products:
+        return []
+
+    if len(organic_products) == 1:
+        return [{"smiles": organic_products[0], "selectivity": "major", "note": ""}]
+
+    # Analyse each product
+    product_info = []
+    for smi in organic_products:
+        mol = Chem.MolFromSmiles(smi)
+        deg = _get_alkene_substitution_degree(mol)
+        ez = _get_ez_label(smi)
+        product_info.append({"smiles": smi, "degree": deg, "ez": ez})
+        logger.debug(
+            f"  Elimination product: {smi}  substitution_degree={deg}  E/Z={ez}"
+        )
+
+    # Separate products with alkenes from those without (e.g. byproducts that
+    # slipped into organic)
+    alkene_products = [p for p in product_info if p["degree"] >= 0]
+    non_alkene = [p for p in product_info if p["degree"] < 0]
+
+    if not alkene_products:
+        # No alkenes found — no selectivity to apply
+        return [
+            {"smiles": p["smiles"], "selectivity": "major", "note": ""}
+            for p in product_info
+        ]
+
+    # Check for E/Z isomer pairs (same degree, different E/Z)
+    # Group by degree
+    by_degree = {}
+    for p in alkene_products:
+        by_degree.setdefault(p["degree"], []).append(p)
+
+    # Apply substitution-level selectivity (Zaitsev vs Hofmann)
+    if len(by_degree) > 1:
+        degrees = sorted(by_degree.keys())
+        if is_bulky_base:
+            # Hofmann: least substituted = major
+            best_degree = degrees[0]
+            rule_name = "Hofmann (bulky base → less substituted alkene is major)"
+        else:
+            # Zaitsev: most substituted = major
+            best_degree = degrees[-1]
+            rule_name = "Zaitsev (more substituted alkene is major)"
+
+        logger.debug(
+            f"  Elimination selectivity: {rule_name}, best_degree={best_degree}"
+        )
+
+        results = []
+        for p in alkene_products:
+            if p["degree"] == best_degree:
+                results.append(
+                    {"smiles": p["smiles"], "selectivity": "major", "note": rule_name}
+                )
+            else:
+                results.append(
+                    {"smiles": p["smiles"], "selectivity": "minor", "note": rule_name}
+                )
+        # Add non-alkene products as "minor"
+        for p in non_alkene:
+            results.append({"smiles": p["smiles"], "selectivity": "minor", "note": ""})
+        return results
+
+    # Single degree but possibly multiple stereoisomers (E/Z)
+    if len(alkene_products) > 1:
+        has_e = any(p["ez"] == "E" for p in alkene_products)
+        has_z = any(p["ez"] == "Z" for p in alkene_products)
+        if has_e and has_z:
+            results = []
+            for p in alkene_products:
+                if p["ez"] == "E":
+                    results.append(
+                        {
+                            "smiles": p["smiles"],
+                            "selectivity": "major",
+                            "note": "E (trans) isomer favored (less steric strain)",
+                        }
+                    )
+                elif p["ez"] == "Z":
+                    results.append(
+                        {
+                            "smiles": p["smiles"],
+                            "selectivity": "minor",
+                            "note": "Z (cis) isomer is minor (more steric strain)",
+                        }
+                    )
+                else:
+                    results.append(
+                        {"smiles": p["smiles"], "selectivity": "major", "note": ""}
+                    )
+            for p in non_alkene:
+                results.append(
+                    {"smiles": p["smiles"], "selectivity": "minor", "note": ""}
+                )
+            return results
+
+    # Fallback: all equal
+    results = [
+        {"smiles": p["smiles"], "selectivity": "major", "note": ""}
+        for p in product_info
+    ]
+    return results
 
 
 def classify_substrate(mol):
@@ -802,6 +979,33 @@ def run_substitution_elimination(reactants, conditions):
                 inter_res["explanation"].append(stereo_note)
                 logger.debug(f"    Stereo note ({mech_name}): {stereo_note}")
 
+            # --- Elimination product selectivity (Zaitsev / Hofmann / E-Z) ---
+            elim_product_selectivity = None
+            is_elimination = mech_name in (
+                "E2",
+                "E1",
+                "Alcohol Acid E1",
+                "Alcohol Acid E2",
+            )
+            if is_elimination and len(organic_products) > 1:
+                is_bulky = (
+                    inter_reagent_props.get("bulky", False)
+                    if inter_reagent_props
+                    else False
+                )
+                elim_product_selectivity = _apply_elimination_selectivity(
+                    organic_products, is_bulky_base=is_bulky
+                )
+                elim_notes = set()
+                for ep in elim_product_selectivity:
+                    if ep["note"]:
+                        elim_notes.add(ep["note"])
+                if elim_notes:
+                    inter_res["explanation"].append(
+                        "Elimination selectivity: " + "; ".join(elim_notes) + "."
+                    )
+                logger.debug(f"    Elimination selectivity: {elim_product_selectivity}")
+
             # Collect
             inter_res["organic"].extend(organic_products)
             inter_res["inorganic"].extend(outcome.get("final_inorganic", []))
@@ -827,6 +1031,7 @@ def run_substitution_elimination(reactants, conditions):
                     "organic": organic_products,
                     "inorganic": outcome.get("final_inorganic", []),
                     "stereo_note": stereo_note,
+                    "product_selectivity": elim_product_selectivity,
                 }
             )
 

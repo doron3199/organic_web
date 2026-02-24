@@ -11,6 +11,7 @@ interface Prediction {
     mechanisms: string[]; // e.g., ['SN2'], ['SN1', 'E1']
     major: string | null; // e.g., 'SN2'
     explanation: string;
+    eliminationSelectivity?: string; // e.g., 'Zaitsev product (more substituted alkene)'
 }
 
 const ReactionPredictor: React.FC = () => {
@@ -54,7 +55,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['E2'],
                         major: 'E2',
-                        explanation: 'The base is strong but too bulky to perform a back-side attack (steric hindrance inhibits SN2). Instead, it acts as a base and removes a proton, favoring E2 elimination.'
+                        explanation: 'The base is strong but too bulky to perform a back-side attack (steric hindrance inhibits SN2). Instead, it acts as a base and removes a proton, favoring E2 elimination.',
+                        eliminationSelectivity: 'Hofmann product (less substituted alkene is major — bulky base cannot reach the more hindered β-hydrogen).'
                     };
                 } else {
                     // Primary + Strong Small Nu
@@ -63,7 +65,8 @@ const ReactionPredictor: React.FC = () => {
                         return {
                             mechanisms: ['E2', 'SN2'],
                             major: 'E2',
-                            explanation: 'Although primary, the substrate is sterically hindered (e.g. beta-branching). This hinders back-side attack (SN2), allowing the strong base to favor Elimination (E2).'
+                            explanation: 'Although primary, the substrate is sterically hindered (e.g. beta-branching). This hinders back-side attack (SN2), allowing the strong base to favor Elimination (E2).',
+                            eliminationSelectivity: 'Zaitsev product (more substituted alkene is major).'
                         };
                     }
 
@@ -71,7 +74,8 @@ const ReactionPredictor: React.FC = () => {
                         return {
                             mechanisms: ['E2', 'SN2'],
                             major: 'E2',
-                            explanation: 'While primary substrates usually favor SN2, high temperatures favor Elimination (E2) due to entropy. E2 becomes the major pathway, with SN2 competing.'
+                            explanation: 'While primary substrates usually favor SN2, high temperatures favor Elimination (E2) due to entropy. E2 becomes the major pathway, with SN2 competing.',
+                            eliminationSelectivity: 'Zaitsev product (more substituted alkene is major).'
                         };
                     } else {
                         return {
@@ -99,7 +103,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['E2'],
                         major: 'E2',
-                        explanation: 'Steric hindrance from the bulky base prevents SN2. The strong basicity drives the E2 elimination mechanism.'
+                        explanation: 'Steric hindrance from the bulky base prevents SN2. The strong basicity drives the E2 elimination mechanism.',
+                        eliminationSelectivity: 'Hofmann product (less substituted alkene is major — bulky base).'
                     };
                 }
                 // Small Strong Base/Nu
@@ -111,7 +116,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['E2', 'SN2'],
                         major: 'E2',
-                        explanation: 'The secondary substrate is sterically hindered (e.g. beta-branching). This significant steric bulk inhibits the SN2 back-side attack, causing the strong base to favor Elimination (E2).'
+                        explanation: 'The secondary substrate is sterically hindered (e.g. beta-branching). This significant steric bulk inhibits the SN2 back-side attack, causing the strong base to favor Elimination (E2).',
+                        eliminationSelectivity: 'Zaitsev product (more substituted alkene is major).'
                     };
                 }
 
@@ -119,7 +125,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['E2', 'SN2'],
                         major: 'E2',
-                        explanation: 'Secondary halides with strong bases can undergo both SN2 and E2. High temperatures favor Elimination due to entropy (creating more molecules).'
+                        explanation: 'Secondary halides with strong bases can undergo both SN2 and E2. High temperatures favor Elimination due to entropy (creating more molecules).',
+                        eliminationSelectivity: 'Zaitsev product (more substituted alkene is major).'
                     };
                 } else {
                     return {
@@ -135,7 +142,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['SN1', 'E1'],
                         major: 'E1',
-                        explanation: 'Formation of the carbocation is the rate-limiting step. Once formed, high heat favors the elimination pathway (E1) over substitution.'
+                        explanation: 'Formation of the carbocation is the rate-limiting step. Once formed, high heat favors the elimination pathway (E1) over substitution.',
+                        eliminationSelectivity: 'Zaitsev product (more substituted alkene is major — E1 always follows Zaitsev\'s Rule).'
                     };
                 } else {
                     return {
@@ -155,7 +163,10 @@ const ReactionPredictor: React.FC = () => {
                 return {
                     mechanisms: ['E2'],
                     major: 'E2',
-                    explanation: 'SN2 is impossible due to extreme steric hindrance at the tertiary center. A strong base will remove a beta-proton to cause E2 elimination.'
+                    explanation: 'SN2 is impossible due to extreme steric hindrance at the tertiary center. A strong base will remove a beta-proton to cause E2 elimination.',
+                    eliminationSelectivity: size === 'bulky'
+                        ? 'Hofmann product (less substituted alkene is major — bulky base).'
+                        : 'Zaitsev product (more substituted alkene is major).'
                 };
             } else {
                 // Tertiary + Weak Base -> SN1 / E1
@@ -164,7 +175,8 @@ const ReactionPredictor: React.FC = () => {
                     return {
                         mechanisms: ['SN1', 'E1'],
                         major: 'E1',
-                        explanation: 'The stable tertiary carbocation forms readily. High temperatures favor the elimination (E1) pathway due to entropy.'
+                        explanation: 'The stable tertiary carbocation forms readily. High temperatures favor the elimination (E1) pathway due to entropy.',
+                        eliminationSelectivity: 'Zaitsev product (more substituted alkene is major — E1 always follows Zaitsev\'s Rule).'
                     };
                 } else {
                     return {
@@ -282,6 +294,19 @@ const ReactionPredictor: React.FC = () => {
 
                 <div className="result-explanation">
                     <p>{prediction.explanation}</p>
+                    {prediction.eliminationSelectivity && (
+                        <div style={{
+                            marginTop: '10px',
+                            padding: '10px 14px',
+                            background: 'rgba(96, 165, 250, 0.1)',
+                            border: '1px solid rgba(96, 165, 250, 0.3)',
+                            borderRadius: '6px',
+                            fontSize: '0.9em'
+                        }}>
+                            <span style={{ fontWeight: 600, color: '#60a5fa' }}>🎯 Alkene Selectivity: </span>
+                            {prediction.eliminationSelectivity}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -61,7 +61,10 @@ def example_display_id(example):
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=example_display_id)
 def test_reaction_example(example):
-    test_id = example["id"]
+    test_id = example.get("id")
+    if not test_id:
+        test_id = " + ".join(example.get("reactants", []))
+        print(f"Test ID not found for example: {example}")
 
     reactants = example["reactants"]
     expected_products_raw = example["expected_products"]

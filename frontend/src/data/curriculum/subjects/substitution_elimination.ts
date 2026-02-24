@@ -127,6 +127,32 @@ export const substitutionElimination: Subject = {
                         { smiles: 'CC=C', name: 'Propene', selectivity: 'major', yield: 100 }
                     ],
                     conditions: 'strong_base'
+                },
+                {
+                    id: 'e2_zaitsev_product',
+                    name: 'E2 – Zaitsev Product (Normal Base)',
+                    reactants: [
+                        { smiles: 'CCC(C)(Br)C', name: '2-Bromo-2-methylbutane' },
+                        { smiles: '[O-]CC', name: 'Ethoxide' }
+                    ],
+                    products: [
+                        { smiles: 'CC=C(C)C', name: '2-Methyl-2-butene (trisubstituted)', selectivity: 'major', yield: 70 },
+                        { smiles: 'C=C(C)CC', name: '2-Methyl-1-butene (disubstituted)', selectivity: 'minor', yield: 30 }
+                    ],
+                    conditions: 'strong_base'
+                },
+                {
+                    id: 'e2_hofmann_product',
+                    name: 'E2 – Hofmann Product (Bulky Base)',
+                    reactants: [
+                        { smiles: 'CCC(C)(Br)C', name: '2-Bromo-2-methylbutane' },
+                        { smiles: 'CC(C)(C)[O-]', name: 'tert-Butoxide' }
+                    ],
+                    products: [
+                        { smiles: 'C=C(C)CC', name: '2-Methyl-1-butene (less substituted)', selectivity: 'major', yield: 72 },
+                        { smiles: 'CC=C(C)C', name: '2-Methyl-2-butene (more substituted)', selectivity: 'minor', yield: 28 }
+                    ],
+                    conditions: 'strong_base'
                 }
             ],
             examples: [],
@@ -163,6 +189,119 @@ export const substitutionElimination: Subject = {
                         { smiles: 'CC(C)(O)C', name: 'tert-Butyl alcohol', selectivity: 'major', yield: 80 }
                     ],
                     conditions: 'weak_base'
+                },
+                {
+                    id: 'e1_zaitsev_selectivity',
+                    name: 'E1 – Zaitsev Selectivity',
+                    reactants: [
+                        { smiles: 'CCC(C)(Br)C', name: '2-Bromo-2-methylbutane' },
+                        { smiles: 'O', name: 'Water' }
+                    ],
+                    products: [
+                        { smiles: 'CC=C(C)C', name: '2-Methyl-2-butene (trisubstituted)', selectivity: 'major', yield: 70 },
+                        { smiles: 'C=C(C)CC', name: '2-Methyl-1-butene (disubstituted)', selectivity: 'minor', yield: 30 }
+                    ],
+                    conditions: 'weak_base'
+                }
+            ],
+            examples: [],
+        },
+        {
+            id: 'elimination-selectivity-zaitsev',
+            section: 'Elimination',
+            name: "Zaitsev's Rule",
+            content: `
+### Zaitsev's Rule — The Primary Selectivity Rule
+
+In both E1 and E2 reactions, when multiple β-carbons are available, the **major product** is generally the **most stable alkene**.
+
+**Degree of Substitution:**
+*   Alkene stability increases with the number of alkyl groups attached to the double-bonded carbons.
+*   **Hierarchy**: Tetrasubstituted > Trisubstituted > Disubstituted > Monosubstituted.
+*   **The Rule**: Remove a hydrogen from the **β-carbon bonded to the fewest hydrogens** → this gives the most substituted (most stable) alkene.
+
+**Example**: In the reaction of 2-bromo-2-methylbutane with ethoxide (a non-bulky strong base):
+*   The **trisubstituted** 2-methyl-2-butene (~70%) is favored over the **disubstituted** 2-methyl-1-butene (~30%).
+            `,
+            reactionExamples: [
+                {
+                    id: 'zaitsev_product_normal_base',
+                    name: 'Zaitsev Product (Normal Base)',
+                    reactants: [
+                        { smiles: 'CCC(C)(Br)C', name: '2-Bromo-2-methylbutane' },
+                        { smiles: '[O-]CC', name: 'Ethoxide (non-bulky)' }
+                    ],
+                    products: [
+                        { smiles: 'CC=C(C)C', name: '2-Methyl-2-butene (trisubstituted)', selectivity: 'major', yield: 70 },
+                        { smiles: 'C=C(C)CC', name: '2-Methyl-1-butene (disubstituted)', selectivity: 'minor', yield: 30 }
+                    ],
+                    conditions: 'strong_base'
+                }
+            ],
+            examples: [],
+        },
+        {
+            id: 'elimination-selectivity-ez',
+            section: 'Elimination',
+            name: 'E/Z Stereoselectivity',
+            content: `
+### Stereoselectivity — E vs Z Isomers
+
+When multiple geometric (E/Z) isomers of the product alkene are possible, the reaction favors the isomer with **less steric strain**.
+
+*   **The Rule**: The **E isomer** (trans) is the major product because the largest substituents are on **opposite sides** of the double bond, minimizing repulsion.
+*   The **Z isomer** (cis) is the minor product due to steric interactions between groups on the same side.
+            `,
+            reactionExamples: [
+                {
+                    id: 'ez_stereoselectivity_e_isomer_favored',
+                    name: 'E/Z Stereoselectivity – E Isomer Favored',
+                    reactants: [
+                        { smiles: 'CCC(Br)CC', name: '3-Bromopentane' },
+                        { smiles: '[OH-]', name: 'Hydroxide' }
+                    ],
+                    products: [
+                        { smiles: 'C/C=C/CC', name: 'E-2-Pentene (trans)', selectivity: 'major' },
+                        { smiles: 'C/C=C\\CC', name: 'Z-2-Pentene (cis)', selectivity: 'minor' }
+                    ],
+                    conditions: 'strong_base'
+                }
+            ],
+            examples: [],
+        },
+        {
+            id: 'elimination-selectivity-hofmann',
+            section: 'Elimination',
+            name: 'Hofmann Product (Bulky Bases)',
+            content: `
+### The Exception: Hofmann Product (Bulky Bases)
+
+Zaitsev's Rule can be overruled when steric factors prevent the base from reaching the more substituted β-carbon.
+
+**When Does This Happen?**
+*   When a **bulky base** (e.g., tert-butoxide, (CH₃)₃CO⁻) is used.
+*   The bulky base cannot easily access the more hindered, internal β-hydrogens.
+*   Instead, it removes the **more accessible hydrogen** from the **less substituted** β-carbon.
+
+**The Result**: The **less substituted alkene** (the "Hofmann product") becomes the **major product**.
+
+**Example**: 2-Bromo-2-methylbutane with tert-butoxide:
+*   The **less substituted** 2-methyl-1-butene (~72%) becomes the major product.
+*   The **more substituted** 2-methyl-2-butene (~28%) becomes the minor product.
+            `,
+            reactionExamples: [
+                {
+                    id: 'hofmann_product_bulky_base',
+                    name: 'Hofmann Product (Bulky Base)',
+                    reactants: [
+                        { smiles: 'CCC(C)(Br)C', name: '2-Bromo-2-methylbutane' },
+                        { smiles: 'CC(C)(C)[O-]', name: 'tert-Butoxide (bulky)' }
+                    ],
+                    products: [
+                        { smiles: 'C=C(C)CC', name: '2-Methyl-1-butene (less substituted)', selectivity: 'major', yield: 72 },
+                        { smiles: 'CC=C(C)C', name: '2-Methyl-2-butene (more substituted)', selectivity: 'minor', yield: 28 }
+                    ],
+                    conditions: 'strong_base'
                 }
             ],
             examples: [],

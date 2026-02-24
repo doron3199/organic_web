@@ -892,6 +892,28 @@
             ]
         },
         {
+            "id": "e2_zaitsev_product",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "[O-]CC"
+            ],
+            "expected_products": [
+                "CC=C(C)C",
+                "C=C(C)CC"
+            ]
+        },
+        {
+            "id": "e2_hofmann_product",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "CC(C)(C)[O-]"
+            ],
+            "expected_products": [
+                "C=C(C)CC",
+                "CC=C(C)C"
+            ]
+        },
+        {
             "id": "e1_reaction",
             "reactants": [
                 "CC(C)(Br)C",
@@ -900,6 +922,50 @@
             "expected_products": [
                 "CC(C)=C",
                 "CC(C)(O)C"
+            ]
+        },
+        {
+            "id": "e1_zaitsev_selectivity",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "O"
+            ],
+            "expected_products": [
+                "CC=C(C)C",
+                "C=C(C)CC"
+            ]
+        },
+        {
+            "id": "zaitsev_product_normal_base",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "[O-]CC"
+            ],
+            "expected_products": [
+                "CC=C(C)C",
+                "C=C(C)CC"
+            ]
+        },
+        {
+            "id": "ez_stereoselectivity_e_isomer_favored",
+            "reactants": [
+                "CCC(Br)CC",
+                "[OH-]"
+            ],
+            "expected_products": [
+                "C/C=C/CC",
+                "C/C=C\\CC"
+            ]
+        },
+        {
+            "id": "hofmann_product_bulky_base",
+            "reactants": [
+                "CCC(C)(Br)C",
+                "CC(C)(C)[O-]"
+            ],
+            "expected_products": [
+                "C=C(C)CC",
+                "CC=C(C)C"
             ]
         },
         {

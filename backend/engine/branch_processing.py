@@ -150,9 +150,16 @@ def process_branch_reaction_outcome(
                 )
 
                 # Rearrangement to more stable carbocation is favored → major
-                # ONLY IF parent branch is on major path
+                # ONLY IF parent branch is on major path.
+                # However, if the parent branch was "equal" (not "major"),
+                # the rearrangement can be at most "equal", never "major".
                 rearr_is_major = branch.is_on_major_path
-                rearr_label = "major" if rearr_is_major else "minor"
+                if not rearr_is_major:
+                    rearr_label = "minor"
+                elif branch.selectivity_label == "equal":
+                    rearr_label = "equal"
+                else:
+                    rearr_label = "major"
 
                 all_steps.append(
                     ReactionStepInfo(

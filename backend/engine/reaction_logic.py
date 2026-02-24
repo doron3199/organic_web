@@ -111,6 +111,12 @@ def _apply_step_selectivity(
         for step in siblings:
             if sibling_ranks[step.step_id] == best_overall:
                 step.step_selectivity = winner_label
+                # Restore is_on_major_path for "equal" steps — the
+                # rearrangement fork logic may have demoted the direct
+                # step, but the selectivity ranking says this path is
+                # viable (equal), so it must stay on-major so that its
+                # rearrangement children are evaluated correctly.
+                step.is_on_major_path = True
             else:
                 step.step_selectivity = "minor"
                 step.is_on_major_path = False
@@ -131,6 +137,10 @@ def _apply_step_selectivity(
             # Parent was demoted — rearrangement inherits minor
             rearr.is_on_major_path = False
             rearr.step_selectivity = "minor"
+        elif parent and parent.step_selectivity == "equal":
+            # Parent was "equal" — rearrangement can be at most "equal"
+            if rearr.step_selectivity == "major":
+                rearr.step_selectivity = "equal"
         elif rearr.step_selectivity is None and parent:
             rearr.is_on_major_path = parent.is_on_major_path
 
@@ -460,6 +470,12 @@ def run_reaction(
                     )
                     if not parent.is_on_major_path:
                         branch.selectivity_label = "minor"
+                    elif (
+                        parent.step_selectivity == "equal"
+                        and branch.selectivity_label == "major"
+                    ):
+                        # Cap: a child of an "equal" step cannot be "major"
+                        branch.selectivity_label = "equal"
                     elif branch.selectivity_label is None:
                         branch.selectivity_label = parent.step_selectivity
 
