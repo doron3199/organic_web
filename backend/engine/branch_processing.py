@@ -4,6 +4,7 @@ import logging
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import concurrent.futures
 
 from engine.models import ReactionStepInfo, ReactionBranch
 from engine.carbocation import get_carbocation_stability, get_all_rearrangements
@@ -232,7 +233,15 @@ def process_branch_with_smarts(
     for combo in combinations:
         reactants = tuple(branch.molecules[i] for i in combo)
         try:
-            results = rxn.RunReactants(reactants)
+
+            def _run():
+                return rxn.RunReactants(reactants, maxProducts=1000)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_run)
+                # Timeout after 2 seconds to prevent ReDoS-style hangs
+                results = future.result(timeout=2.0)
+
             for product_tuple in results:
                 # Deduplicate outcomes within this branch execution
                 sig = ".".join(

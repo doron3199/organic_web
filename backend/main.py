@@ -16,7 +16,9 @@ from schemas import (
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from resonance_service import get_resonance_structures as get_resonance_structures_service
+from resonance_service import (
+    get_resonance_structures as get_resonance_structures_service,
+)
 from chirality_service import get_chiral_centers as get_chiral_centers_service
 
 from reactions.rules import register_rules
@@ -70,6 +72,11 @@ app.add_middleware(
 @app.post("/reaction")
 @limiter.limit("10/minute")
 async def execute_reaction(request: Request, data: ReactionRequest):
+    if not data.reactionId and not os.getenv("DEV"):
+        raise HTTPException(
+            status_code=403,
+            detail="Arbitrary SMARTS execution is restricted to DEV environments.",
+        )
     try:
         check_reaction_security(data)
         return execute_single_reaction(

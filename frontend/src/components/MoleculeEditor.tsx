@@ -602,10 +602,20 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
 function renderInteractiveName(result: AnalysisResult) {
     const renderFormattedText = (text: string) => {
-        if (text.includes('<sub>')) {
-            return <span dangerouslySetInnerHTML={{ __html: text }} />
+        if (!text.includes('<sub>')) {
+            return text
         }
-        return text
+        const parts = text.split(/(<sub>.*?<\/sub>)/g)
+        return (
+            <>
+                {parts.map((part, index) => {
+                    if (part.startsWith('<sub>') && part.endsWith('</sub>')) {
+                        return <sub key={index}>{part.slice(5, -6)}</sub>
+                    }
+                    return <span key={index}>{part}</span>
+                })}
+            </>
+        )
     }
 
     if (!result.nameParts || result.nameParts.length === 0) {

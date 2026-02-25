@@ -197,12 +197,14 @@ function ContentCanvas({
                 >
                     🔬 Workbench
                 </button>
-                <button
-                    className={`mode-btn ${mode === 'testing' ? 'active' : ''}`}
-                    onClick={() => onSwitchMode('testing')}
-                >
-                    🚧 Testing
-                </button>
+                {(import.meta.env.DEV) && (
+                    <button
+                        className={`mode-btn ${mode === 'testing' ? 'active' : ''}`}
+                        onClick={() => onSwitchMode('testing')}
+                    >
+                        🚧 Testing
+                    </button>
+                )}
                 <button
                     className={`mode-btn ${mode === 'cheatsheet' ? 'active' : ''}`}
                     onClick={() => onSwitchMode('cheatsheet')}

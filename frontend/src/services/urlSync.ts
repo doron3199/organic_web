@@ -56,7 +56,11 @@ export const urlSync = {
     getMode: (): any => {
         const segments = window.location.pathname.split('/').filter(Boolean);
         const mode = segments.length > 0 ? segments[0] : '';
-        const validModes = ['study', 'workbench', 'cheatsheet', 'testing', 'info'];
+        const validModes = ['study', 'workbench', 'cheatsheet', 'info'];
+        const isLocal = import.meta.env.DEV;
+        if (isLocal) {
+            validModes.push('testing');
+        }
         return validModes.includes(mode) ? mode : 'study';
     },
     getSubject: (): string | null => {

@@ -7,8 +7,8 @@ from schemas import (
     SubstitutionRequest,
 )
 
-MAX_SMILES_LENGTH = 1000
-MAX_SMARTS_LENGTH = 5000
+MAX_SMILES_LENGTH = 500
+MAX_SMARTS_LENGTH = 300
 
 
 def validate_smiles(smiles: str):
