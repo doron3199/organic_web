@@ -11,12 +11,13 @@ import About from './About'
 import { AnalysisResult } from '../services/logicEngine'
 import { AcidComparisonResult } from '../services/acidBase'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
+import { urlSync } from '../services/urlSync'
 import './ContentCanvas.css'
 
 interface ContentCanvasProps {
     subject: Subject
-    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'
-    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about') => void
+    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info'
+    onSwitchMode: (mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info') => void
     workbenchMolecule: string
     originalMolecule?: string
     onWorkbenchChange: (smiles: string) => void
@@ -50,8 +51,8 @@ function ContentCanvas({
     const containerRef = useRef<HTMLDivElement>(null)
     const observerRef = useRef<IntersectionObserver | null>(null)
     const [testSmiles, setTestSmiles] = useState('')
-    const [workbenchConditions, setWorkbenchConditions] = useState<string[]>([])
-    const [initialWorkbenchSubMode, setInitialWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'>('reactions')
+    const [workbenchConditions, setWorkbenchConditions] = useState<string[]>(urlSync.getArrayParam('conditions'))
+    const [initialWorkbenchSubMode, setInitialWorkbenchSubMode] = useState<'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'>((urlSync.getParam('submode') as any) || 'reactions')
 
     const handleExperiment = (smiles: string, conditions: string) => {
         let smilesToLoad = smiles
@@ -200,8 +201,8 @@ function ContentCanvas({
                     🧪 Cheatsheet
                 </button>
                 <button
-                    className={`mode-btn ${mode === 'about' ? 'active' : ''}`}
-                    onClick={() => onSwitchMode('about')}
+                    className={`mode-btn ${mode === 'info' ? 'active' : ''}`}
+                    onClick={() => onSwitchMode('info')}
                 >
                     ℹ️ About
                 </button>
@@ -340,7 +341,7 @@ function ContentCanvas({
                     </div>
                 ) : mode === 'cheatsheet' ? (
                     <Cheatsheet />
-                ) : mode === 'about' ? (
+                ) : mode === 'info' ? (
                     <About />
                 ) : mode === 'testing' ? (
                     <div className="workbench-container fade-in">

@@ -8,6 +8,7 @@ import './MoleculeEditor.css'
 import { AnalysisResult } from '../services/logicEngine'
 import { AcidComparisonResult, compareAcids } from '../services/acidBase'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
+import { urlSync } from '../services/urlSync'
 import MoleculeViewer from './MoleculeViewer'
 
 interface MoleculeEditorProps {
@@ -64,6 +65,9 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
     // State for triggering debugger from reaction panel
     const [triggeredReaction, setTriggeredReaction] = useState<{ id: string, name: string, smarts: string | string[] } | null>(null)
+
+    // State for share button animation
+    const [isCopied, setIsCopied] = useState(false)
 
     // Update molecule if initialMolecule prop changes (e.g. loading new example)
     useEffect(() => {
@@ -127,12 +131,29 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
             setMessage('Refreshed to original molecule')
             setAnalysisResult(null)
             lastInternalSmiles.current = null // Clear tracking on manual reset
-            setCurrentSmiles(initialMolecule || '')
+            const newSmiles = initialMolecule || ''
+            setCurrentSmiles(newSmiles)
             if (initialConditions) setSelectedConditions(initialConditions)
+
+            // Sync immediately manually
+            urlSync.setParams({
+                smiles: newSmiles || null,
+                conditions: initialConditions && initialConditions.length > 0 ? initialConditions.join(',') : null,
+                submode: workbenchSubMode
+            })
         } catch (error) {
             console.error('Reset failed:', error)
         }
     }
+
+    // Continuously sync to URL context when major states change
+    useEffect(() => {
+        urlSync.setParams({
+            smiles: currentSmiles || null,
+            conditions: selectedConditions.length > 0 ? selectedConditions.join(',') : null,
+            submode: workbenchSubMode
+        })
+    }, [currentSmiles, selectedConditions, workbenchSubMode])
 
     const updateCurrentSmiles = async () => {
         if (!ketcherRef.current) return
@@ -280,14 +301,42 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                     <h3>Workbench</h3>
                     <span className="status-text">{message}</span>
                 </div>
-                <button
-                    className="control-btn reset-btn"
-                    onClick={handleReset}
-                    disabled={!isReady}
-                    title="Reset to original structure"
-                >
-                    ↺ Reset
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        className={`control-btn share-btn ${isCopied ? 'copied' : ''}`}
+                        onClick={async () => {
+                            const smiles = await updateCurrentSmiles();
+                            urlSync.setParams({
+                                smiles: smiles || null,
+                                conditions: selectedConditions.length > 0 ? selectedConditions.join(',') : null,
+                                submode: workbenchSubMode
+                            });
+                            navigator.clipboard.writeText(window.location.href);
+                            setMessage('Link copied to clipboard!');
+                            setIsCopied(true);
+                            setTimeout(() => setIsCopied(false), 2000);
+                        }}
+                        disabled={!isReady}
+                        title="Copy to clipboard"
+                        style={{
+                            transition: 'all 0.3s ease',
+                            backgroundColor: isCopied ? '#40c057' : undefined,
+                            color: isCopied ? 'white' : undefined,
+                            borderColor: isCopied ? '#40c057' : undefined,
+                            transform: isCopied ? 'scale(1.05)' : 'scale(1)'
+                        }}
+                    >
+                        {isCopied ? '✅ Copied!' : '🔗 Share'}
+                    </button>
+                    <button
+                        className="control-btn reset-btn"
+                        onClick={handleReset}
+                        disabled={!isReady}
+                        title="Reset to original structure"
+                    >
+                        ↺ Reset
+                    </button>
+                </div>
             </div>
 
             {/* Quick Add Buttons */}

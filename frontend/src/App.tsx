@@ -8,18 +8,19 @@ import { ALL_RULES } from './data/allRules'
 import { rdkitService } from './services/rdkit'
 import { LogicEngine } from './services/logicEngine'
 import { AcidComparisonResult } from './services/acidBase'
+import { urlSync } from './services/urlSync'
 
 function App() {
     // Layout State
     const [currentSubject, setCurrentSubject] = useState<Subject>(initialCurriculum[0])
     const [currentSubSubject, setCurrentSubSubject] = useState<SubSubject>(initialCurriculum[0].subSubjects[0])
-    const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'>('study')
+    const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info'>(urlSync.getMode() as 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info')
 
     // Scroll Control
     const [scrollTargetId, setScrollTargetId] = useState<string | null>(null)
 
     // Workbench State
-    const [workbenchMolecule, setWorkbenchMolecule] = useState<string>('')
+    const [workbenchMolecule, setWorkbenchMolecule] = useState<string>(urlSync.getParam('smiles') || '')
     const [originalMolecule, setOriginalMolecule] = useState<string>('')
     const [appliedRuleIds, setAppliedRuleIds] = useState<string[]>([])
     const [ruleResults, setRuleResults] = useState<Record<string, string>>({})
@@ -34,6 +35,24 @@ function App() {
     useEffect(() => {
         rdkitService.initialize()
     }, [])
+
+    useEffect(() => {
+        urlSync.setMode(mode);
+    }, [mode]);
+
+    useEffect(() => {
+        const handlePopState = () => {
+            const newMode = urlSync.getMode();
+            setMode(newMode as any);
+
+            const newSmiles = urlSync.getParam('smiles');
+            if (newSmiles !== null && newSmiles !== workbenchMolecule) {
+                setWorkbenchMolecule(newSmiles);
+            }
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [workbenchMolecule]);
 
     // Auto-analyze molecule when it changes (debounced)
     useEffect(() => {
@@ -142,7 +161,7 @@ function App() {
         })
     }
 
-    const showRightSidebar = mode !== 'cheatsheet' && mode !== 'study' && mode !== 'about'
+    const showRightSidebar = mode !== 'cheatsheet' && mode !== 'study' && mode !== 'info'
 
     return (
         <div className={`app-container 
@@ -150,7 +169,7 @@ function App() {
             ${!isRightSidebarOpen ? 'right-sidebar-collapsed' : ''} 
             ${mode === 'cheatsheet' ? 'cheatsheet-mode' : ''} 
             ${mode === 'study' ? 'study-mode' : ''}
-            ${mode === 'about' ? 'about-mode' : ''}`}
+            ${mode === 'info' ? 'info-mode' : ''}`}
         >
             {/* Left Sidebar: Curriculum */}
             <div className={`sidebar-left ${!isSidebarOpen ? 'collapsed' : ''}`}>

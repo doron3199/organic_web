@@ -13,7 +13,7 @@ export interface LogEntry {
 }
 
 interface LogicConsoleProps {
-    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'about'
+    mode: 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info'
     allRules?: Rule[] // All system rules (needed for workbench to show unlearned logic)
     appliedRuleIds: string[] // Rules that matched in workbench
     ruleResults: Record<string, string> // Detailed results per rule
