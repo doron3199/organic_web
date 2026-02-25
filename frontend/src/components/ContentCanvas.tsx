@@ -100,14 +100,23 @@ function ContentCanvas({
     // Handle Auto-Scroll to Target
     useEffect(() => {
         if (scrollTargetId && mode === 'study') {
-            // Small delay to ensure any layout shifts/renders are complete
-            const timer = setTimeout(() => {
+            // Delay to ensure any layout shifts/renders (e.g. mathjax, RDKit SVGs) are complete
+            const applyScroll = () => {
                 const el = document.getElementById(`section-${scrollTargetId}`)
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }
-            }, 100)
-            return () => clearTimeout(timer)
+            };
+
+            const t1 = setTimeout(applyScroll, 100);
+            const t2 = setTimeout(applyScroll, 500);
+            const t3 = setTimeout(applyScroll, 1200);
+
+            return () => {
+                clearTimeout(t1);
+                clearTimeout(t2);
+                clearTimeout(t3);
+            }
         }
     }, [scrollTargetId, mode])
 

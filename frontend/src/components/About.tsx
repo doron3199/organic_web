@@ -47,6 +47,19 @@ const About: React.FC = () => {
                 </p>
             </section>
 
+            <section className="about-section privacy-section">
+                <h2>Privacy Policy & Analytics</h2>
+                <p>
+                    We value your privacy. We use <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer">GoatCounter</a> for basic, anonymous traffic analytics.
+                </p>
+                <div className="privacy-details">
+                    <p><strong>What is collected:</strong> We collect non-personally identifiable information such as page views, browser type, and screen size. No personal data or tracking cookies are used.</p>
+                    <p><strong>Purpose:</strong> This data is strictly used to improve the site's performance, stability, and to better understand our users' educational needs.</p>
+                    <p><strong>GDPR & Data Processing:</strong> In compliance with GDPR and to protect our users, we rely on GoatCounter's <a href="https://www.goatcounter.com/help/gdpr" target="_blank" rel="noopener noreferrer">GDPR Compliance</a>, ensuring that all data is handled transparently and securely.</p>
+                    <p>For more details on how the data is handled, please review <a href="https://www.goatcounter.com/help/privacy" target="_blank" rel="noopener noreferrer">GoatCounter's Privacy Policy</a>.</p>
+                </div>
+            </section>
+
             <footer className="about-footer">
                 <div className="subtle-legal">
                     <p>© {new Date().getFullYear()} Organic Chemistry Solver</p>

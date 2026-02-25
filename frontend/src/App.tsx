@@ -11,13 +11,35 @@ import { AcidComparisonResult } from './services/acidBase'
 import { urlSync } from './services/urlSync'
 
 function App() {
+    // Initial Layout State
+    const initialSubjectId = urlSync.getSubject();
+    const initialSubSubjectId = urlSync.getSubSubject();
+
+    let startingSubject = initialCurriculum[0];
+    let startingSubSubject = initialCurriculum[0].subSubjects[0];
+
+    if (initialSubjectId) {
+        const foundSubj = initialCurriculum.find(s => s.id === initialSubjectId);
+        if (foundSubj) {
+            startingSubject = foundSubj;
+            if (initialSubSubjectId) {
+                const foundSub = foundSubj.subSubjects.find(s => s.id === initialSubSubjectId);
+                if (foundSub) {
+                    startingSubSubject = foundSub;
+                }
+            } else {
+                startingSubSubject = foundSubj.subSubjects[0];
+            }
+        }
+    }
+
     // Layout State
-    const [currentSubject, setCurrentSubject] = useState<Subject>(initialCurriculum[0])
-    const [currentSubSubject, setCurrentSubSubject] = useState<SubSubject>(initialCurriculum[0].subSubjects[0])
+    const [currentSubject, setCurrentSubject] = useState<Subject>(startingSubject)
+    const [currentSubSubject, setCurrentSubSubject] = useState<SubSubject>(startingSubSubject)
     const [mode, setMode] = useState<'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info'>(urlSync.getMode() as 'study' | 'workbench' | 'cheatsheet' | 'testing' | 'info')
 
     // Scroll Control
-    const [scrollTargetId, setScrollTargetId] = useState<string | null>(null)
+    const [scrollTargetId, setScrollTargetId] = useState<string | null>(startingSubSubject.id)
 
     // Workbench State
     const [workbenchMolecule, setWorkbenchMolecule] = useState<string>(urlSync.getParam('smiles') || '')
@@ -41,6 +63,12 @@ function App() {
     }, [mode]);
 
     useEffect(() => {
+        if (mode === 'study') {
+            urlSync.setStudyPath(currentSubject.id, currentSubSubject.id);
+        }
+    }, [currentSubject, currentSubSubject, mode]);
+
+    useEffect(() => {
         const handlePopState = () => {
             const newMode = urlSync.getMode();
             setMode(newMode as any);
@@ -48,6 +76,27 @@ function App() {
             const newSmiles = urlSync.getParam('smiles');
             if (newSmiles !== null && newSmiles !== workbenchMolecule) {
                 setWorkbenchMolecule(newSmiles);
+            }
+
+            const subjectId = urlSync.getSubject();
+            const subsubjectId = urlSync.getSubSubject();
+            if (subjectId) {
+                const foundSubj = initialCurriculum.find(s => s.id === subjectId);
+                if (foundSubj) {
+                    setCurrentSubject(foundSubj);
+                    if (subsubjectId) {
+                        const foundSub = foundSubj.subSubjects.find(s => s.id === subsubjectId);
+                        if (foundSub) {
+                            setCurrentSubSubject(foundSub);
+                            setScrollTargetId(null);
+                            setTimeout(() => setScrollTargetId(foundSub.id), 0);
+                        }
+                    } else {
+                        setCurrentSubSubject(foundSubj.subSubjects[0]);
+                        setScrollTargetId(null);
+                        setTimeout(() => setScrollTargetId(foundSubj.subSubjects[0].id), 0);
+                    }
+                }
             }
         };
         window.addEventListener('popstate', handlePopState);
