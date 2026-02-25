@@ -10,6 +10,8 @@ interface ErrorReportModalProps {
 }
 
 export function ErrorReportModal({ isOpen, onClose, reactants, conditions, results }: ErrorReportModalProps) {
+    const isSuggestion = results.length === 0;
+
     const [message, setMessage] = useState('');
     const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
@@ -75,7 +77,7 @@ export function ErrorReportModal({ isOpen, onClose, reactants, conditions, resul
                 },
                 body: JSON.stringify({
                     access_key: accessKey,
-                    subject: '🚨 New Organic Web Error Report',
+                    subject: isSuggestion ? '➕ New Reaction Suggestion' : '🚨 New Organic Web Error Report',
                     from_name: 'Workbench Engine',
                     message: sanitizeInput(message) || '(No additional comments provided)',
                     reactants: reactants,
@@ -101,22 +103,24 @@ export function ErrorReportModal({ isOpen, onClose, reactants, conditions, resul
         <div className="error-modal-overlay" onClick={onClose}>
             <div className="error-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="error-modal-header">
-                    <h3>Report Reaction Error</h3>
+                    <h3 style={{ color: isSuggestion ? '#10b981' : '#ef4444' }}>
+                        {isSuggestion ? '➕ Suggest a new reaction' : '🚨 Report Reaction Error'}
+                    </h3>
                     <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
 
                 {status === 'success' ? (
                     <div className="success-message">
-                        ✅ Error report sent successfully! Thank you.
+                        ✅ {isSuggestion ? 'Suggestion' : 'Error report'} sent successfully! Thank you.
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="error-form">
                         <div className="form-group">
-                            <label>What went wrong? (Optional)</label>
+                            <label>{isSuggestion ? 'What reaction did you expect here? (Optional)' : 'What went wrong? (Optional)'}</label>
                             <textarea
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
-                                placeholder="E.g., It was supposed to be a major Sn2 product, but instead showed E2..."
+                                placeholder={isSuggestion ? "E.g., Addition of HBr should yield..." : "E.g., It was supposed to be a major Sn2 product, but instead showed E2..."}
                                 rows={4}
                                 maxLength={400}
                             />
@@ -151,8 +155,8 @@ export function ErrorReportModal({ isOpen, onClose, reactants, conditions, resul
 
                         <div className="error-modal-actions">
                             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-                            <button type="submit" className="btn-danger" disabled={status === 'submitting'}>
-                                {status === 'submitting' ? 'Sending...' : 'Send Error Report'}
+                            <button type="submit" className={isSuggestion ? "btn-success" : "btn-danger"} disabled={status === 'submitting'}>
+                                {status === 'submitting' ? 'Sending...' : (isSuggestion ? 'Send Suggestion' : 'Send Error Report')}
                             </button>
                         </div>
                     </form>

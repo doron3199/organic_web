@@ -326,10 +326,19 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     <div style={{ marginTop: '20px', textAlign: 'center', paddingBottom: '16px' }}>
                         <button
                             className="btn-report-error"
-                            style={{ backgroundColor: '#dc2626', color: 'white', padding: '8px 16px', fontSize: '0.9rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                            style={{
+                                backgroundColor: results.length === 0 ? '#10b981' : '#dc2626',
+                                color: 'white',
+                                padding: '8px 16px',
+                                fontSize: '0.9rem',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                            }}
                             onClick={() => setShowErrorModal(true)}
                         >
-                            🚨 Report Reaction Error
+                            {results.length === 0 ? '➕ Suggest a new reaction' : '🚨 Report Reaction Error'}
                         </button>
                     </div>
                 )
