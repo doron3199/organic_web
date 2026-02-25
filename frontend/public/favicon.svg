@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="grad-inner" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ede9fe" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="#0b1120" />
+  
+  <g transform="translate(256, 256)">
+    <!-- Outer Hexagon -->
+    <path d="M0,-140 L121.24,-70 L121.24,70 L0,140 L-121.24,70 L-121.24,-70 Z" 
+          fill="none" stroke="url(#grad)" stroke-width="50" stroke-linejoin="round" />
+          
+    <!-- Inner Benzene Bonds (removed) -->
+    
+    <!-- Center Node / Molecule -->
+    <circle cx="0" cy="0" r="36" fill="url(#grad-inner)" />
+  </g>
+</svg>
