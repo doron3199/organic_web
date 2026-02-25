@@ -9,6 +9,7 @@ import CurriculumModal from './CurriculumModal'
 import MoleculeViewer from './MoleculeViewer'
 import SelectivityChart from './SelectivityChart'
 import { ReactionMechanismGraph } from './ReactionMechanismGraph'
+import { ErrorReportModal } from './ErrorReportModal'
 import './ReactionPanel.css'
 
 interface ReactionPanelProps {
@@ -55,6 +56,9 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
     }
     const [mechanismResult, setMechanismResult] = useState<MechanismResult | null>(null)
     const [isMechanismLoading, setIsMechanismLoading] = useState<string | null>(null)
+
+    // Error Reporting Modal State
+    const [showErrorModal, setShowErrorModal] = useState(false)
 
     const handleViewMechanism = async (reactionName: string, smarts: string, autoAdd?: (string | Record<string, never>)[], reactionId?: string) => {
         if (!currentMolecule) return
@@ -318,6 +322,20 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
             }
 
             {
+                searchPerformed && (
+                    <div style={{ marginTop: '20px', textAlign: 'center', paddingBottom: '16px' }}>
+                        <button
+                            className="btn-report-error"
+                            style={{ backgroundColor: '#dc2626', color: 'white', padding: '8px 16px', fontSize: '0.9rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                            onClick={() => setShowErrorModal(true)}
+                        >
+                            🚨 Report Reaction Error
+                        </button>
+                    </div>
+                )
+            }
+
+            {
                 results.length > 0 && (
                     <div className="products-section">
                         {results.map((res, resIdx) => (
@@ -551,6 +569,15 @@ function ReactionPanel({ currentMolecule, onMoleculeUpdate, onRequestSmiles, ini
                     </div>
                 )
             }
+
+            {/* Error Report Modal */}
+            <ErrorReportModal
+                isOpen={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                reactants={currentMolecule}
+                conditions={selectedConditions}
+                results={results}
+            />
         </div >
     )
 }
