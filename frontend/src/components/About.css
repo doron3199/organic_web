@@ -1,5 +1,5 @@
 .about-container {
-    max-width: 900px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 4rem 2rem;
     color: var(--text-primary);
@@ -48,7 +48,8 @@
 }
 
 .about-section {
-    margin-bottom: 4rem;
+    max-width: 900px;
+    margin: 0 auto 4rem auto;
 }
 
 .about-section h2 {
@@ -101,9 +102,35 @@
     text-decoration: underline;
 }
 
+.contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.contact-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.25rem;
+    transition: color 0.2s ease;
+}
+
+.contact-link:hover {
+    color: var(--accent-primary);
+}
+
+.contact-link .icon {
+    font-size: 1.5rem;
+}
+
 .about-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 350px));
+    justify-content: center;
     gap: 2rem;
     margin-bottom: 5rem;
 }
@@ -151,8 +178,10 @@
 
 .subtle-legal {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    gap: 0.5rem;
     font-size: 0.85rem;
     color: var(--text-muted);
 }

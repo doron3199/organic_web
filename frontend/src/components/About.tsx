@@ -46,6 +46,20 @@ const About: React.FC = () => {
                     learners can build a deeper understanding that goes beyond memorization.
                 </p>
             </section>
+            <section className="about-section contact-section">
+                <h2>Contact & Open Source</h2>
+                <p>
+                    Have questions, suggestions, or want to report a bug? Feel free to reach out or contribute to the project.
+                </p>
+                <div className="contact-links">
+                    <a href="https://github.com/doron3199/organic_web/issues" target="_blank" rel="noopener noreferrer" className="contact-link">
+                        <span className="icon">🐛</span> Report a bug or Request a feature
+                    </a>
+                    <a href="https://github.com/doron3199/organic_web" target="_blank" rel="noopener noreferrer" className="contact-link">
+                        <span className="icon">🐙</span> GitHub Repository
+                    </a>
+                </div>
+            </section>
 
             <section className="about-section privacy-section">
                 <h2>Privacy Policy & Analytics</h2>
