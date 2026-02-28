@@ -1,6 +1,5 @@
+/// <reference types="vitest/globals" />
 // vitest.setup.ts
-import { beforeAll } from 'vitest';
-
 async function initNodeRdkit(): Promise<boolean> {
     if (typeof process === 'undefined' || !process.versions?.node) {
         return false;

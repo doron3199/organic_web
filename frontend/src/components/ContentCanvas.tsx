@@ -23,7 +23,7 @@ interface ContentCanvasProps {
     onWorkbenchChange: (smiles: string) => void
     onLoadExample: (smiles: string) => void
     onLoadCompareExample: (smilesA: string, smilesB: string) => void
-    onNameMolecule: (smiles: string) => AnalysisResult
+    onNameMolecule: (smiles: string, chainSelection?: 'pre-2013' | 'post-2013') => AnalysisResult
     onCompareAcids?: (result: AcidComparisonResult) => void
     pendingCompare?: { smilesA: string; smilesB: string } | null
     onCompareSeeded?: () => void

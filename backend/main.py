@@ -140,7 +140,7 @@ async def get_resonance_structures(request: Request, data: ResonanceRequest):
 async def get_chirality(request: Request, data: ChiralityRequest):
     try:
         check_chirality_security(data)
-        return get_chiral_centers_service(data.smiles)
+        return get_chiral_centers_service(data.smiles, data.name, data.locant_map)
     except HTTPException:
         raise
     except Exception as e:

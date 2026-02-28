@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChiralityResult, rdkitService } from '../services/rdkit'
+import { LogicEngine } from '../services/logicEngine'
+import { ALL_RULES } from '../data/allRules'
 import './ChiralDetector.css'
 
 interface ChiralDetectorProps {
@@ -40,7 +42,28 @@ function ChiralDetector({ smiles = '', onDetect, detectDisabled = false, detectN
                     await rdkitService.initialize()
                     if (cancelled) return
 
-                    const result = await rdkitService.detectChiralCenters(smiles)
+                    // Get base name without stereochemistry suffix
+                    const stnResult = LogicEngine.analyzeMolecule(smiles, ALL_RULES)
+                    let baseName: string | undefined = stnResult.name || ''
+                    if (baseName) {
+                        baseName = baseName.replace(' (Stereochemistry not included. Switch to Stereo Mode to view)', '')
+                    }
+                    if (baseName === 'Unknown Molecule' || baseName.startsWith('Unknown Molecule -')) {
+                        baseName = undefined
+                    }
+
+                    const locantMap: Record<number, string> = {}
+                    if (stnResult.locantMap) {
+                        for (const [key, val] of Object.entries(stnResult.locantMap)) {
+                            locantMap[Number(key)] = val.toString()
+                        }
+                    } else if (stnResult.mainChainAtoms) {
+                        stnResult.mainChainAtoms.forEach((atomIdx, index) => {
+                            locantMap[atomIdx] = (index + 1).toString()
+                        })
+                    }
+
+                    const result = await rdkitService.detectChiralCenters(smiles, baseName, locantMap)
                     if (cancelled) return
 
                     if (!result) {
@@ -155,6 +178,11 @@ function ChiralDetector({ smiles = '', onDetect, detectDisabled = false, detectN
                                     <span className="verdict-detail">
                                         {assignedCenters.length} assigned (R/S)
                                     </span>
+                                    {analysis.stereo_name && (
+                                        <div className="stereo-name-result" style={{ marginTop: '10px', fontSize: '1.2em', fontWeight: 'bold', color: '#fff' }}>
+                                            {analysis.stereo_name}
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <>

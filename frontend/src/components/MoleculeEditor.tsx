@@ -10,6 +10,7 @@ import { AcidComparisonResult, compareAcids } from '../services/acidBase'
 import { QUICK_ADD_MOLECULES } from '../services/conditions'
 import { urlSync } from '../services/urlSync'
 import MoleculeViewer from './MoleculeViewer'
+import { ALL_RULES } from '../data/allRules'
 
 interface MoleculeEditorProps {
     onMoleculeChange?: (smiles: string) => void
@@ -17,7 +18,7 @@ interface MoleculeEditorProps {
     initialConditions?: string[]
     initialWorkbenchSubMode?: 'reactions' | 'resonance' | 'aromatic-detector' | 'chiral-detector' | 'compare-acids'
     onBack: () => void
-    onNameMolecule: (smiles: string) => AnalysisResult
+    onNameMolecule: (smiles: string, chainSelection?: 'pre-2013' | 'post-2013') => AnalysisResult
     onCompareAcids?: (result: AcidComparisonResult) => void
     pendingCompare?: { smilesA: string; smilesB: string } | null
     onCompareSeeded?: () => void
@@ -59,6 +60,9 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
     const [compareB, setCompareB] = useState<string | null>(null)
     const [compareResult, setCompareResult] = useState<AcidComparisonResult | null>(null)
     const [compareError, setCompareError] = useState<string | null>(null)
+
+    const [chainSelection, setChainSelection] = useState<'pre-2013' | 'post-2013'>('post-2013')
+    const [isChainSelectionInfoOpen, setIsChainSelectionInfoOpen] = useState(false)
 
     // Lifted State for Reaction Conditions
     const [selectedConditions, setSelectedConditions] = useState<string[]>(initialConditions || [])
@@ -177,7 +181,7 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
             lastInternalSmiles.current = smiles // Track this as internal update
 
-            const result = onNameMolecule(smiles)
+            const result = onNameMolecule(smiles, chainSelection)
             setAnalysisResult(result)
             setMessage('Molecule named!')
         } catch (error) {
@@ -410,7 +414,111 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
 
             {/* Footer Controls */}
             <div className="editor-footer-controls">
-                <div className="button-group">
+                <div className="button-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div className="chain-selection-container" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                className="info-icon-btn"
+                                onClick={() => setIsChainSelectionInfoOpen(!isChainSelectionInfoOpen)}
+                                style={{
+                                    background: 'none',
+                                    border: '1px solid var(--border-color)',
+                                    color: '#ffd43b',
+                                    borderRadius: '50%',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    padding: 0,
+                                    flexShrink: 0
+                                }}
+                                title="Learn more about IUPAC rule changes"
+                            >
+                                !
+                            </button>
+                            <select
+                                value={chainSelection}
+                                onChange={(e) => setChainSelection(e.target.value as 'pre-2013' | 'post-2013')}
+                                style={{
+                                    padding: '8px',
+                                    borderRadius: '4px',
+                                    background: 'var(--bg-tertiary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem'
+                                }}
+                                title="Select IUPAC chain finding rules"
+                            >
+                                <option value="post-2013">Post-2013</option>
+                                <option value="pre-2013">Pre-2013</option>
+                            </select>
+                        </div>
+                        {isChainSelectionInfoOpen && (
+                            <div style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 8px)',
+                                left: 0,
+                                zIndex: 100,
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                padding: '16px',
+                                borderRadius: '8px',
+                                width: '350px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                fontSize: '0.9rem',
+                                color: 'var(--text-primary)',
+                                textAlign: 'left'
+                            }}>
+                                <h4 style={{ margin: '0 0 8px 0', color: '#4dabf7' }}>IUPAC Rules Update</h4>
+                                <p style={{ margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                                    In 2013, IUPAC changed the naming rules for determining the <strong>parent chain</strong> and the <strong>substituents names</strong> and more:
+                                </p>
+                                <p style={{ margin: '0 0 12px 0', lineHeight: 1.4 }}>
+                                    <strong>Post-2013:</strong> The <em>longest continuous carbon chain</em> is strictly selected as the principal chain. In addition, substituents strictly follow systematic PIN names instead of common names (e.g., propan-2-yl instead of isopropyl).
+                                </p>
+                                <p style={{ margin: '0 0 12px 0', lineHeight: 1.4 }}>
+                                    <strong>Pre-2013:</strong> The chain with the <em>maximum number of multiple bonds</em> is selected first, even if a longer saturated chain exists. Common substituent names are widely accepted.
+                                </p>
+                                <p style={{ margin: '0 0 12px 0', lineHeight: 1.4, fontStyle: 'italic', opacity: 0.9 }}>
+                                    Both conventions are still widely taught in chemistry courses globally. You can choose the setting that matches your curriculum or preference.
+                                </p>
+
+                                <div style={{
+                                    marginTop: '12px',
+                                    paddingBottom: '4px',
+                                    borderTop: '1px solid var(--border-color)',
+                                    paddingTop: '12px'
+                                }}>
+                                    <p style={{ margin: '0 0 8px 0', lineHeight: 1.4 }}>
+                                        For a complete list of in-depth rules, please refer to the official documentation:
+                                    </p>
+                                    <a href="https://iupac.qmul.ac.uk/BlueBook/" target="_blank" rel="noopener noreferrer" style={{ color: '#4dabf7', textDecoration: 'underline', fontWeight: 'bold', display: 'inline-block', marginBottom: '12px' }}>
+                                        🔗 IUPAC Blue Book
+                                    </a>
+
+                                    <div style={{
+                                        padding: '10px',
+                                        background: 'rgba(255, 212, 59, 0.1)',
+                                        borderLeft: '3px solid #ffd43b',
+                                        borderRadius: '4px',
+                                        fontSize: '0.85rem'
+                                    }}>
+                                        <p style={{ margin: 0, lineHeight: 1.4, color: '#ffd43b', fontWeight: 'bold' }}>
+                                            ⚠️ Disclaimer
+                                        </p>
+                                        <p style={{ margin: '4px 0 0 0', lineHeight: 1.4, opacity: 0.9 }}>
+                                            The naming engine is an educational tool and may contain errors. It is optimized for the molecules covered on this site.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <button
                         className="action-btn name-btn"
                         onClick={handleNameMoleculeClick}
@@ -531,6 +639,53 @@ function MoleculeEditor({ onMoleculeChange, initialMolecule, initialConditions, 
                     {compareResult && compareResult.winner === 'tie' && (
                         <div className="acid-compare-result">
                             <div className="acid-compare-result-title">Result: Tie</div>
+                        </div>
+                    )}
+
+                    {compareResult && compareResult.appliedRuleIds && compareResult.appliedRuleIds.length > 0 && (
+                        <div className="acid-compare-rules" style={{ marginTop: '32px', textAlign: 'left', width: '100%', maxWidth: '800px', alignSelf: 'center', backgroundColor: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-color)' }}>
+                            <h4 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '20px', color: 'var(--text-primary)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '1.4rem' }}>🧠</span> Applied Logic
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                                {compareResult.appliedRuleIds.map(ruleId => {
+                                    const rule = ALL_RULES.find(r => r.id === ruleId)
+                                    if (!rule) return null
+                                    return (
+                                        <div
+                                            key={rule.id}
+                                            className="logic-rule-card fade-in"
+                                            style={{
+                                                padding: '16px',
+                                                background: 'var(--bg-tertiary)',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255,255,255,0.05)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '8px',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#4dabf7'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)' }}
+                                            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
+                                        >
+                                            <div style={{ fontWeight: '600', color: '#4dabf7', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {rule.name}
+                                            </div>
+                                            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                                {rule.description}
+                                            </div>
+                                            {compareResult.ruleResults[rule.id] && (
+                                                <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.1)', fontSize: '0.9rem', color: '#e0e0e0' }}>
+                                                    <span style={{ color: '#868e96', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Conclusion</span>
+                                                    <div style={{ background: 'rgba(77, 171, 247, 0.1)', padding: '8px 12px', borderRadius: '4px', borderLeft: '3px solid #4dabf7', color: '#fff' }}>
+                                                        {compareResult.ruleResults[rule.id]}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -70,6 +70,7 @@ export interface ChiralityResult {
     chiral_atom_indices: number[]
     is_chiral: boolean
     error?: string
+    stereo_name?: string
 }
 
 class RDKitService {
@@ -491,13 +492,13 @@ class RDKitService {
         }
     }
 
-    async detectChiralCenters(smiles: string): Promise<ChiralityResult | null> {
+    async detectChiralCenters(smiles: string, name?: string, locant_map?: Record<number, string>): Promise<ChiralityResult | null> {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
             const response = await fetch(`${apiUrl}/chirality`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ smiles })
+                body: JSON.stringify({ smiles, name, locant_map })
             })
 
             if (!response.ok) {

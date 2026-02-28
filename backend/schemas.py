@@ -32,3 +32,5 @@ class ResonanceRequest(BaseModel):
 
 class ChiralityRequest(BaseModel):
     smiles: str = Field(..., max_length=500)
+    name: Optional[str] = None
+    locant_map: Optional[dict] = None

@@ -3,6 +3,46 @@ import { LogicEngine } from './logicEngine';
 import { ALL_RULES } from '../data/allRules';
 import { rdkitService } from './rdkit';
 
+const PRE_2013 = 'pre-2013'
+const POST_2013 = 'post-2013'
+const UNKNOWN = 'Unknown Molecule'
+function check(smiles: string, expectedName: string | { [key: string]: string }) {
+    if (expectedName === UNKNOWN) {
+        const res1 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, PRE_2013);
+        const res2 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, POST_2013);
+        expect(res1.name).toEqual(UNKNOWN)
+        expect(res2.name).toEqual(UNKNOWN)
+        expect(res1.isValid).toBeFalsy();
+        expect(res2.isValid).toBeFalsy();
+        return;
+    }
+    if (typeof expectedName === 'string') {
+        const expected = expectedName.toLowerCase();
+        const res1 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, PRE_2013);
+        const res2 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, POST_2013);
+        expect(formatName(res1.name)).toEqual(expected)
+        expect(formatName(res2.name)).toEqual(expected)
+        expect(res1.isValid).toBeTruthy();
+        expect(res2.isValid).toBeTruthy();
+    } else {
+        const expectedPre = expectedName[PRE_2013].toLowerCase();
+        const expectedPost = expectedName[POST_2013].toLowerCase();
+        const res1 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, PRE_2013);
+        const res2 = LogicEngine.analyzeMolecule(smiles, ALL_RULES, POST_2013);
+        expect(formatName(res1.name)).toEqual(expectedPre)
+        expect(formatName(res2.name)).toEqual(expectedPost)
+        expect(res1.isValid).toBeTruthy();
+        expect(res2.isValid).toBeTruthy();
+    }
+}
+
+function formatName(name: string | undefined): string {
+    if (!name) return "";
+    // remove (stereochemistry .. from the name
+    name = name.replace(" (Stereochemistry not included. Switch to Stereo Mode to view)", "");
+    return name.toLowerCase();
+}
+
 describe('LogicEngine IUPAC Rules', () => {
 
     beforeEach(async () => {
@@ -34,15 +74,27 @@ describe('LogicEngine IUPAC Rules', () => {
         "CC(C)(C)CC": "2,2-Dimethylbutane",
         "CC(C)(C)CC(C)C": "2,2,4-Trimethylpentane",
         "CCC(CC(C(C)CC)C)CC": "6-Ethyl-3,4-dimethyloctane",
-        "CCCC(CCC)CCCC": "4-Propyloctane",
+        "CCCC(CCC)CCCC": {
+            "pre-2013": "4-propyloctane",
+            "post-2013": "4-propan-1-yloctane"
+        },
         "CCC(C)CC(CC)CCC": "5-Ethyl-3-methyloctane",
         "CC(CC(CC)C)C": "2,4-Dimethylhexane",
         "CC(C)CCC(CC)(C)CC": "5-Ethyl-2,5-dimethylheptane",
         "CCC(CC)(CC)CCC(CC)C(C)CCC": "3,3,6-Triethyl-7-methyldecane",
         "CC(C)CCC(CC)CCC": "5-Ethyl-2-methyloctane",
-        "CCCC(C(C)C)CCC": "4-Isopropylheptane or 4-(1-methylethyl)heptane",
-        "CCCCCC(CC(C)C)CCCC": "5-Isobutyldecane or 5-(2-methylpropyl)decane",
-        "CCC(CC)CC(C(C)(C)C)CCC": "5-tert-Butyl-3-ethyloctane or 5-(1,1-dimethylethyl)-3-ethyloctane",
+        "CCCC(C(C)C)CCC": {
+            "pre-2013": "4-isopropylheptane or 4-(1-methylethyl)heptane",
+            "post-2013": "4-propan-2-ylheptane"
+        },
+        "CCCCCC(CC(C)C)CCCC": {
+            "pre-2013": "5-isobutyldecane or 5-(2-methylpropyl)decane",
+            "post-2013": "5-(2-methylpropan-1-yl)decane"
+        },
+        "CCC(CC)CC(C(C)(C)C)CCC": {
+            "pre-2013": "5-tert-butyl-3-ethyloctane or 5-(1,1-dimethylethyl)-3-ethyloctane",
+            "post-2013": "3-ethyl-5-(2-methylpropan-2-yl)octane"
+        },
 
         // Halides
         "CCCCCCBr": "1-Bromohexane",
@@ -62,10 +114,8 @@ describe('LogicEngine IUPAC Rules', () => {
     };
 
     Object.entries(alkanes).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names alkanes`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -99,7 +149,10 @@ describe('LogicEngine IUPAC Rules', () => {
         "C1=CCCCCCCC1": "Cyclononene",
         "C1=CCCCCCCCC1": "Cyclodecene",
 
-        "C/C=C/C(C)C": "4-methylpent-2-ene",
+        "C/C=C/C(C)C": {
+            "pre-2013": "4-methylpent-2-ene",
+            "post-2013": "4-methylpent-2-ene"
+        },
         "C/C(/CC)=C/CCC": "3-methylhept-3-ene",
         "C/C(/C)=C/C=C": "4-methylpenta-1,3-diene",
         "CC/C(/C)=C/CC(CC)CC": "6-ethyl-3-methyloct-3-ene",
@@ -115,10 +168,8 @@ describe('LogicEngine IUPAC Rules', () => {
 
     };
     Object.entries(alkenes).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names alkenes`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -143,15 +194,33 @@ describe('LogicEngine IUPAC Rules', () => {
         "CC(C)C#CCCBr": "1-bromo-5-methylhex-3-yne",
         "C/C=C/CCC#C": "hept-5-en-1-yne",
         "C=CCCC#CC": "hept-1-en-5-yne",
-        "C=CC(CCCC)C#CC": "3-butylhex-1-en-4-yne",
+        "C=CC(CCCC)C#CC": {
+            "pre-2013": "3-Butylhex-1-en-4-yne",
+            "post-2013": "4-Ethen-1-yloct-2-yne"
+        },
 
     };
 
     Object.entries(alkynes).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names alkynes`, () => {
+            check(smile, expectedName);
+        });
+    });
+
+    const bluebook_edgecases = {
+        "CCCC(C=C)CCCCC": {
+            "pre-2013": "3-Propyloct-1-ene",
+            "post-2013": "4-Ethen-1-ylnonane"
+        },
+        "C(CCC(/C(=C/C)/C=C)CCCCC)C": {
+            "pre-2013": "3-(1-Butylhexyl)penta-1,3-diene",
+            "post-2013": "5-penta-2,4-dien-3-yldecane"
+        }
+    };
+
+    Object.entries(bluebook_edgecases).forEach(([smile, expectedName]) => {
+        it(`correctly names bluebook edgecases`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -166,10 +235,8 @@ describe('LogicEngine IUPAC Rules', () => {
     };
 
     Object.entries(alcohols).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names alcohols`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -183,10 +250,8 @@ describe('LogicEngine IUPAC Rules', () => {
     };
 
     Object.entries(benzenes).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names benzenes`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -195,16 +260,23 @@ describe('LogicEngine IUPAC Rules', () => {
         "COC": "Dimethyl ether",
         "COCC": "Ethyl methyl ether",
         "CCOCC": "Diethyl ether",
-        "CC(C)OC": "Isopropyl methyl ether",
-        "CC(C)OCC": "Ethyl isopropyl ether",
-        "COC(C)(C)C": "Tert-Butyl methyl ether",
+        "CC(C)OC": {
+            "pre-2013": "isopropyl methyl ether",
+            "post-2013": "methyl propan-2-yl ether"
+        },
+        "CC(C)OCC": {
+            "pre-2013": "ethyl isopropyl ether",
+            "post-2013": "ethyl propan-2-yl ether"
+        },
+        "COC(C)(C)C": {
+            "pre-2013": "tert-butyl methyl ether",
+            "post-2013": "methyl (2-methylpropan-2-yl) ether"
+        },
     };
 
     Object.entries(ethers).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names ethers`, () => {
+            check(smile, expectedName);
         });
     });
 
@@ -218,10 +290,34 @@ describe('LogicEngine IUPAC Rules', () => {
     };
 
     Object.entries(thiols).forEach(([smile, expectedName]) => {
-        it(`correctly names ${smile}`, () => {
-            const res = LogicEngine.analyzeMolecule(smile, ALL_RULES);
-            expect((res.name as string).toLowerCase()).toBe(expectedName.toLowerCase());
-            expect(res.isValid).toBe(true);
+        it(`correctly names thiols`, () => {
+            check(smile, expectedName);
+        });
+    });
+
+
+    const amines = {
+        "CN": "Methanamine",
+        "CCN": "Ethanamine",
+        "CCCN": "Propan-1-amine",
+        "CC(N)C": "Propan-2-amine"
+    };
+
+    Object.entries(amines).forEach(([smile, expectedName]) => {
+        it(`correctly names amines`, () => {
+            check(smile, expectedName);
+        });
+    });
+
+    const others = {
+        'CI': "1-Iodomethane",
+        'CF': "1-fluoromethane",
+        'CNC': UNKNOWN
+    }
+
+    Object.entries(others).forEach(([smile, expectedName]) => {
+        it(`correctly names others`, () => {
+            check(smile, expectedName);
         });
     });
 

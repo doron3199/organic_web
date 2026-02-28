@@ -14,6 +14,8 @@ export interface AnalysisResult {
     ruleResults: Record<string, string> // Map ruleId -> result string
     commonName?: string
     commonNameParts?: NamePart[]
+    mainChainAtoms?: number[]
+    locantMap?: Record<number, number>
 }
 
 export interface NamePart {
@@ -34,7 +36,7 @@ export interface FunctionalGroup {
 interface AnalysisContext {
     smiles: string
     currentRules: Rule[]
-
+    chainSelection: 'pre-2013' | 'post-2013'
 
     // Output State
     logs: LogEntry[]
@@ -48,6 +50,7 @@ interface AnalysisContext {
     commonName?: string
     commonNameParts?: NamePart[]
     commonSubstituentParts: NamePart[]
+    locantMap?: Record<number, number>
 
     // Graph & Topology
     graph: MoleculeGraph
@@ -86,6 +89,7 @@ interface AnalysisContext {
     principalGroup: FunctionalGroup | null // Primary Representative
     principalGroups: FunctionalGroup[] // All identical highest-priority groups (e.g. 2 OH groups)
     isBenzeneParent: boolean
+    hasStereo?: boolean
 }
 
 const MOLECULE_BANK: Record<string, string> = {
@@ -104,7 +108,8 @@ export class LogicEngine {
 
     static analyzeMolecule(
         smiles: string,
-        currentRules: Rule[]
+        currentRules: Rule[],
+        chainSelection: 'pre-2013' | 'post-2013' = 'post-2013'
     ): AnalysisResult {
         // Molecule Bank Check
         if (MOLECULE_BANK[smiles]) {
@@ -117,13 +122,27 @@ export class LogicEngine {
             }
         }
 
-        const ctx = this.initializeContext(smiles, currentRules)
+        const ctx = this.initializeContext(smiles, currentRules, chainSelection)
 
         this.log(ctx, 'Initialization', `Analyzing: ${smiles}`, 'success')
 
         if (!this.validateStructure(ctx)) return this.buildResult(ctx)
 
         this.parseGraph(ctx)
+
+        // Check for unsupported atoms based on test suite
+        const allowedAtoms = ["C", "F", "Br", "Cl", "I", "N", "O", "S", "H"];
+        let hasUnsupportedAtoms = false;
+        ctx.graph.forEachNode((_node: string, attr: any) => {
+            if (!allowedAtoms.includes(attr.element)) {
+                hasUnsupportedAtoms = true;
+            }
+        });
+
+        if (hasUnsupportedAtoms) {
+            this.log(ctx, 'Structure Check', 'Unknown molecule: contains unsupported atoms.', 'checking')
+            ctx.isUnknown = true
+        }
 
         this.detectFunctionalGroups(ctx)
 
@@ -138,10 +157,11 @@ export class LogicEngine {
         return this.buildResult(ctx)
     }
 
-    private static initializeContext(smiles: string, rules: Rule[]): AnalysisContext {
+    private static initializeContext(smiles: string, rules: Rule[], chainSelection: 'pre-2013' | 'post-2013'): AnalysisContext {
         return {
             smiles,
             currentRules: rules,
+            chainSelection,
 
             logs: [],
             appliedRuleIds: [],
@@ -166,7 +186,9 @@ export class LogicEngine {
             functionalGroups: [],
             principalGroup: null,
             principalGroups: [],
-            isBenzeneParent: false
+            isBenzeneParent: false,
+            hasStereo: false,
+            locantMap: {}
         }
     }
 
@@ -184,18 +206,38 @@ export class LogicEngine {
     private static buildResult(ctx: AnalysisContext): AnalysisResult {
         let finalName = ctx.finalName
         if (finalName === 'Unknown Molecule' || ctx.isUnknown) {
-            finalName = `Unknown Molecule - ${ctx.smiles}`
+            finalName = `Unknown Molecule`
+        }
+
+        const nameParts = ctx.isUnknown ? undefined : (ctx.substituentParts.length > 0 || ctx.rootPart ? [...ctx.substituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])] : undefined);
+        let displayCommonName = ctx.isUnknown ? undefined : ctx.commonName;
+        let displayCommonNameParts = ctx.isUnknown ? undefined : ctx.commonNameParts;
+
+        if (ctx.hasStereo && finalName !== 'Unknown Molecule') {
+            const stereoNote = " (Stereochemistry not included. Switch to Stereo Mode to view)";
+            finalName += stereoNote;
+            if (nameParts) {
+                nameParts.push({ text: stereoNote, type: 'separator' });
+            }
+            if (displayCommonName) {
+                displayCommonName += stereoNote;
+            }
+            if (displayCommonNameParts) {
+                displayCommonNameParts.push({ text: stereoNote, type: 'separator' });
+            }
         }
 
         return {
             logs: ctx.logs,
             name: finalName,
-            nameParts: ctx.substituentParts.length > 0 || ctx.rootPart ? [...ctx.substituentParts, ...(ctx.rootPart ? [ctx.rootPart] : [])] : undefined,
+            nameParts: nameParts,
             isValid: ctx.isValid,
             appliedRuleIds: ctx.appliedRuleIds,
             ruleResults: ctx.ruleResults,
-            commonName: ctx.commonName,
-            commonNameParts: ctx.commonNameParts
+            commonName: displayCommonName,
+            commonNameParts: displayCommonNameParts,
+            mainChainAtoms: ctx.mainChainAtoms,
+            locantMap: ctx.locantMap
         }
     }
 
@@ -210,6 +252,51 @@ export class LogicEngine {
             ctx.isValid = false
             return false
         }
+
+        // Check for unsupported features like stereochemistry
+        if (/[@\/\\]/.test(ctx.smiles)) {
+            this.log(ctx, 'Structure Check', 'Stereochemistry detected. This STN engine ignores stereochemical configurations. Name will be generated without R/S or E/Z prefixes.', 'success')
+            ctx.hasStereo = true
+        }
+
+        // Check for charges or radicals
+        if (/\[.*?[-+].*?\]/.test(ctx.smiles)) {
+            this.log(ctx, 'Structure Check', 'Unknown molecule: contains charges or radicals', 'checking')
+            ctx.isUnknown = true
+        }
+
+        // Check for Complex Fused/Bridged Ring Systems using string level analysis
+        let depth = 0;
+        const depthCounts: Record<number, number> = {};
+        let inDigit = false;
+        for (let i = 0; i < ctx.smiles.length; i++) {
+            const char = ctx.smiles[i];
+            if (char === '(') {
+                depth++;
+                inDigit = false;
+            } else if (char === ')') {
+                depth = Math.max(0, depth - 1);
+                inDigit = false;
+            } else if (/\d/.test(char) || char === '%') {
+                if (!inDigit) {
+                    depthCounts[depth] = (depthCounts[depth] || 0) + 1;
+                    inDigit = true;
+                }
+            } else {
+                inDigit = false;
+            }
+        }
+
+        let hasComplexRings = false;
+        for (const count of Object.values(depthCounts)) {
+            if (count > 2) hasComplexRings = true;
+        }
+
+        if (hasComplexRings) {
+            this.log(ctx, 'Structure Check', 'Unknown molecule: complex ring structure found', 'checking')
+            ctx.isUnknown = true
+        }
+
         return true
     }
 
@@ -269,6 +356,35 @@ export class LogicEngine {
                         // Single bond S-C
                         if (bondType === 1) {
                             detectedGroups.push({ type: 'thiol', atomIds: [id, carbonId], isPrincipal: false })
+                        }
+                    }
+                }
+            }
+
+            // Detect Amine (N)
+            if (attr.element === 'N') {
+                const neighbors = ctx.graph.neighbors(node).map(n => parseInt(n))
+                if (neighbors.length === 1) {
+                    const carbonId = neighbors[0]
+                    const carbonAttr = ctx.graph.getNodeAttributes(carbonId.toString())
+                    if (carbonAttr.element === 'C') {
+                        const edge = ctx.graph.edge(node, carbonId.toString())
+                        const bondType = ctx.graph.getEdgeAttribute(edge, 'type')
+                        // Single bond N-C
+                        if (bondType === 1) {
+                            // Check if part of amide
+                            let isAmide = false
+                            ctx.graph.forEachNeighbor(carbonId.toString(), n => {
+                                if (parseInt(n) === id) return
+                                const nAttr = ctx.graph.getNodeAttributes(n)
+                                if (nAttr.element === 'O') {
+                                    const e = ctx.graph.edge(carbonId.toString(), n)
+                                    if (ctx.graph.getEdgeAttribute(e, 'type') === 2) isAmide = true
+                                }
+                            })
+                            if (!isAmide) {
+                                detectedGroups.push({ type: 'amine', atomIds: [id, carbonId], isPrincipal: false })
+                            }
                         }
                     }
                 }
@@ -514,29 +630,47 @@ export class LogicEngine {
                     }
 
                     // Score candidates
-                    let bestC: number[] = []
-                    let maxU = -1
-                    let maxLen = -1
+                    type ChainStats = { chain: number[]; len: number; uCount: number; dCount: number; bestLocants: number[] }
 
-                    candidates.forEach(chain => {
-                        let uCount = 0
-                        const chainSet = new Set(chain)
+                    const getChainStats = (chain: number[]): ChainStats => {
+                        let uCount = 0; let dCount = 0;
+                        const chainSet = new Set(chain);
+                        const unsatsInChain: { type: number, lA: number, lB: number }[] = [];
                         unsaturationEdges.forEach(u => {
-                            if (chainSet.has(u.atoms[0]) && chainSet.has(u.atoms[1])) uCount++
-                        })
-
-                        if (uCount > maxU) {
-                            maxU = uCount
-                            maxLen = chain.length
-                            bestC = chain
-                        } else if (uCount === maxU) {
-                            if (chain.length > maxLen) {
-                                maxLen = chain.length
-                                bestC = chain
+                            if (chainSet.has(u.atoms[0]) && chainSet.has(u.atoms[1])) {
+                                uCount++;
+                                if (u.type === 2) dCount++;
+                                const idx1 = chain.indexOf(u.atoms[0]) + 1;
+                                const idx2 = chain.indexOf(u.atoms[1]) + 1;
+                                unsatsInChain.push({ type: u.type, lA: Math.min(idx1, idx2), lB: Math.min(chain.length - idx1 + 1, chain.length - idx2 + 1) });
                             }
+                        });
+
+                        const locs1 = unsatsInChain.map(u => u.lA).sort((a, b) => a - b);
+                        const locs2 = unsatsInChain.map(u => u.lB).sort((a, b) => a - b);
+
+                        let bestLocants = locs1;
+                        if (LogicEngine.compareLocantSets(locs2, locs1) < 0) bestLocants = locs2;
+
+                        return { chain, len: chain.length, uCount, dCount, bestLocants };
+                    };
+
+                    const stats = candidates.map(getChainStats);
+                    stats.sort((a, b) => {
+                        if (ctx.chainSelection === 'pre-2013') {
+                            if (a.uCount !== b.uCount) return b.uCount - a.uCount;
+                            if (a.len !== b.len) return b.len - a.len;
+                            if (a.dCount !== b.dCount) return b.dCount - a.dCount;
+                            return LogicEngine.compareLocantSets(a.bestLocants, b.bestLocants);
+                        } else {
+                            if (a.len !== b.len) return b.len - a.len;
+                            if (a.uCount !== b.uCount) return b.uCount - a.uCount;
+                            if (a.dCount !== b.dCount) return b.dCount - a.dCount;
+                            return LogicEngine.compareLocantSets(a.bestLocants, b.bestLocants);
                         }
-                    })
-                    bestChain = bestC
+                    });
+
+                    bestChain = stats.length > 0 ? stats[0].chain : [];
                 } else if (ctx.principalGroups.length > 0 && (ctx.principalGroup!.type === 'alcohol' || ctx.principalGroup!.type === 'ketone' || ctx.principalGroup!.type === 'aldehyde' || ctx.principalGroup!.type === 'acid')) {
                     // Find chain containing MAXIMUM number of Principal Groups
                     // If tie, longest chain.
@@ -729,7 +863,8 @@ export class LogicEngine {
             'aldehyde': { logic: 'check_suffix_aldehyde', suffix: 'al', implicitLocant: true },
             'ketone': { logic: 'check_suffix_ketone', suffix: 'one' },
             'acid': { logic: 'check_suffix_acid', suffix: 'oic acid', implicitLocant: true },
-            'thiol': { logic: 'check_suffix_thiol', suffix: 'thiol' }
+            'thiol': { logic: 'check_suffix_thiol', suffix: 'thiol' },
+            'amine': { logic: 'check_suffix_amine', suffix: 'amine' }
         }
 
         const config = suffixRules[type]
@@ -1034,7 +1169,7 @@ export class LogicEngine {
             }
 
             // Analyze topology RECURSIVELY
-            const name = this.resolveSubstituentName(ctx.graph, br, attachId)
+            const name = this.resolveSubstituentName(ctx, ctx.graph, br, attachId)
             return { name, connIdx }
         })
 
@@ -1042,7 +1177,7 @@ export class LogicEngine {
         ctx.branchData = ctx.branchData.filter(b => b.connIdx !== -1)
     }
 
-    private static resolveSubstituentName(fullGraph: MoleculeGraph, branchIds: number[], attachId: number): string {
+    private static resolveSubstituentName(ctx: AnalysisContext, fullGraph: MoleculeGraph, branchIds: number[], attachId: number): string {
         const attachAttr = fullGraph.getNodeAttributes(attachId.toString())
 
         if (attachAttr.element === 'S') {
@@ -1056,7 +1191,7 @@ export class LogicEngine {
             })
 
             if (rId !== -1 && rBranchIds.length > 0) {
-                const alkylName = this.resolveSubstituentName(fullGraph, rBranchIds, rId)
+                const alkylName = this.resolveSubstituentName(ctx, fullGraph, rBranchIds, rId)
                 // Systematically: (alkylsulfanyl)? Or alkylthio.
                 // IUPAC prefers alkylsulfanyl but alkylthio is common.
                 // Let's stick effectively to "Alkylthio" or "Alkylthio"
@@ -1077,7 +1212,7 @@ export class LogicEngine {
             })
 
             if (rId !== -1 && rBranchIds.length > 0) {
-                const alkylName = this.resolveSubstituentName(fullGraph, rBranchIds, rId)
+                const alkylName = this.resolveSubstituentName(ctx, fullGraph, rBranchIds, rId)
 
                 // Contractions for Common/Preferred Names
                 const lower = alkylName.toLowerCase()
@@ -1163,7 +1298,7 @@ export class LogicEngine {
                         if (secAttach !== -1) break
                     }
                     // RECURSE NAME
-                    const name = this.resolveSubstituentName(subgraph, br, secAttach === -1 ? br[0] : secAttach) // recursion!
+                    const name = this.resolveSubstituentName(ctx, subgraph, br, secAttach === -1 ? br[0] : secAttach) // recursion!
                     return { name, atomIds: br, attachTo: secAttach }
                 })
 
@@ -1244,31 +1379,97 @@ export class LogicEngine {
         } else {
             // ACYCLIC SUBSTITUENT
 
-            // Find longest chain STARTING at attachId within the subgraph
-            const chain = this.findLongestChainFrom(subgraph, attachId)
+            // Find principal chain
+            const chain = this.findPrincipalChainFrom(subgraph, attachId, ctx.chainSelection)
             const chainLen = chain.length
 
-            // If simple chain (length == size of subgraph), it's just a straight alkyl
+            // Map atomId -> locant (1-based index in chain)
+            const locMap = new Map<number, number>()
+            chain.forEach((id, i) => locMap.set(id, i + 1))
+
+            // Unsaturation in the acyclic substituent chain
+            const doubleBonds: number[] = []
+            const tripleBonds: number[] = []
+            subgraph.forEachEdge((_edge, attr, source, target) => {
+                const sId = parseInt(source)
+                const tId = parseInt(target)
+                if (locMap.has(sId) && locMap.has(tId)) {
+                    // Check if it's adjacent, otherwise it's a ring or invalid, but we are acyclic
+                    const loc1 = locMap.get(sId)!
+                    const loc2 = locMap.get(tId)!
+                    if (Math.abs(loc1 - loc2) === 1) {
+                        const type = attr.type ? Number(attr.type) : 1
+                        const minLoc = Math.min(loc1, loc2)
+                        if (type === 2) {
+                            doubleBonds.push(minLoc)
+                        } else if (type === 3) {
+                            tripleBonds.push(minLoc)
+                        }
+                    }
+                }
+            })
+
+            doubleBonds.sort((a, b) => a - b)
+            tripleBonds.sort((a, b) => a - b)
+
+            let baseName = this.getAlkylName(chainLen).toLowerCase() // Default purely saturated (e.g. pentyl)
+            const attachLoc = locMap.get(attachId)!
+
+            if (ctx.chainSelection === 'post-2013' && chainLen > 2) {
+                const alkBase = LogicEngine.getAlkaneName(chainLen).toLowerCase().replace(/ane$/, '')
+                baseName = `${alkBase}an-${attachLoc}-yl`
+            }
+
+            if (doubleBonds.length > 0 || tripleBonds.length > 0) {
+                const getQty = (n: number) => n === 1 ? '' : (n === 2 ? 'di' : (n === 3 ? 'tri' : (n === 4 ? 'tetra' : 'poly')))
+                const alkBase = LogicEngine.getAlkaneName(chainLen).toLowerCase().replace(/ane$/, '')
+                let final_name = ''
+                const needsA = (doubleBonds.length > 1 || tripleBonds.length > 1) || (doubleBonds.length > 0 && tripleBonds.length > 0)
+                const modBase = needsA ? alkBase + 'a' : alkBase
+                const ylSuffix = ctx.chainSelection === 'post-2013' ? `-${attachLoc}-yl` : 'yl'
+
+                if (tripleBonds.length === 0) {
+                    const suffix = `${getQty(doubleBonds.length)}en${ylSuffix}`
+                    const locs = doubleBonds.join(',')
+                    if (chainLen === 2 && ctx.chainSelection === 'pre-2013') {
+                        final_name = `${modBase}enyl` // ethenyl
+                    } else if (chainLen === 2 && ctx.chainSelection === 'post-2013') {
+                        final_name = `${modBase}en${ylSuffix}` // ethen-1-yl
+                    } else {
+                        final_name = `${modBase}-${locs}-${suffix}`
+                    }
+                } else if (doubleBonds.length === 0) {
+                    const suffix = `${getQty(tripleBonds.length)}yn${ylSuffix}`
+                    const locs = tripleBonds.join(',')
+                    if (chainLen === 2 && ctx.chainSelection === 'pre-2013') {
+                        final_name = `${modBase}ynyl` // ethynyl
+                    } else if (chainLen === 2 && ctx.chainSelection === 'post-2013') {
+                        final_name = `${modBase}yn${ylSuffix}` // ethyn-1-yl
+                    } else {
+                        final_name = `${modBase}-${locs}-${suffix}`
+                    }
+                } else {
+                    const enLocs = doubleBonds.join(',')
+                    const enPart = `${enLocs}-${getQty(doubleBonds.length)}en`
+                    const ynLocs = tripleBonds.join(',')
+                    const ynPart = `${ynLocs}-${getQty(tripleBonds.length)}yn${ylSuffix}`
+                    final_name = `${modBase}-${enPart}-${ynPart}`
+                }
+                baseName = final_name
+            }
+
             // Verify if there are any atoms NOT in the chain
             const chainSet = new Set(chain)
             const secondarySubs = this.findSubstituentAtoms({ graph: subgraph } as any, chainSet)
-
-            const baseName = this.getAlkylName(chainLen).toLowerCase() // e.g. pentyl
 
             if (secondarySubs.length === 0) {
                 return baseName.charAt(0).toUpperCase() + baseName.slice(1)
             }
 
             // Complex Acyclic
-            // Main Chain is fixed 1..N starting at attachId.
-            // Map atomId -> locant (1-based index in chain)
-            const locMap = new Map<number, number>()
-            chain.forEach((id, i) => locMap.set(id, i + 1))
-
-            // Identify secondary branches
+            // Group redundancy (e.g. 1,1-Dimethyl)
             const secBranches = GraphUtils.getConnectedComponents(subgraph, secondarySubs)
             const secBranchData = secBranches.map(br => {
-                // Find attachment to MAIN CHAIN
                 let secAttach = -1
                 for (const atom of br) {
                     subgraph.forEachNeighbor(atom.toString(), (n) => {
@@ -1276,22 +1477,14 @@ export class LogicEngine {
                     })
                     if (secAttach !== -1) break
                 }
-
-                // RECURSE NAME
-                // internal attachment for the sub-substituent
                 const brAttach = this.findAttachmentInBranch(subgraph, br, secAttach)
-                const name = this.resolveSubstituentName(subgraph, br, brAttach)
-
+                const name = this.resolveSubstituentName(ctx, subgraph, br, brAttach)
                 return { name, atomIds: br, attachTo: secAttach }
             })
 
-            // Sort and Format
             secBranchData.sort((a, b) => LogicEngine.getSortKey(a.name).localeCompare(LogicEngine.getSortKey(b.name)))
 
-            // Group redundancy (e.g. 1,1-Dimethyl)
             const groupedParts: string[] = []
-
-            // Map name -> locants
             const subMap = new Map<string, number[]>()
             secBranchData.forEach(b => {
                 const list = subMap.get(b.name) || []
@@ -1299,31 +1492,18 @@ export class LogicEngine {
                 subMap.set(b.name, list)
             })
 
-            // Sort keys by IUPAC name sort key
-            const keys = Array.from(subMap.keys()).sort((a, b) =>
-                LogicEngine.getSortKey(a).localeCompare(LogicEngine.getSortKey(b))
-            )
+            const keys = Array.from(subMap.keys()).sort((a, b) => LogicEngine.getSortKey(a).localeCompare(LogicEngine.getSortKey(b)))
 
             keys.forEach((k) => {
                 const locs = subMap.get(k)!.sort((a, b) => a - b)
                 const prefixes = ["", "", "Di", "Tri", "Tetra", "Penta", "Hexa", "Hepta", "Octa", "Nona", "Deca"]
                 const prefixCount = prefixes[locs.length] || ""
-
-                // Add separator if not first
                 if (groupedParts.length > 0) groupedParts.push('-')
-
                 groupedParts.push(`${locs.join(',')}-${prefixCount}${k}`)
             })
 
             const prefix = groupedParts.join('')
-
-            // Construct systematic complex name
-            const systematic = `(${prefix}${baseName})`
-
-
-            return systematic
-
-
+            return `(${prefix}${baseName})`
         }
     }
 
@@ -1340,43 +1520,116 @@ export class LogicEngine {
         graph.forEachEdge((_edge: string, _attr: any, source: string, target: string) => {
             if (subset.has(source) && subset.has(target)) {
                 if (!subgraph.hasEdge(source, target))
-                    subgraph.addEdge(source, target)
+                    subgraph.addEdge(source, target, { ..._attr })
             }
         })
         return subgraph
     }
 
 
-    private static findLongestChainFrom(graph: MoleculeGraph, startNode: number): number[] {
-        // DFS to find longest path of Carbons starting at startNode
-        let maxPath: number[] = []
+    private static findPrincipalChainFrom(graph: MoleculeGraph, startNode: number, chainSelection: string): number[] {
+        const allPaths: number[][] = []
 
-        const dfs = (current: number, path: number[], visited: Set<number>) => {
-            const currentPath = [...path, current]
-
-            // Check if leaf (no unvisited neighbors)
-            let isLeaf = true
-            graph.forEachNeighbor(current.toString(), (n) => {
-                const nid = parseInt(n)
-                if (!visited.has(nid)) {
-                    // Assume all atoms in substituent subgraph are carbons for alkyl naming
-                    // If we support other atoms later, check element type here.
-                    isLeaf = false
-                    const newVisited = new Set(visited)
-                    newVisited.add(nid)
-                    dfs(nid, currentPath, newVisited)
-                }
+        if (chainSelection === 'pre-2013') {
+            const dfs = (current: number, path: number[], visited: Set<number>) => {
+                const currentPath = [...path, current]
+                let isLeaf = true
+                graph.forEachNeighbor(current.toString(), (n) => {
+                    const nid = parseInt(n)
+                    const el = graph.getNodeAttribute(n, 'element')
+                    if (!visited.has(nid) && el === 'C') {
+                        isLeaf = false
+                        const newVisited = new Set(visited)
+                        newVisited.add(nid)
+                        dfs(nid, currentPath, newVisited)
+                    }
+                })
+                if (isLeaf) allPaths.push(currentPath)
+            }
+            dfs(startNode, [], new Set([startNode]))
+        } else {
+            const carbonNodes = graph.nodes().filter(n => graph.getNodeAttribute(n, 'element') === 'C').map(Number)
+            const terminals = carbonNodes.filter(n => {
+                let deg = 0
+                graph.forEachNeighbor(n.toString(), (neighbor) => {
+                    if (graph.getNodeAttribute(neighbor, 'element') === 'C') deg++
+                })
+                return deg <= 1
             })
+            const ends = terminals.length > 0 ? terminals : carbonNodes
 
-            if (isLeaf) {
-                if (currentPath.length > maxPath.length) {
-                    maxPath = currentPath
+            const findPath = (u: number, v: number): number[] | null => {
+                const q: { curr: number, path: number[] }[] = [{ curr: u, path: [u] }]
+                const visited = new Set([u])
+                while (q.length > 0) {
+                    const { curr, path } = q.shift()!
+                    if (curr === v) return path
+                    graph.forEachNeighbor(curr.toString(), (n) => {
+                        const nid = parseInt(n)
+                        if (!visited.has(nid) && graph.getNodeAttribute(n, 'element') === 'C') {
+                            visited.add(nid)
+                            q.push({ curr: nid, path: [...path, nid] })
+                        }
+                    })
+                }
+                return null
+            }
+
+            for (let i = 0; i < ends.length; i++) {
+                for (let j = i; j < ends.length; j++) {
+                    const p = findPath(ends[i], ends[j])
+                    if (p && p.includes(startNode)) {
+                        allPaths.push(p)
+                        if (ends[i] !== ends[j]) {
+                            allPaths.push([...p].reverse())
+                        }
+                    }
                 }
             }
         }
 
-        dfs(startNode, [], new Set([startNode]))
-        return maxPath
+        // Find all multiple bonds in the subgraph
+        const unsaturations: { u: number, v: number, type: number }[] = [];
+        graph.forEachEdge((_e, attr, s, t) => {
+            const type = attr.type ? Number(attr.type) : 1;
+            if (type > 1) {
+                unsaturations.push({ u: parseInt(s), v: parseInt(t), type });
+            }
+        });
+
+        const stats = allPaths.map(chain => {
+            let uCount = 0; let dCount = 0;
+            const chainSet = new Set(chain);
+            const locs1: number[] = [];
+            unsaturations.forEach(u => {
+                if (chainSet.has(u.u) && chainSet.has(u.v)) {
+                    uCount++;
+                    if (u.type === 2) dCount++;
+                    const idx1 = chain.indexOf(u.u) + 1;
+                    const idx2 = chain.indexOf(u.v) + 1;
+                    locs1.push(Math.min(idx1, idx2));
+                }
+            });
+            const attachLocant = chain.indexOf(startNode) + 1;
+            return { chain, len: chain.length, uCount, dCount, bestLocants: locs1, attachLocant };
+        });
+
+        stats.sort((a, b) => {
+            if (chainSelection === 'pre-2013') {
+                if (a.uCount !== b.uCount) return b.uCount - a.uCount;
+                if (a.len !== b.len) return b.len - a.len;
+                if (a.dCount !== b.dCount) return b.dCount - a.dCount;
+                return LogicEngine.compareLocantSets(a.bestLocants, b.bestLocants);
+            } else {
+                if (a.len !== b.len) return b.len - a.len;
+                if (a.uCount !== b.uCount) return b.uCount - a.uCount;
+                if (a.dCount !== b.dCount) return b.dCount - a.dCount;
+                if (a.attachLocant !== b.attachLocant) return a.attachLocant - b.attachLocant;
+                return LogicEngine.compareLocantSets(a.bestLocants, b.bestLocants);
+            }
+        });
+
+        return stats.length > 0 ? stats[0].chain : [startNode];
     }
 
     private static findAttachmentInBranch(graph: MoleculeGraph, branch: number[], parentNode: number): number {
@@ -1400,6 +1653,9 @@ export class LogicEngine {
         // If rule is not active and no unsaturations, return default
         if ((!numRule || !numRule.unlocked) && ctx.unsaturations.length === 0) {
             // For simple display without rule enforcement, just return default
+            ctx.mainChainAtoms.forEach((a, idx) => {
+                ctx.locantMap![a] = idx + 1
+            })
             return finalMapping
         }
 
@@ -1671,6 +1927,13 @@ export class LogicEngine {
                 ctx.principalGroups.forEach(g => {
                     g.locant = bestTransform(ctx.mainChainAtoms.indexOf(g.atomIds[1]))
                 })
+                ctx.mainChainAtoms.forEach((a, idx) => {
+                    ctx.locantMap![a] = bestTransform(idx)
+                })
+            } else {
+                ctx.mainChainAtoms.forEach((a, idx) => {
+                    ctx.locantMap![a] = idx + 1
+                })
             }
         }
 
@@ -1937,8 +2200,8 @@ export class LogicEngine {
 
         // Resolve names for these groups
         // We can treat them as substituents attached to Oxygen
-        const name1 = this.resolveSubstituentName(ctx.graph, group1Ids, c1)
-        const name2 = this.resolveSubstituentName(ctx.graph, group2Ids, c2)
+        const name1 = this.resolveSubstituentName(ctx, ctx.graph, group1Ids, c1)
+        const name2 = this.resolveSubstituentName(ctx, ctx.graph, group2Ids, c2)
 
         // Check for common names of substituents (e.g. Isopropyl)
         const common1 = LogicEngine.getCommonSubstituentName(name1.toLowerCase()) || name1

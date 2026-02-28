@@ -65,12 +65,14 @@ This document outlines the strategic roadmap for the **Organic Chemistry Solver*
     - **Rationale:** Move beyond static reaction results to interactive mechanistic steps.
     - **Implementation:** Create a "Mechanism Drawer" supporting curved-arrow notation, electron pair movement, and intermediate state visualization.
 
-### 3.3 Structural Analysis & Projections
+### 3.3 improve the workbench
 - [ ] **Standard Newman projections**
 - [ ] **Newman projections of cyclohexane**
 - [ ] **Fischer projections**
 - [ ] **Dipole moment**
 - [ ] **Determining/Finding the stability of cyclohexane**
+- [X] **include stereochemistry in naming**
+- [ ] **name by the IUPAC blue book https://iupac.qmul.ac.uk/BlueBook/**
 
 ---
 

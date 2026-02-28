@@ -8,6 +8,7 @@ export const ALL_RULES: Rule[] = [
         { id: 'rule-cyclo-naming', name: 'Cyclo Naming', logicType: 'check_cyclo_naming', unlocked: true, smarts: '', description: 'Apply rules for cyclic compounds.', subSubjectId: 'alkanes-step5-cyclo' },
         { id: 'rule-suffix-alcohol', name: 'Alcohol Suffix', logicType: 'check_suffix_alcohol', unlocked: true, smarts: '[OX2H]', description: 'Change the parent suffix to -ol.', subSubjectId: 'alcohols-naming' },
         { id: 'rule-suffix-thiol', name: 'Thiol Suffix', logicType: 'check_suffix_thiol', unlocked: true, smarts: '[SX2H]', description: 'Change the parent suffix to -thiol.', subSubjectId: 'thiols-sulfides' },
+        { id: 'rule-suffix-amine', name: 'Amine Suffix', logicType: 'check_suffix_amine', unlocked: true, smarts: '[NX3;H2,H1,H0]', description: 'Change the parent suffix to -amine.', subSubjectId: 'amines-naming' },
         { id: 'rule-func-priority', name: 'Functional Group Priority', logicType: 'check_functional_priority', unlocked: true, smarts: '', description: 'Prioritize functional groups in numbering.', subSubjectId: 'alcohols-naming' },
         { id: 'acid-compare-site', name: 'Most Acidic Site', unlocked: true, smarts: '', description: 'Identify the most acidic functional group and baseline pKa.', subSubjectId: 'acid-base-strength-factors' },
         { id: 'acid-compare-resonance', name: 'Resonance', unlocked: true, smarts: '', description: 'Delocalization stabilizes the conjugate base and strengthens the acid.', subSubjectId: 'acid-base-strength-factors' },

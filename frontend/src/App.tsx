@@ -51,6 +51,7 @@ function App() {
         appliedRuleIds: string[]
         ruleResults: Record<string, string>
     }>(null)
+    const [workbenchRuleSections, setWorkbenchRuleSections] = useState<{ title: string, appliedRuleIds: string[], ruleResults: Record<string, string>, isUnknown: boolean }[] | null>(null)
     const [pendingCompare, setPendingCompare] = useState<null | { smilesA: string; smilesB: string }>(null)
 
     // Initialize RDKit
@@ -110,13 +111,29 @@ function App() {
                 return
             }
             if (workbenchMolecule) {
-                const result = LogicEngine.analyzeMolecule(workbenchMolecule, ALL_RULES)
-                setAppliedRuleIds(result.appliedRuleIds)
-                setRuleResults(result.ruleResults)
+                const parts = workbenchMolecule.split('.').map(s => s.trim()).filter(Boolean)
+                if (parts.length > 1) {
+                    const sections = parts.map((part, index) => {
+                        const label = `Molecule ${String.fromCharCode(65 + index)}`
+                        const result = LogicEngine.analyzeMolecule(part, ALL_RULES)
+                        const isUnknown = result.name === "Unknown Molecule" || !!result.name?.includes("Unknown Molecule")
+                        return { title: label, appliedRuleIds: isUnknown ? [] : result.appliedRuleIds, ruleResults: isUnknown ? {} : result.ruleResults, isUnknown: isUnknown, name: result.name || "Unknown" }
+                    })
+                    setAppliedRuleIds([])
+                    setRuleResults({})
+                    setWorkbenchRuleSections(sections)
+                } else {
+                    const result = LogicEngine.analyzeMolecule(workbenchMolecule, ALL_RULES)
+                    const isUnknown = result.name === "Unknown Molecule" || !!result.name?.includes("Unknown Molecule")
+                    setAppliedRuleIds(isUnknown ? [] : result.appliedRuleIds)
+                    setRuleResults(isUnknown ? {} : result.ruleResults)
+                    setWorkbenchRuleSections(null)
+                }
                 setWorkbenchAppliedMode('naming')
             } else {
                 setAppliedRuleIds([])
                 setRuleResults({})
+                setWorkbenchRuleSections(null)
                 setWorkbenchAppliedMode(null)
             }
         }, 500)
@@ -171,20 +188,40 @@ function App() {
     }
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
 
-    const handleNameMolecule = (smiles: string) => {
+    const handleNameMolecule = (smiles: string, chainSelection: 'pre-2013' | 'post-2013' = 'post-2013') => {
         setWorkbenchRuleOverride(null)
         setWorkbenchAppliedMode('naming')
-        // Handle multiple molecules (dot-separated)
-        if (smiles.includes('.')) {
-            const parts = smiles.split('.')
-            const names = parts.map((part, index) => {
-                const label = String.fromCharCode(65 + index) // A, B, C...
-                const result = LogicEngine.analyzeMolecule(part, ALL_RULES)
-                return `${label}: ${result.name || "Unknown"}`
+
+        const parts = smiles.split('.').map(s => s.trim()).filter(Boolean)
+
+        if (parts.length > 1) {
+            const sections = parts.map((part, index) => {
+                const label = `Molecule ${String.fromCharCode(65 + index)}`
+                const result = LogicEngine.analyzeMolecule(part, ALL_RULES, chainSelection)
+                const isUnknown = result.name === "Unknown Molecule" || !!result.name?.includes("Unknown Molecule")
+                return {
+                    title: label,
+                    appliedRuleIds: isUnknown ? [] : result.appliedRuleIds,
+                    ruleResults: isUnknown ? {} : result.ruleResults,
+                    isUnknown: isUnknown,
+                    name: result.name || "Unknown"
+                }
             })
-            // Return a dummy result with combined text
+
+            const anyRules = sections.some(s => s.appliedRuleIds.length > 0)
+            if (anyRules) {
+                setIsRightSidebarOpen(true)
+            } else {
+                setIsRightSidebarOpen(false)
+            }
+
+            setAppliedRuleIds([])
+            setRuleResults({})
+            setWorkbenchRuleSections(sections)
+
+            const names = sections.map((s, idx) => `${String.fromCharCode(65 + idx)}: ${s.name}`)
             return {
                 logs: [],
                 name: names.join(',\n'),
@@ -192,21 +229,40 @@ function App() {
                 appliedRuleIds: [],
                 ruleResults: {}
             }
-        }
+        } else {
+            const result = LogicEngine.analyzeMolecule(smiles, ALL_RULES, chainSelection)
+            const isUnknown = result.name === "Unknown Molecule" || !!result.name?.includes("Unknown Molecule")
 
-        const result = LogicEngine.analyzeMolecule(smiles, ALL_RULES)
-        setAppliedRuleIds(result.appliedRuleIds)
-        setRuleResults(result.ruleResults)
-        return result
+            const rulesIds = isUnknown ? [] : result.appliedRuleIds
+            const rulesRes = isUnknown ? {} : result.ruleResults
+
+            if (rulesIds.length > 0) {
+                setIsRightSidebarOpen(true)
+            } else {
+                setIsRightSidebarOpen(false) // Only open if > 0 rules
+            }
+
+            setAppliedRuleIds(rulesIds)
+            setRuleResults(rulesRes)
+            setWorkbenchRuleSections(null)
+
+            return {
+                ...result,
+                appliedRuleIds: rulesIds,
+                ruleResults: rulesRes
+            }
+        }
     }
 
-    const handleCompareAcids = (result: AcidComparisonResult) => {
-        setAppliedRuleIds(result.appliedRuleIds)
-        setRuleResults(result.ruleResults)
+    const handleCompareAcids = (_result: AcidComparisonResult) => {
+        setIsRightSidebarOpen(false)
+        setAppliedRuleIds([])
+        setRuleResults({})
+        setWorkbenchRuleSections(null)
         setWorkbenchAppliedMode('acid-comparison')
         setWorkbenchRuleOverride({
-            appliedRuleIds: result.appliedRuleIds,
-            ruleResults: result.ruleResults
+            appliedRuleIds: [],
+            ruleResults: {}
         })
     }
 
@@ -262,6 +318,7 @@ function App() {
                         appliedMode={workbenchAppliedMode}
                         isOpen={isRightSidebarOpen}
                         onToggle={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                        ruleSections={workbenchRuleSections}
                     />
                 </div>
             )}
